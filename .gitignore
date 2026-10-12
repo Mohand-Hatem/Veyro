@@ -25,3 +25,8 @@ yarn-error.log*
 # OS files
 .DS_Store
 Thumbs.db
+
+# Documentation & Agent Skills
+docs/
+.agent/
+skills/
