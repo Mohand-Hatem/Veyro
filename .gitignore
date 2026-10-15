@@ -26,7 +26,18 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 
-# Documentation & Agent Skills
+# Documentation, design prototypes & agent tooling (local only)
 docs/
+screens/
 .agent/
+.agents/
+.claude/
 skills/
+skills-lock.json
+
+# MCP configuration & browser-automation output
+.mcp.json
+.playwright-mcp/
+
+# Generated knowledge-graph output
+graphify-out/

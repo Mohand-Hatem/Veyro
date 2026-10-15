@@ -22,6 +22,8 @@ model User {
   passwordHash String
   name         String
   avatarUrl    String?
+  isEmailVerified Boolean  @default(false)
+  emailVerifiedAt DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -38,6 +40,8 @@ model User {
   aiUsageReservations     AiUsageReservation[]
   aiConversations         AiConversation[]
   sentWorkspaceInvitations WorkspaceInvitation[] @relation("WorkspaceInviter")
+  otpVerifications        UserOtpVerification[]
+  passwordResetTokens     UserPasswordResetToken[]
 
   @@map("users")
 }
@@ -57,6 +61,50 @@ model UserSession {
   @@index([userId])
   @@index([familyId])
   @@map("user_sessions")
+}
+
+enum OtpPurpose {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+model UserOtpVerification {
+  id                String     @id @default(cuid(2))
+  userId            String
+  email             String
+  codeHash          String
+  purpose           OtpPurpose @default(EMAIL_VERIFICATION)
+  attempts          Int        @default(0)
+  maxAttempts       Int        @default(5)
+  isConsumed        Boolean    @default(false)
+  consumedAt        DateTime?
+  expiresAt         DateTime
+  resendAvailableAt DateTime
+  createdAt         DateTime   @default(now())
+
+  // Relationships
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
+  @@index([email, purpose])
+  @@map("user_otp_verifications")
+}
+
+model UserPasswordResetToken {
+  id        String    @id @default(cuid(2))
+  userId    String
+  tokenHash String    @unique
+  isUsed    Boolean   @default(false)
+  usedAt    DateTime?
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+
+  // Relationships
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@map("user_password_reset_tokens")
 }
 
 // ============================================================================

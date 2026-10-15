@@ -11,7 +11,8 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "prisma:generate": "prisma generate --schema=../prisma/schema.prisma",
+    "prisma:generate": "prisma generate --schema=prisma/schema.prisma",
+    "test": "ts-node --transpile-only test/backend-flows.spec.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

@@ -49,7 +49,17 @@ export class TaskAccessGuard implements CanActivate {
 
     // Anti-Enumeration & Privacy (BR-PRJ-01, DEC-05):
     // If task or parent project does not exist, or is soft-deleted, return 404 Not Found.
-    if (!task || task.deletedAt !== null || task.project.deletedAt !== null) {
+    // Exception: If this is an authorized restoration request, permit soft-deleted tasks to evaluate permissions.
+    const isRestoreRequest = request.url?.includes('/restore') || request.path?.includes('/restore');
+
+    if (!task || task.project.deletedAt !== null) {
+      throw new NotFoundException({
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'The requested task does not exist.',
+      });
+    }
+
+    if (task.deletedAt !== null && !isRestoreRequest) {
       throw new NotFoundException({
         code: 'RESOURCE_NOT_FOUND',
         message: 'The requested task does not exist.',

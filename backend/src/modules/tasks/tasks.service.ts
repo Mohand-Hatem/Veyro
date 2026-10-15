@@ -509,4 +509,139 @@ export class TasksService {
       orderBy: { createdAt: 'asc' },
     });
   }
+
+  async softDeleteTask(
+    userId: string,
+    taskId: string,
+    isProjectAdmin: boolean,
+    isTaskAuthor: boolean,
+  ) {
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      include: {
+        project: {
+          include: {
+            workspace: true,
+          },
+        },
+      },
+    });
+
+    if (!task || task.deletedAt !== null || task.project.deletedAt !== null) {
+      throw new NotFoundException({
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'The requested task does not exist.',
+      });
+    }
+
+    if (!isProjectAdmin && !isTaskAuthor) {
+      throw new ForbiddenException({
+        code: 'PERMISSION_DENIED',
+        message:
+          'Only the task author, project administrators, workspace administrators, or account owners can delete this task.',
+      });
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.task.update({
+        where: { id: taskId },
+        data: { deletedAt: new Date() },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          actorUserId: userId,
+          accountId: task.project.workspace.accountId,
+          workspaceId: task.project.workspaceId,
+          projectId: task.projectId,
+          taskId: task.id,
+          action: 'TASK_DELETED',
+          metadata: {
+            title: task.title,
+            status: task.status,
+          },
+        },
+      });
+    });
+  }
+
+  async restoreTask(
+    userId: string,
+    taskId: string,
+    isProjectAdmin: boolean,
+    isTaskAuthor: boolean,
+  ) {
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      include: {
+        project: {
+          include: {
+            workspace: true,
+          },
+        },
+      },
+    });
+
+    if (!task || task.project.deletedAt !== null) {
+      throw new NotFoundException({
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'The requested task does not exist.',
+      });
+    }
+
+    if (task.deletedAt === null) {
+      throw new BadRequestException({
+        code: 'TASK_NOT_DELETED',
+        message: 'The specified task is already active and cannot be restored.',
+      });
+    }
+
+    if (!isProjectAdmin && !isTaskAuthor) {
+      throw new ForbiddenException({
+        code: 'PERMISSION_DENIED',
+        message:
+          'Only the task author, project administrators, workspace administrators, or account owners can restore this task.',
+      });
+    }
+
+    // Business Constraint: Cannot restore into an archived project
+    if (task.project.lifecycleStatus === ProjectLifecycleStatus.ARCHIVED) {
+      throw new BadRequestException({
+        code: 'PROJECT_ARCHIVED',
+        message: 'Cannot restore task into an archived project.',
+      });
+    }
+
+    // Business Constraint: Cannot restore if project is in billing read-only mode
+    if (task.project.isBillingReadOnly) {
+      throw new ForbiddenException({
+        code: 'PROJECT_BILLING_READ_ONLY',
+        message: 'This project is in read-only mode due to subscription capacity constraints.',
+      });
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const restored = await tx.task.update({
+        where: { id: taskId },
+        data: { deletedAt: null },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          actorUserId: userId,
+          accountId: task.project.workspace.accountId,
+          workspaceId: task.project.workspaceId,
+          projectId: task.projectId,
+          taskId: task.id,
+          action: 'TASK_RESTORED',
+          metadata: {
+            title: task.title,
+            status: task.status,
+          },
+        },
+      });
+
+      return restored;
+    });
+  }
 }

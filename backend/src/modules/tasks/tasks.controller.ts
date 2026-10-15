@@ -3,6 +3,7 @@ import {
   Post,
   Get,
   Patch,
+  Delete,
   Body,
   Param,
   Query,
@@ -93,5 +94,37 @@ export class TasksController {
   @UseGuards(TaskAccessGuard)
   async listTaskComments(@Param('id') taskId: string) {
     return this.tasksService.listTaskComments(taskId);
+  }
+
+  @Delete('tasks/:id')
+  @UseGuards(TaskAccessGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteTask(
+    @CurrentUser('id') userId: string,
+    @Param('id') taskId: string,
+    @Req() req: any,
+  ) {
+    return this.tasksService.softDeleteTask(
+      userId,
+      taskId,
+      Boolean(req.isProjectAdmin),
+      Boolean(req.isTaskAuthor),
+    );
+  }
+
+  @Post('tasks/:id/restore')
+  @UseGuards(TaskAccessGuard)
+  @HttpCode(HttpStatus.OK)
+  async restoreTask(
+    @CurrentUser('id') userId: string,
+    @Param('id') taskId: string,
+    @Req() req: any,
+  ) {
+    return this.tasksService.restoreTask(
+      userId,
+      taskId,
+      Boolean(req.isProjectAdmin),
+      Boolean(req.isTaskAuthor),
+    );
   }
 }

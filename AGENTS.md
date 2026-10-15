@@ -27,11 +27,13 @@ Veyro is developed strictly through sequential, ordered phases. Each phase conta
    *Status: COMPLETED & APPROVED (`v1.5.2`).*  
    Locked specifications defining product brief, roles, business rules, and architectural decisions in `docs/`.
 2. **Phase 2 — System Design & Architecture:**  
-   *Status: PLANNED (Awaiting explicit start request).*  
+   *Status: COMPLETED (`docs/04`–`docs/06`).*  
    Data modeling, ERD, entity relationships, API contracts, sequence diagrams, and justified architecture decision records (ADRs).
 3. **Phase 3 — Backend Development:**  
+   *Status: COMPLETED (typecheck clean, 14/14 backend flow tests passing).*  
    Build the NestJS modular monolith backend in small, testable, gated steps, adhering strictly to approved contracts.
 4. **Phase 4 — Frontend Development:**  
+   *Status: IN PROGRESS — Frontend Design Gate (`design.md` and `docs/07` awaiting approval; no Next.js app yet).*  
    Build the Next.js App Router frontend consuming verified, implemented backend APIs after passing the Mandatory Frontend Design Gate.
 5. **Phase 5 — Integration, Security & Quality:**  
    End-to-end workflow verification, tenant isolation stress-testing, automated RBAC testing, reliability, and performance benchmarks.
@@ -66,9 +68,9 @@ Before starting the Frontend Development phase (Phase 4 screen implementation), 
 
 ### Active Frontend Skills Suite & Intelligence:
 During Phase 4 design and screen implementation, the agent must actively leverage and synthesize:
-1. **`/impeccable` (`C:\Users\Mohand\.gemini\config\skills\impeccable\SKILL.md`):** Directs award-winning craft, visual hierarchy, information architecture, cognitive load, accessibility (WCAG AA), responsive behavior, and refined micro-interactions.
-2. **`/design-taste-frontend` (`C:\Users\Mohand\.gemini\config\skills\design-taste-frontend\SKILL.md`):** Enforces anti-slop frontend taste, reads the room for B2B SaaS workspaces, delivers Linear/Raycast/Vercel-level polish, and bans generic AI-default templates and empty aesthetics.
-3. **`/ui-ux-pro-max` (`C:\Users\Mohand\.gemini\config\skills\ui-ux-pro-max\SKILL.md`):** Supplies UI/UX design intelligence, reasoned color palettes, harmonious font pairings, data-dense layout principles, and 119 UX guidelines.
+1. **`/impeccable` (`~/.claude/skills/impeccable/SKILL.md`):** Directs award-winning craft, visual hierarchy, information architecture, cognitive load, accessibility (WCAG AA), responsive behavior, and refined micro-interactions.
+2. **`/design-taste-frontend` (`.claude/skills/design-taste-frontend/SKILL.md`):** Enforces anti-slop frontend taste, reads the room for B2B SaaS workspaces, delivers Linear/Raycast/Vercel-level polish, and bans generic AI-default templates and empty aesthetics.
+3. **`/ui-ux-pro-max` (Claude Code plugin `ui-ux-pro-max@ui-ux-pro-max-skill`):** Supplies UI/UX design intelligence, reasoned color palettes, harmonious font pairings, data-dense layout principles, and 119 UX guidelines.
 4. **`TypeUI MCP` (`https://mcp.typeui.sh/mcp`):** Configured component registry MCP for discovering, inspecting, and adopting high-fidelity, accessible, production-grade UI component primitives and patterns.
 
 ### Authoritative Deliverable: `design.md`
@@ -221,8 +223,8 @@ Every meaningful task must strictly follow this sequential cycle:
 ## 11. Current Project Status & Boundaries
 
 - **Phase 1 Baseline:** **LOCKED & APPROVED** by the User at version `1.5.2` on October 11, 2026 (`docs/01-PROJECT-BRIEF.md`, `docs/02-USER-ROLES-AND-FLOWS.md`, `docs/03-BUSINESS-RULES.md`, `docs/DECISIONS-TO-APPROVE.md`).
-- **Phase 2 (System Design & Architecture):** Must **NOT** begin until the User explicitly requests it and approves the Phase 2 plan.
-- **Authorization Limit:** No source code, Prisma schema, ERD, API contract generation, frontend screen, or external service configuration is authorized by this workflow document update.
+- **Phases 2 & 3:** Completed. Backend source of truth is `backend/prisma/schema.prisma` (the former root `prisma/` duplicate was removed).
+- **Phase 4 (Current):** At the Frontend Design Gate. Do not scaffold the Next.js app or implement screens until `design.md` is explicitly approved. Next review target: the landing page (`screens/groups/01-public-marketing`).
 
 ---
 
