@@ -1,0 +1,63 @@
+/* How it works guide (SCR-HLP-01), ported from screens/shared/guide.css (Parity Gate). */
+.gd-page { --g-card: var(--card, var(--surface, #fff)); --g-pill: var(--pill, var(--surface, #fff)); --g-inset: var(--inset, var(--bg-tint, #eee)); --g-ink: var(--ink, #18181B); --g-muted: var(--muted, #52525B); --g-line: var(--line, rgba(24, 24, 27, 0.1)); --g-brand: var(--brand, #C2410C);
+  display: grid; gap: 22px; max-width: 1200px; margin-inline: auto; color: var(--g-ink); }
+.gd-page :where(h1, h2, h3, p, ul, ol) { margin: 0; padding: 0; }
+.gd-page :where(ul, ol) { list-style: none; }
+
+/* hero */
+.gd-hero { display: grid; gap: 14px; padding: clamp(8px, 2vw, 20px) 0 4px; }
+.gd-hero h1 { font-size: clamp(2rem, 4.5vw, 3.25rem); letter-spacing: -0.045em; line-height: 1.05; }
+.gd-hero > p { color: var(--g-muted); font-size: 1.0625rem; max-width: 62ch; }
+.gd-pick { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 6px; }
+.gd-pick > span { color: var(--g-muted); font-size: 0.8125rem; font-weight: 700; }
+.gd-seg { display: inline-flex; background: var(--g-pill); border-radius: 9999px; padding: 3px; flex-wrap: wrap; }
+.gd-seg button { border: 0; background: transparent; color: var(--g-muted); font: inherit; font-weight: 700; font-size: 0.8125rem; min-height: 38px; padding: 0 16px; border-radius: 9999px; cursor: pointer; transition: background 150ms ease, color 150ms ease; }
+.gd-seg button[aria-checked="true"] { background: var(--g-ink); color: var(--canvas, var(--bg, #fff)); }
+.gd-toc { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.gd-toc a { display: inline-flex; align-items: center; gap: 8px; background: var(--g-card); border-radius: 9999px; padding: 7px 14px 7px 8px; font-size: 0.8125rem; font-weight: 700; text-decoration: none; transition: background 150ms ease; }
+.gd-toc a i { font-style: normal; width: 22px; height: 22px; border-radius: 50%; background: var(--g-ink); color: var(--canvas, var(--bg, #fff)); display: grid; place-items: center; font-size: 0.6875rem; }
+.gd-toc a:hover { background: var(--g-pill); }
+[dir="rtl"] .gd-toc a { padding: 7px 8px 7px 14px; }
+
+/* a section: text on one side, its own illustration on the other (the same pattern as the audit trail hero) */
+.gd-sec.il-scene { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); align-items: center; justify-content: stretch; gap: 28px; border-radius: 24px; padding: clamp(22px, 3.5vw, 44px); scroll-margin-top: 84px; }
+.gd-sec.is-flip .gd-ill { order: -1; }
+.gd-txt { display: grid; gap: 12px; align-content: center; min-width: 0; }
+.gd-n { font-size: 0.8125rem; font-weight: 800; letter-spacing: 0.12em; color: var(--il-brand); }
+.gd-txt h2 { font-size: clamp(1.5rem, 2.6vw, 2.125rem); letter-spacing: -0.04em; line-height: 1.1; }
+.gd-lead { opacity: 0.8; font-size: 1.0625rem; max-width: 52ch; }
+.gd-bl { display: grid; gap: 10px; margin-top: 4px; }
+.gd-bl li, .gd-cc li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; align-items: start; font-size: 0.9375rem; line-height: 1.5; }
+.gd-bl i, .gd-cc i { font-style: normal; width: 22px; height: 22px; border-radius: 50%; background: var(--il-brand); color: #fff; display: grid; place-items: center; margin-top: 1px; }
+.gd-bl i svg, .gd-cc i svg { width: 13px; height: 13px; }
+.gd-role { display: grid; gap: 2px; background: color-mix(in srgb, var(--il-paper) 85%, transparent); border: 1.5px solid var(--il-ink); border-radius: 16px; padding: 12px 16px; font-size: 0.875rem; margin-top: 4px; }
+.gd-role b { font-size: 0.6875rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--il-brand); }
+.gd-ill svg { max-width: 460px; }
+
+/* the role cycle */
+.gd-steps { display: grid; gap: 8px; counter-reset: s; margin-top: 4px; }
+.gd-steps li { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 12px; align-items: center; background: color-mix(in srgb, var(--il-paper) 85%, transparent); border-radius: 14px; padding: 9px 14px 9px 9px; font-size: 0.9375rem; line-height: 1.45; }
+[dir="rtl"] .gd-steps li { padding: 9px 9px 9px 14px; }
+.gd-steps b { width: 32px; height: 32px; border-radius: 50%; background: var(--il-ink); color: var(--il-paper); display: grid; place-items: center; font-size: 0.8125rem; }
+.gd-cc { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-top: 6px; }
+.gd-cc h3 { font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.75; margin-bottom: 8px; }
+.gd-cc ul { display: grid; gap: 8px; }
+.gd-cc li { font-size: 0.875rem; }
+.gd-cc .is-no i { background: var(--il-ink); }
+
+/* call to action */
+.gd-cta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+.gd-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 24px; border-radius: 9999px; background: var(--il-paper); color: var(--il-ink); border: 1.5px solid var(--il-ink); font-weight: 700; font-size: 0.9375rem; text-decoration: none; transition: background 150ms ease, transform 150ms ease; }
+.gd-btn:hover { transform: translateY(-1px); }
+.gd-btn-go { background: var(--il-brand); border-color: var(--il-brand); color: #fff; }
+.gd-page a.gd-btn-go { color: #fff; }
+.gd-btn:focus-visible { outline: 2px solid var(--il-brand); outline-offset: 3px; }
+
+@media (max-width: 900px) {
+  .gd-sec.il-scene { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .gd-sec.is-flip .gd-ill { order: 0; }
+  .gd-ill { order: 2; }
+  .gd-ill svg { max-width: 360px; }
+  .gd-cc { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) { .gd-seg button, .gd-toc a, .gd-btn { transition: none; } }

@@ -1,0 +1,87 @@
+/* Shared illustration kit, copied from screens/shared/illustration.css (dark selector adapted to the .dark class). */
+/**
+ * Veyro illustration kit (shared)
+ *
+ * The flat, ink-outlined "paper card" visual language first built for the auth side panels
+ * (screens/groups/02-auth-onboarding/side.html and side2.html), extracted so any screen can
+ * compose a NEW scene from the same parts: warm peach ground, 1px grid texture, white cards with
+ * a dark outline, a friendly character, dotted links and a captioned pager.
+ *
+ * Usage: <aside class="il-scene"> <div class="il-illu"><svg viewBox="…">…</svg></div>
+ *        <div class="il-caps">…<p class="il-cap is-on">…</p></div> <div class="il-pager">…</div> </aside>
+ * Dark mode follows the .dark class (next-themes).
+ */
+.il-scene { --side-bg: #F6E3D4; --il-ink: #18181B; --il-paper: #FFFFFF; --il-soft: #FBEDE2; --il-brand: #C2410C; --il-sweater: #7DBE9A; --il-skin: #FBE5D6; --il-hair: #18181B; --il-track: #F3C9AE;
+  position: relative; isolation: isolate; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+  background: var(--side-bg); color: var(--il-ink); }
+.dark .il-scene { --side-bg: #2A211C; --il-ink: #F4F4F5; --il-paper: #1F1A17; --il-soft: #332A24; --il-sweater: #4E9A72; --il-skin: #EBC7AE; --il-hair: #0B0B0C; --il-track: #4A3A31; }
+.il-scene::before { content: ""; position: absolute; inset: 0; z-index: -1; opacity: 0.06; pointer-events: none;
+  background-image: linear-gradient(to right, var(--il-ink) 1px, transparent 1px), linear-gradient(to bottom, var(--il-ink) 1px, transparent 1px); background-size: 48px 48px;
+  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 60% 55%, #000 0%, transparent 78%); mask-image: radial-gradient(ellipse 80% 70% at 60% 55%, #000 0%, transparent 78%); }
+
+.il-illu { flex: 1; width: 100%; display: grid; place-items: center; min-height: 0; }
+.il-illu svg { width: 100%; max-width: 560px; height: auto; max-height: 100%; overflow: visible; direction: ltr; unicode-bidi: isolate; font-family: inherit; }
+
+/* parts */
+.il-scene .il-line { stroke: var(--il-ink); stroke-width: 2.5; }
+.il-scene .il-paper { fill: var(--il-paper); }
+.il-scene .il-soft { fill: var(--il-soft); stroke: var(--il-ink); stroke-width: 2.5; }
+.il-scene .il-dots path { fill: none; stroke: var(--il-ink); stroke-width: 1.4; stroke-dasharray: 2 7; stroke-linecap: round; opacity: 0.45; }
+.il-scene .il-arm-o { fill: none; stroke: var(--il-ink); stroke-width: 32; stroke-linecap: round; stroke-linejoin: round; }
+.il-scene .il-arm-f { fill: none; stroke: var(--il-sweater); stroke-width: 26.5; stroke-linecap: round; stroke-linejoin: round; }
+.il-scene .il-fist { fill: var(--il-skin); stroke: var(--il-ink); stroke-width: 2.5; }
+.il-scene .il-head { fill: var(--il-skin); stroke: var(--il-ink); stroke-width: 2.5; }
+.il-scene .il-neck { fill: var(--il-skin); stroke: var(--il-ink); stroke-width: 2.5; }
+.il-scene .il-body { fill: var(--il-sweater); stroke: var(--il-ink); stroke-width: 2.5; stroke-linejoin: round; }
+.il-scene .il-emblem { fill: none; stroke: #fff; stroke-width: 3; stroke-linejoin: round; }
+.il-scene .il-hair { fill: var(--il-hair); }
+.dark .il-scene .il-hair { stroke: var(--il-ink); stroke-width: 1; }
+.il-scene .il-face { fill: none; stroke: #18181B; stroke-width: 2.4; stroke-linecap: round; }
+.il-scene .il-eye { fill: #18181B; }
+.dark .il-scene .il-face { stroke: #0B0B0C; }
+.il-scene .il-chip-bg { fill: var(--il-paper); stroke: var(--il-ink); stroke-width: 2.5; }
+.il-scene .il-slot { fill: none; stroke: var(--il-ink); stroke-width: 1.4; stroke-dasharray: 3 4; opacity: 0.55; }
+.il-scene .il-live { fill: #FFEDD5; stroke: var(--il-brand); stroke-width: 1.8; }
+.dark .il-scene .il-live { fill: rgba(234, 106, 43, 0.18); }
+.il-scene .il-plus { fill: none; stroke: var(--il-brand); stroke-width: 2.2; stroke-linecap: round; }
+.il-scene .il-bar { fill: var(--il-ink); opacity: 0.25; }
+.il-scene .il-lbl text { font-size: 9px; font-weight: 700; fill: var(--il-ink); }
+.il-scene .il-brandfill { fill: var(--il-brand); stroke: var(--il-ink); stroke-width: 2.5; stroke-linejoin: round; }
+.il-scene .il-tick { fill: none; stroke: #fff; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.il-scene .il-tick-c { fill: var(--il-brand); }
+.il-scene .il-av-brand { fill: var(--il-brand); stroke: var(--il-ink); stroke-width: 1.5; }
+.il-scene .il-av-ghost { fill: none; stroke: var(--il-ink); stroke-width: 1.4; stroke-dasharray: 3 3.5; opacity: 0.6; }
+.il-scene .il-pill { fill: none; stroke: var(--il-ink); stroke-width: 1.5; }
+.il-scene .il-folder-b { fill: var(--il-track); stroke: var(--il-ink); stroke-width: 2.5; stroke-linejoin: round; }
+.il-scene .il-t1 { font-size: 16px; font-weight: 800; fill: var(--il-ink); letter-spacing: -0.02em; }
+.il-scene .il-t2 { font-size: 12.5px; fill: var(--il-ink); opacity: 0.65; }
+.il-scene .il-t3 { font-size: 12.5px; font-weight: 700; fill: var(--il-ink); }
+.il-scene .il-tw { font-size: 13px; font-weight: 800; fill: #fff; text-anchor: middle; letter-spacing: 0.04em; }
+.il-scene .il-pill-t { font-size: 12px; font-weight: 600; text-anchor: middle; fill: var(--il-ink); }
+.il-scene .is-empty { opacity: 0.45; }
+.il-scene .il-seg { fill: var(--il-ink); opacity: 0.16; }
+.il-scene .il-seg.used { opacity: 0.55; }
+.il-scene .il-seg.next { fill: var(--il-brand); opacity: 1; }
+
+/* captions + pager */
+.il-caps { display: grid; width: 100%; max-width: 420px; text-align: center; margin-top: 4px; }
+.il-cap { grid-area: 1 / 1; font-size: clamp(1.0625rem, 1.5vw, 1.3125rem); line-height: 1.3; letter-spacing: -0.02em; font-weight: 500; opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity 220ms ease, transform 500ms ease; }
+.il-cap b { font-weight: 800; }
+.il-cap.is-on { opacity: 1; transform: none; pointer-events: auto; transition: opacity 400ms ease 220ms, transform 500ms ease 220ms; }
+.il-pager { display: flex; gap: 8px; margin-top: 16px; }
+.il-pager button { width: 10px; height: 10px; padding: 0; border-radius: 50%; border: 0; background: color-mix(in srgb, var(--il-ink) 22%, transparent); cursor: pointer; transition: width 250ms ease, background 250ms ease; }
+.il-pager button.is-on { width: 28px; border-radius: 6px; background: var(--il-ink); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .il-float { animation: ilFloat 6s ease-in-out infinite; }
+  .il-float.d2 { animation-delay: -2s; } .il-float.d3 { animation-delay: -4s; }
+  .il-flag { transform-origin: 300px 117px; animation: ilSway 3.4s ease-in-out infinite; }
+  .il-wave { transform-origin: 244px 232px; animation: ilWaveR 3.2s ease-in-out infinite; }
+  .il-dots path { animation: ilFlow 10s linear infinite; }
+  .il-scene .il-live { animation: ilLive 2.6s ease-in-out infinite; }
+}
+@keyframes ilFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes ilSway { 0%, 100% { transform: rotate(0) skewY(0); } 50% { transform: rotate(3deg) skewY(-4deg); } }
+@keyframes ilWaveR { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(4deg); } }
+@keyframes ilFlow { to { stroke-dashoffset: -120; } }
+@keyframes ilLive { 0%, 100% { stroke-width: 1.8; } 50% { stroke-width: 2.8; } }

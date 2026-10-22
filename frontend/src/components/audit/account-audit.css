@@ -1,0 +1,12 @@
+/* Account audit trail (SCR-AUD-02): the page shares audit.css; these are the icon colours of its four categories.
+   The reference page defines none for billing, workspaces and account (its white icons sit on no background), so they take the palette of the workspace trail. */
+.au-ic-billing { background: #6E96E8; }
+.au-ic-workspaces { background: #EDB65B; }
+.au-ic-account { background: #EA9A74; }
+
+/* Account audit hero: two meshing gears (the "System" actor) turn slowly; the big one makes a turn in 24s, the small one runs the other way in 14s so the teeth stay meshed. */
+@media (prefers-reduced-motion: no-preference) {
+  .ah-a { transform-origin: 56px 78px; animation: ahSpin 24s linear infinite; }
+  .ah-b { transform-origin: 81.2px 147.2px; animation: ahSpin 14s linear infinite reverse; }
+}
+@keyframes ahSpin { to { transform: rotate(360deg); } }

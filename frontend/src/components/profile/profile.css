@@ -1,0 +1,70 @@
+/* Profile page (SCR-ACC-01), ported from screens/groups/06-account-governance/profile.css (Parity Gate). */
+.pf-page { max-width: none; }
+.pf-page > .ap-ovh { justify-content: space-between; }
+.pf-wrap { display: grid; gap: 18px; }
+.pf-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+.pf-col { display: grid; gap: 16px; min-width: 0; }
+
+/* hero: avatar and name on the left, the illustration on the right (same pattern as the audit trail hero) */
+.pf-hero.il-scene { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); align-items: center; gap: 24px; border-radius: 22px; padding: 26px 30px; --il-sweater: #8E9BE0; min-height: 260px; }
+.dark .pf-hero.il-scene { --il-sweater: #5C69B8; }
+.pf-hero-l { display: flex; align-items: center; gap: 22px; min-width: 0; }
+.pf-hint { color: var(--il-ink); opacity: 0.7; font-size: 0.8125rem; margin-top: 10px; max-width: 34ch; }
+.pf-ill svg { max-width: 440px; }
+
+/* identity */
+.pf-avatar { position: relative; flex: none; width: 92px; height: 92px; border-radius: 50%; border: 0; background: var(--color-primary) center / cover no-repeat; color: #fff; font: inherit; font-weight: 800; font-size: 1.75rem; display: grid; place-items: center; cursor: pointer; transition: box-shadow 150ms ease; }
+.pf-avatar:hover { box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand) 30%, transparent); }
+.pf-avatar i { position: absolute; inset-inline-end: -2px; bottom: -2px; width: 30px; height: 30px; border-radius: 50%; background: var(--ink); color: var(--canvas); display: grid; place-items: center; border: 3px solid var(--card); }
+.pf-avatar.has-img span { display: none; }
+.pf-id-t h2 { font-size: 1.875rem; letter-spacing: -0.04em; line-height: 1.15; overflow-wrap: anywhere; }
+.pf-mail { color: var(--il-ink); opacity: 0.8; font-weight: 600; margin-top: 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pf-ver { font-size: 0.6875rem; font-weight: 800; border-radius: 9999px; padding: 2px 10px; }
+.pf-ver.is-ok { background: var(--ok-soft); color: var(--ok); } .pf-ver.is-no { background: var(--warn-soft); color: var(--warn); }
+.pf-since { color: var(--il-ink); opacity: 0.7; font-size: 0.8125rem; margin-top: 4px; }
+
+/* footprint */
+.pf-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: 12px; margin: 4px 0 16px; }
+.pf-stats > div { background: var(--pill); border-radius: 16px; padding: 14px 16px; display: grid; gap: 2px; min-width: 0; }
+.pf-stats dd { margin: 0; font-size: 1.625rem; font-weight: 800; letter-spacing: -0.04em; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.pf-stats .is-txt dd { font-size: 1rem; letter-spacing: -0.02em; line-height: 1.5; overflow-wrap: anywhere; }
+.pf-stats dt { color: var(--muted); font-size: 0.75rem; font-weight: 700; }
+.pf-ws { display: grid; gap: 4px; }
+.pf-ws[hidden], .pf-empty[hidden] { display: none; }
+.pf-w { display: flex; align-items: center; gap: 12px; padding: 11px 6px; border-top: 1px solid var(--line); }
+.pf-wav { flex: none; width: 38px; height: 38px; border-radius: 12px; background: var(--brand-soft); color: var(--brand-ink); font-weight: 800; font-size: 0.8125rem; display: grid; place-items: center; }
+.pf-wn { display: grid; flex: 1; min-width: 0; line-height: 1.3; }
+.pf-wn small { color: var(--muted); font-size: 0.75rem; }
+.pf-wt { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.pf-empty { display: grid; gap: 6px; justify-items: start; background: var(--pill); border-radius: 16px; padding: 18px 20px; }
+.pf-empty p { color: var(--muted); font-size: 0.875rem; }
+.pf-empty a { text-decoration: none; }
+
+/* forms */
+.pf-form { display: grid; gap: 14px; }
+.pf-form .ap-ch { margin-bottom: 0; }
+.pf-form .pm-foot { justify-content: flex-start; position: static; } /* the phone dialogs pin their footer; on this page it stays in the card */
+.pf-form input[readonly] { opacity: 0.7; cursor: default; }
+.pw-ok { border-radius: 14px; background: var(--ok-soft); color: var(--ok); font-weight: 700; font-size: 0.875rem; padding: 12px 14px; }
+.pw-ok[hidden] { display: none; }
+.pw-meter { display: flex; align-items: center; gap: 10px; }
+.pw-bars { display: inline-flex; gap: 4px; }
+.pw-bars i { width: 34px; height: 5px; border-radius: 9999px; background: var(--g-track); }
+.pw-bars i.on.s1, .pw-bars i.on.s2 { background: var(--rose); } .pw-bars i.on.s3 { background: var(--warn); } .pw-bars i.on.s4 { background: var(--ok); }
+.pw-meter small { color: var(--muted); font-size: 0.75rem; font-weight: 600; }
+
+/* preferences */
+.pf-prefs { display: grid; gap: 4px; }
+.pf-pr { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 14px 0; border-top: 1px solid var(--line); }
+.pf-prefs .ap-ch + .pf-pr { border-top: 0; }
+.pf-pr b { font-size: 0.9375rem; }
+.pf-pr p { color: var(--muted); font-size: 0.8125rem; margin-top: 2px; max-width: 44ch; }
+
+@media (max-width: 1100px) { .pf-cols { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 860px) { .pf-hero.il-scene { grid-template-columns: minmax(0, 1fr); } .pf-ill { display: none; } }
+@media (max-width: 640px) {
+  .pf-hero.il-scene { padding: 20px 18px; min-height: 0; } .pf-hero-l { gap: 16px; }
+  .pf-avatar { width: 72px; height: 72px; font-size: 1.375rem; } .pf-id-t h2 { font-size: 1.375rem; }
+  .pf-pr { align-items: flex-start; }
+}
+@media (prefers-reduced-motion: reduce) { .pf-avatar { transition: none; } }

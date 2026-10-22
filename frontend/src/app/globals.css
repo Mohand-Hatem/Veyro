@@ -1,0 +1,127 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Tokens ported from screens/shared/tokens.css and the `.app` roles in screens/groups/03-workspace-dashboard/group.css (design.md section 3). */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-brand: var(--brand);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-rose-soft: var(--rose-soft);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Families are named directly (not via next/font variables) so missing glyphs fall back to the OS font exactly as in the reference pages. */
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-heading: var(--font-sans);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: calc(var(--radius) * 0.67);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.17);
+  --radius-card: 20px;
+  --radius-modal: 24px;
+
+  --shadow-pill: 0 2px 8px -1px rgba(24, 24, 27, 0.06), 0 1px 2px 0 rgba(24, 24, 27, 0.04);
+  --shadow-card: 0 8px 24px -4px rgba(120, 90, 70, 0.07), 0 2px 6px -1px rgba(120, 90, 70, 0.04);
+  --shadow-modal: 0 20px 48px -8px rgba(60, 45, 35, 0.18), 0 8px 16px -4px rgba(60, 45, 35, 0.08);
+}
+
+:root {
+  --radius: 12px;
+  --background: #EBDFD7;            /* canvas */
+  --foreground: #18181B;            /* ink */
+  --card: #F4ECE7;
+  --card-foreground: #18181B;
+  --popover: #FFFFFF;
+  --popover-foreground: #18181B;
+  --primary: #C2410C;               /* Terracotta 700; text on it is always white */
+  --primary-foreground: #FFFFFF;
+  --secondary: #FFFFFF;             /* pill */
+  --secondary-foreground: #18181B;
+  --muted: #EADFD8;                 /* inset */
+  --muted-foreground: #5F5F68;
+  --accent: #FBDDC8;                /* brand-soft */
+  --accent-foreground: #9A3412;     /* brand-ink */
+  --destructive: #B4381E;
+  --border: rgba(24, 24, 27, 0.10);
+  --input: rgba(24, 24, 27, 0.14);
+  --ring: #C2410C;
+  --brand: #C2410C;
+  --ok: #2E7D32; --ok-soft: #D5ECD7;
+  --warn: #B7791F; --warn-soft: #FCE8C8;
+  --rose-soft: #F7D3CA;
+  --sidebar: #0B0B0C;
+  --sidebar-foreground: #A1A1AA;
+  --sidebar-primary: #C2410C;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #19191C;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: rgba(244, 244, 245, 0.10);
+  --sidebar-ring: #C2410C;
+}
+
+.dark {
+  --background: #121214;
+  --foreground: #F4F4F5;
+  --card: #1D1D21;
+  --card-foreground: #F4F4F5;
+  --popover: #27272C;
+  --popover-foreground: #F4F4F5;
+  --secondary: #27272C;
+  --secondary-foreground: #F4F4F5;
+  --muted: #17171A;
+  --muted-foreground: #A1A1AA;
+  --accent: rgba(234, 106, 43, 0.2);
+  --accent-foreground: #FDBA8C;
+  --destructive: #FCA5A5;
+  --border: rgba(244, 244, 245, 0.12);
+  --input: rgba(244, 244, 245, 0.16);
+  --brand: #EA6A2B;
+  --ok: #86EFAC; --ok-soft: rgba(34, 197, 94, 0.18);
+  --warn: #FCD34D; --warn-soft: rgba(245, 158, 11, 0.18);
+  --rose-soft: rgba(239, 68, 68, 0.18);
+  --sidebar: #0A0A0B;
+  --sidebar-accent: #1C1C20;
+}
+
+@layer base {
+  * { @apply border-border outline-ring/50; }
+  body { @apply bg-background text-foreground font-sans text-sm antialiased; }
+  /* Arabic: Cairo for headings, IBM Plex Sans Arabic for body (design.md section 4) */
+  [dir="rtl"] body { font-family: "IBM Plex Sans Arabic", "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  [dir="rtl"] :is(h1, h2, h3) { font-family: Cairo, "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; letter-spacing: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

@@ -1,0 +1,92 @@
+/* Members and settings page, ported from screens/groups/03-workspace-dashboard/settings.css (Parity Gate). Invite dialog rules arrive with the dialog. */
+#st-content { display: grid; gap: 18px; }
+.st-search input:focus-visible { outline: none; }
+.st-top { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: 18px; align-items: stretch; }
+.st-details form { display: grid; gap: 16px; }
+.st-slugrow { direction: ltr; display: flex; align-items: stretch; background: var(--pill); border-radius: 14px; border: 1.5px solid transparent; transition: border-color 150ms ease, box-shadow 150ms ease; }
+.st-slugrow:focus-within { border-color: var(--brand); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 22%, transparent); }
+.st-slugpre { display: grid; align-items: center; padding-inline: 16px 2px; color: var(--muted); font-size: 0.9375rem; white-space: nowrap; direction: ltr; }
+.st-slugrow input { background: transparent; border-color: transparent; box-shadow: none; padding-inline-start: 0; min-width: 0; direction: ltr; }
+.st-slugrow input:focus-visible { border-color: transparent; box-shadow: none; }
+.st-foot { display: flex; gap: 10px; justify-content: flex-end; }
+.st-foot .pm-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.st-foot .pm-go[aria-busy="true"] { opacity: 0.85; }
+.st-meta { display: flex; gap: 28px; flex-wrap: wrap; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
+.st-meta div { display: grid; gap: 2px; }
+.st-meta dt { color: var(--muted); font-size: 0.75rem; font-weight: 600; }
+.st-meta dd { font-size: 0.9375rem; font-weight: 600; }
+.st-roles { border-radius: 22px; padding: 20px 18px 18px; --il-sweater: #7C9CE0; }
+.dark .st-roles { --il-sweater: #4F6DBA; }
+.st-roles .il-illu svg { max-width: 380px; }
+.st-roles .il-caps { max-width: 340px; min-height: 3.2em; }
+.st-roles .il-cap { font-size: 1.0625rem; }
+.st-roles .il-pager { margin-top: 10px; }
+.st-roles .rc { transition: transform 350ms cubic-bezier(.2, .8, .2, 1); }
+.st-roles .rc.is-hi { transform: translateY(-6px); }
+.st-roles .rc .il-line { transition: stroke 250ms ease, stroke-width 250ms ease; }
+.st-roles .rc.is-hi .il-line { stroke: var(--il-brand); stroke-width: 3.4; }
+.st-mh { flex-wrap: wrap; row-gap: 12px; }
+.st-tools { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.st-search { width: clamp(200px, 22vw, 280px); height: 42px; }
+.st-search input { min-width: 0; }
+.st-invite { min-height: 42px; padding: 0 18px; font-size: 0.875rem; }
+.st-tr { display: grid; grid-template-columns: minmax(0, 2fr) 170px 130px 48px; gap: 14px; align-items: center; }
+.st-th { padding: 0 0 10px; border-bottom: 1px solid var(--line); font-size: 0.8125rem; font-weight: 700; }
+.st-row { padding: 12px 0; font-size: 0.8125rem; border-radius: 10px; transition: background 150ms ease, opacity 150ms ease; }
+.st-row:hover { background: color-mix(in srgb, var(--pill) 45%, transparent); }
+.st-row.is-busy { opacity: 0.55; pointer-events: none; }
+.st-who { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.st-av { flex: none; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; font-size: 0.75rem; font-weight: 800; color: #fff; }
+.st-wt { display: grid; line-height: 1.3; min-width: 0; }
+.st-wt b { font-weight: 700; font-size: 0.875rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.st-wt small { color: var(--muted); font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.st-you { font-style: normal; font-size: 0.6875rem; font-weight: 700; color: var(--muted); background: var(--pill); border-radius: 9999px; padding: 1px 8px; margin-inline-start: 6px; }
+.b-owner { background: var(--brand-soft); color: var(--brand-ink); }
+.b-exp { background: var(--rose-soft); color: var(--rose); }
+.ap-select.st-rsel select { min-height: 36px; font-size: 0.8125rem; max-width: 150px; }
+.st-jd { color: var(--muted); font-variant-numeric: tabular-nums; }
+.st-ac { display: flex; justify-content: flex-end; }
+.st-il { display: grid; }
+.st-inv { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.2fr) 190px auto; gap: 14px; align-items: center; padding: 14px 0; border-top: 1px solid var(--line); font-size: 0.8125rem; }
+.st-inv:first-child { border-top: 0; padding-top: 4px; }
+.st-iw { display: grid; line-height: 1.3; min-width: 0; }
+.st-iw b { font-size: 0.875rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.st-iw small, .st-ie small { color: var(--muted); font-size: 0.75rem; }
+.st-ir { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.st-ia { display: flex; gap: 8px; justify-content: flex-end; }
+.st-inv-empty { padding: 22px 0 8px; text-align: center; color: var(--muted); }
+.st-linkbox { display: flex; gap: 10px; }
+.st-linkbox input { flex: 1; min-width: 0; background: var(--pill); color: var(--ink); border: 1.5px solid transparent; border-radius: 14px; font: inherit; font-size: 0.8125rem; padding: 0 14px; min-height: 48px; direction: ltr; }
+.st-linkbox .pm-btn { padding: 0 20px; }
+
+@media (max-width: 1023px) {
+  .st-top { grid-template-columns: minmax(0, 1fr); }
+  .st-roles .il-illu svg { max-width: 340px; }
+  .st-inv { grid-template-columns: minmax(0, 1fr) auto; }
+  .st-ir { grid-column: 1; }
+  .st-ie { grid-column: 1; }
+  .st-ia { grid-column: 2; grid-row: 1 / span 3; flex-direction: column; align-items: stretch; }
+}
+
+@media (max-width: 767px) {
+  .st-roles { display: none; }
+  .st-tools { width: 100%; }
+  .st-search { flex: 1 1 100%; width: auto; }
+  .st-invite { flex: 1; justify-content: center; }
+  .st-th { display: none; }
+  .st-tr { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "who ac" "rc jd"; row-gap: 10px; }
+  .st-who { grid-area: who; }
+  .st-ac { grid-area: ac; }
+  .st-rc { grid-area: rc; }
+  .st-jd { grid-area: jd; justify-self: end; align-self: center; }
+  .st-row { padding: 14px 0; border-top: 1px solid var(--line); }
+  .st-slugpre { font-size: 0.8125rem; padding-inline-start: 12px; }
+  .st-inv { grid-template-columns: minmax(0, 1fr); }
+  .st-ia { grid-column: 1; grid-row: auto; flex-direction: row; justify-content: stretch; }
+  .st-ia .pm-btn { flex: 1; }
+  .st-meta { gap: 18px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .st-roles .rc { transition: none; }
+}

@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
+  <style>
+    .l { fill: none; stroke: #000; stroke-width: 1.2; }
+    .d { fill: none; stroke: #000; stroke-width: 1.2; stroke-dasharray: 3 7; animation: flow 14s linear infinite; }
+    .n { fill: #000; }
+    .r { fill: none; stroke: #000; stroke-width: 1; }
+    @keyframes flow { to { stroke-dashoffset: -200; } }
+  </style>
+  <!-- container guides -->
+  <path class="l" d="M150 0V900M1290 0V900"/>
+  <!-- network links -->
+  <path class="l" d="M150 220C260 220 300 120 420 120"/>
+  <path class="l" d="M420 120C540 120 580 260 700 260"/>
+  <path class="l" d="M700 260C830 260 880 140 1010 140"/>
+  <path class="l" d="M1010 140C1130 140 1180 300 1290 300"/>
+  <path class="l" d="M150 220C150 330 260 400 260 520"/>
+  <path class="d" d="M700 260C700 380 620 440 620 560"/>
+  <path class="l" d="M260 520H440V560H620"/>
+  <path class="l" d="M620 560C760 560 860 500 980 500"/>
+  <path class="d" d="M1290 300C1290 420 1290 520 1290 640"/>
+  <path class="l" d="M980 500H1120V640H1290"/>
+  <path class="d" d="M260 520C260 640 420 680 420 780"/>
+  <path class="l" d="M620 560C620 680 860 700 860 780"/>
+  <path class="d" d="M860 780C900 700 980 600 980 500"/>
+  <!-- nodes -->
+  <g>
+    <circle class="n" cx="150" cy="220" r="3.5"/><circle class="r" cx="150" cy="220" r="9"/>
+    <circle class="n" cx="420" cy="120" r="3.5"/>
+    <circle class="n" cx="700" cy="260" r="3.5"/><circle class="r" cx="700" cy="260" r="9"/>
+    <circle class="n" cx="1010" cy="140" r="3.5"/>
+    <circle class="n" cx="1290" cy="300" r="3.5"/><circle class="r" cx="1290" cy="300" r="9"/>
+    <circle class="n" cx="260" cy="520" r="3.5"/>
+    <circle class="n" cx="620" cy="560" r="3.5"/><circle class="r" cx="620" cy="560" r="9"/>
+    <circle class="n" cx="980" cy="500" r="3.5"/>
+    <circle class="n" cx="1290" cy="640" r="3.5"/><circle class="r" cx="1290" cy="640" r="9"/>
+    <circle class="n" cx="420" cy="780" r="3.5"/>
+    <circle class="n" cx="860" cy="780" r="3.5"/><circle class="r" cx="860" cy="780" r="9"/>
+  </g>
+</svg>

@@ -1,0 +1,20 @@
+/* Full-page states (403 and 404), ported from screens/groups/06-account-governance/state.css (Parity Gate). */
+.gs-card.il-scene { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); align-items: center; justify-content: stretch; gap: 24px; padding: clamp(24px, 4vw, 52px); border-radius: 28px; min-height: min(560px, calc(100dvh - 240px)); }
+.gs-text { display: grid; gap: 14px; justify-items: start; max-width: 540px; }
+.gs-code { font-size: clamp(3.5rem, 8vw, 6rem); font-weight: 800; letter-spacing: -0.06em; line-height: 1; color: var(--il-brand); }
+.gs-text h2 { font-size: clamp(1.75rem, 3vw, 2.5rem); letter-spacing: -0.04em; line-height: 1.1; }
+.gs-text p { font-size: 1.0625rem; line-height: 1.55; opacity: 0.85; margin: 0; }
+.gs-text .gs-hint { font-weight: 700; opacity: 1; font-size: 1rem; }
+.gs-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+.gs-actions a.pm-btn { text-decoration: none; }
+.gs-actions a[hidden] { display: none; }
+.gs-ill svg { max-width: 540px; }
+.gs-403 { --il-sweater: #8E9BE0; }
+.gs-404 { --il-sweater: #7DBE9A; }
+.dark .gs-403 { --il-sweater: #5C69B8; }
+
+@media (max-width: 880px) {
+  .gs-card.il-scene { grid-template-columns: minmax(0, 1fr); min-height: 0; }
+  .gs-ill { order: -1; }
+  .gs-ill svg { max-width: 360px; }
+}

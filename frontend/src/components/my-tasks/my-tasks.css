@@ -1,0 +1,56 @@
+/* My tasks page, ported from screens/groups/04-projects-tasks/my-tasks.css (Parity Gate). Shared rules live in projects.css. */
+.mt-page { max-width: none; }
+.mt-page > .ap-ovh { justify-content: space-between; }
+.mt-content { display: grid; gap: 16px; }
+.mt-content[hidden], #mt-error[hidden], #mt-empty[hidden], #mt-list[hidden], .mt-chips[hidden] { display: none; }
+.mt-head { display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap; padding: 22px 24px; }
+.mt-head h2 { font-size: 1.625rem; letter-spacing: -0.04em; line-height: 1.15; }
+.mt-head p { color: var(--muted); font-weight: 600; margin-top: 4px; }
+.mt-ctl { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.mt-n { display: inline-block; margin-inline-start: 4px; font-size: 0.6875rem; font-weight: 800; background: color-mix(in srgb, currentColor 16%, transparent); border-radius: 9999px; padding: 0 7px; line-height: 1.6; }
+.mt-chips { display: flex; gap: 10px; flex-wrap: wrap; }
+.mt-chip { display: inline-flex; align-items: baseline; gap: 8px; border: 1.5px solid transparent; background: var(--card); color: var(--ink); border-radius: 9999px; padding: 9px 18px; font: inherit; cursor: pointer; transition: border-color 150ms ease, background 150ms ease; min-height: 44px; }
+.mt-chip b { font-size: 1.125rem; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.mt-chip span { font-size: 0.8125rem; font-weight: 700; color: var(--muted); }
+.mt-chip:hover { border-color: var(--line); }
+.mt-chip[aria-pressed="true"] { background: var(--ink); color: var(--canvas); }
+.mt-chip[aria-pressed="true"] span { color: inherit; opacity: 0.8; }
+.mt-chip.is-over b { color: var(--rose); }
+.mt-chip.is-over[aria-pressed="true"] b { color: #FCA5A5; }
+.mt-list { padding: 8px 12px 14px; }
+.mt-gh { font-size: 0.75rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); padding: 16px 12px 6px; margin: 0; }
+.mt-gh.is-over { color: var(--rose); }
+.mt-row { display: grid; grid-template-columns: 78px minmax(0, 1fr) 110px 130px; gap: 14px; align-items: center; padding: 13px 12px; border-radius: 14px; text-decoration: none; color: inherit; transition: background 150ms ease; }
+.mt-row + .mt-row, .mt-gh + .mt-row { border-top: 0; }
+.mt-row:hover { background: var(--pill); }
+.mt-row:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.mt-tt { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.mt-tt b { font-size: 0.9375rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mt-ro { font-size: 0.625rem; }
+.mt-due { text-align: end; font-size: 0.8125rem; font-weight: 600; color: var(--muted); white-space: nowrap; }
+.mt-due.is-over { color: var(--rose); font-weight: 800; }
+.mt-due.is-today { color: var(--warn); font-weight: 800; }
+.mt-row.st-skel .mt-tt b { width: 55%; height: 14px; border-radius: 6px; background: var(--inset); display: block; }
+.mt-empty.il-scene { grid-template-columns: minmax(0, 1fr); margin-top: 0; border-radius: 22px; padding: clamp(28px, 5vw, 56px) 24px; display: grid; justify-items: center; text-align: center; gap: 10px; --il-sweater: #7DBE9A; }
+.mt-empty-ill svg { width: 240px; height: auto; }
+.mt-empty h2 { font-size: 1.5rem; letter-spacing: -0.03em; margin-top: 4px; }
+.mt-empty p { max-width: 38em; opacity: 0.8; }
+.mt-empty-act { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 6px; }
+.mt-empty-act a { text-decoration: none; }
+.mt-empty-act [hidden] { display: none; }
+.mt-empty .e-doc { fill: var(--il-paper); stroke: var(--il-ink); stroke-width: 3; }
+.mt-empty .e-line { fill: var(--il-ink); opacity: 0.2; }
+.mt-empty .e-tick circle { fill: var(--il-brand); }
+.mt-empty .e-tick path { fill: none; stroke: #fff; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+@media (max-width: 767px) {
+  .mt-head { padding: 18px; }
+  .mt-row { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "tt due" "pr st"; row-gap: 8px; }
+  .mt-row > .pr { grid-area: pr; justify-self: start; }
+  .mt-row > .mt-tt { grid-area: tt; }
+  .mt-row > .ap-st { grid-area: st; justify-self: end; }
+  .mt-row > .mt-due { grid-area: due; }
+  .mt-ctl { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mt-chip, .mt-row { transition: none; }
+}

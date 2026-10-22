@@ -1,0 +1,14 @@
+/* Filter chips and the page-by-page footer, shared by the board toolbar, My tasks and the audit trail (from screens/groups/03-workspace-dashboard/audit.css). */
+.au-chip { border: 1.5px solid transparent; background: var(--pill); color: var(--ink); font-weight: 700; font-size: 0.8125rem; font-family: inherit; min-height: 38px; padding: 0 16px; border-radius: 9999px; cursor: pointer; transition: background 150ms ease, color 150ms ease, border-color 150ms ease; }
+.au-chip:hover { border-color: var(--line); }
+.au-chip.is-on, .au-chip[aria-pressed="true"] { background: var(--ink); color: var(--canvas); }
+.au-pager { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line); }
+.au-pager[hidden] { display: none; }
+.au-range { color: var(--muted); font-size: 0.8125rem; font-variant-numeric: tabular-nums; }
+.au-pbtns { display: flex; gap: 8px; }
+.au-pbtns .pm-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+@media (max-width: 767px) {
+  .au-pager { flex-direction: column; align-items: stretch; text-align: center; }
+  .au-pbtns .pm-btn { flex: 1; }
+}

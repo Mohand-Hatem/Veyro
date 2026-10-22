@@ -1,0 +1,122 @@
+/* Illustrated auth side panels, ported from screens/groups/02-auth-onboarding/group.css (design.md, illustrated surfaces). */
+.au-side { --dark: #121214; }
+.au-side { position: relative; background: var(--dark); color: #F4F4F5; border-radius: 28px; overflow: hidden; display: flex; flex-direction: column; padding: clamp(28px, 4vw, 56px); isolation: isolate; }
+.au-side::before { content: ""; position: absolute; inset: 0; z-index: -2; background-image: linear-gradient(to right, #fff 1px, transparent 1px), linear-gradient(to bottom, #fff 1px, transparent 1px); background-size: 56px 56px; opacity: 0.07; -webkit-mask-image: radial-gradient(ellipse 80% 70% at 70% 60%, #000 0%, transparent 75%); mask-image: radial-gradient(ellipse 80% 70% at 70% 60%, #000 0%, transparent 75%); }
+.au-side::after { content: ""; position: absolute; z-index: -1; width: 520px; height: 520px; right: -160px; bottom: -200px; border-radius: 50%; background: radial-gradient(circle, rgba(234, 106, 43, 0.38), transparent 68%); pointer-events: none; }
+.au-links { position: absolute; inset: 0; z-index: -1; background: #fff; opacity: 0.12; -webkit-mask-image: url("/links.svg"), radial-gradient(ellipse 80% 80% at 60% 50%, #000 10%, transparent 80%); mask-image: url("/links.svg"), radial-gradient(ellipse 80% 80% at 60% 50%, #000 10%, transparent 80%); -webkit-mask-size: cover, 100% 100%; mask-size: cover, 100% 100%; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-composite: source-in; mask-composite: intersect; pointer-events: none; }
+.au-side h2 { font-size: clamp(1.875rem, 3.2vw, 2.75rem); font-weight: 700; letter-spacing: -0.045em; line-height: 1.08; max-width: 14em; }
+.au-side-sub { margin-top: 16px; color: #A1A1AA; font-size: 1.0625rem; max-width: 26em; }
+@media (max-width: 960px) {
+  .au-side { display: none; }
+}
+.au-side h2, .au-card h1 { text-wrap: balance; }
+.au-side { --side-bg: #F6E3D4; --il-ink: #18181B; --il-paper: #FFFFFF; --il-soft: #FBEDE2; --il-brand: #C2410C; --il-sweater: #E58B62;
+  background: var(--side-bg); color: var(--foreground); align-items: center; justify-content: space-between; padding: clamp(24px, 3vw, 40px); }
+.dark .au-side { --side-bg: #2A211C; --il-ink: #F4F4F5; --il-paper: #1F1A17; --il-soft: #332A24; --il-sweater: #C2603A; }
+.au-side::before { background-image: linear-gradient(to right, var(--il-ink) 1px, transparent 1px), linear-gradient(to bottom, var(--il-ink) 1px, transparent 1px); opacity: 0.06; }
+.au-side::after { display: none; }
+.au-links { background: var(--il-ink); opacity: 0.1; }
+.au-illu { flex: 1; width: 100%; display: grid; place-items: center; min-height: 0; }
+.au-illu svg { width: 100%; max-width: 600px; height: auto; max-height: 100%; overflow: visible; }
+.au-illu .il-line, .il-av-c, .il-head, .il-fist, .il-card, .il-pill, .il-chip, .il-arm-o { stroke: var(--il-ink); }
+.il-line { stroke-width: 2.5; }
+.il-paper { fill: var(--il-paper); }
+.il-dots path { fill: none; stroke: var(--il-ink); stroke-width: 1.4; stroke-dasharray: 2 7; stroke-linecap: round; opacity: 0.45; }
+.il-curl { fill: none; stroke: var(--il-brand); stroke-width: 2.4; stroke-linecap: round; opacity: 0.8; }
+.il-curl-b { stroke-dasharray: 3 9; opacity: 0.6; }
+.il-arm-o { fill: none; stroke-width: 32; stroke-linecap: round; stroke-linejoin: round; }
+.il-arm-f { fill: none; stroke: var(--il-sweater); stroke-width: 26.5; stroke-linecap: round; stroke-linejoin: round; }
+.il-fist, .il-head { fill: var(--il-paper); stroke-width: 2.5; }
+.il-head { fill: #FBE5D6; }
+.dark .il-head { fill: #EBC7AE; }
+.il-body { fill: var(--il-sweater); stroke: var(--il-ink); stroke-width: 2.5; stroke-linejoin: round; }
+.il-emblem { fill: none; stroke: #fff; stroke-width: 3; stroke-linejoin: round; }
+.il-neck { fill: #FBE5D6; stroke: var(--il-ink); stroke-width: 2.5; }
+.dark .il-neck { fill: #EBC7AE; }
+.il-hair { fill: #18181B; }
+.dark .il-hair { fill: #0B0B0C; stroke: var(--il-ink); stroke-width: 1; }
+.il-face { fill: none; stroke: #18181B; stroke-width: 2.4; stroke-linecap: round; }
+.il-eye { fill: #18181B; }
+.il-card { fill: var(--il-soft); stroke-width: 1.2; }
+.il-live { fill: #FFEDD5; stroke: var(--il-brand); stroke-width: 1.8; }
+.dark .il-live { fill: rgba(234, 106, 43, 0.18); }
+.il-bar { fill: var(--il-ink); opacity: 0.25; }
+.il-lbl text { font-size: 9px; font-weight: 700; fill: var(--il-ink); }
+.il-tick-c { fill: var(--il-brand); }
+.il-tick { fill: none; stroke: #fff; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.il-av-c { fill: var(--il-soft); stroke-width: 2.5; }
+.il-chip { fill: var(--il-paper); stroke-width: 1.5; }
+.il-chip-t { font-size: 10.5px; font-weight: 700; text-anchor: middle; fill: var(--il-ink); }
+.il-t1 { font-size: 16px; font-weight: 800; fill: var(--il-ink); letter-spacing: -0.02em; }
+.il-t2 { font-size: 12.5px; fill: var(--il-ink); opacity: 0.65; }
+.il-pill { fill: none; stroke-width: 1.5; }
+.il-pill-t { font-size: 12px; font-weight: 600; text-anchor: middle; fill: var(--il-ink); }
+.il-ring-bg { fill: none; stroke: #F3C9AE; stroke-width: 5.5; }
+.il-ring { fill: none; stroke: var(--il-brand); stroke-width: 5.5; stroke-linecap: round; stroke-dasharray: 106.8; stroke-dashoffset: 34; }
+.il-ring-t { font-size: 8.5px; font-weight: 800; text-anchor: middle; fill: var(--il-ink); }
+.il-t3 { font-size: 12.5px; font-weight: 700; fill: var(--il-ink); }
+.il-spark { fill: var(--il-brand); }
+.il-av text, .il-pcard text, .il-ai text, .il-board text { font-family: inherit; }
+.au-caps { display: grid; width: 100%; max-width: 460px; text-align: center; margin-top: 4px; }
+.au-cap { grid-area: 1 / 1; font-size: clamp(1.25rem, 1.9vw, 1.625rem); line-height: 1.3; letter-spacing: -0.02em; font-weight: 500; opacity: 0; transform: translateY(8px); transition: opacity 500ms ease, transform 500ms ease; pointer-events: none; }
+.au-cap b { font-weight: 800; }
+.au-cap.is-on { opacity: 1; transform: none; pointer-events: auto; }
+.au-dots { display: flex; gap: 8px; margin-top: 22px; }
+.au-dots button { width: 10px; height: 10px; padding: 0; border-radius: 50%; border: 0; background: color-mix(in srgb, var(--il-ink) 22%, transparent); cursor: pointer; transition: width 250ms ease, background 250ms ease; }
+.au-dots button.is-on { width: 28px; border-radius: 6px; background: var(--il-ink); }
+@media (prefers-reduced-motion: no-preference) {
+  .il-av { animation: ilFloat 6s ease-in-out infinite; }
+  .il-av2 { animation-delay: -2s; }
+  .il-av3 { animation-delay: -4s; }
+  .il-pcard { animation: ilFloat 7s ease-in-out -1s infinite; }
+  .il-ai { animation: ilFloat 6.5s ease-in-out -3s infinite; }
+  .il-arm-l { transform-origin: 238px 238px; animation: ilWaveL 3.2s ease-in-out infinite; }
+  .il-arm-r { transform-origin: 322px 238px; animation: ilWaveR 3.2s ease-in-out infinite; }
+  .il-curl-a { stroke-dasharray: 220; animation: ilDraw 4s ease-in-out infinite alternate; }
+  .il-curl-b { animation: ilFlow 8s linear infinite; }
+  .il-dots path { animation: ilFlow 10s linear infinite; }
+  .il-ring { animation: ilRing 1.6s cubic-bezier(.22, 1, .36, 1) 0.4s both; }
+  .il-live { animation: ilLive 2.6s ease-in-out infinite; }
+}
+@keyframes ilDraw { from { stroke-dashoffset: 120; } to { stroke-dashoffset: 0; } }
+@keyframes ilFlow { to { stroke-dashoffset: -120; } }
+@keyframes ilRing { from { stroke-dashoffset: 106.8; } to { stroke-dashoffset: 34; } }
+.au-illu svg { max-width: 660px; }
+.au-illu svg { direction: ltr; unicode-bidi: isolate; }
+.au-cap { transition: opacity 220ms ease, transform 500ms ease; }
+.au-cap.is-on { transition: opacity 400ms ease 220ms, transform 500ms ease 220ms; }
+.au-side { --il-sweater2: #7C9CE0; }
+.dark .au-side { --il-sweater2: #4F6DBA; }
+.il2-body { fill: var(--il-sweater2); stroke: var(--il-ink); stroke-width: 2.5; stroke-linejoin: round; }
+.il2-arm-f { fill: none; stroke: var(--il-sweater2); stroke-width: 26.5; stroke-linecap: round; stroke-linejoin: round; }
+.il2-hex { fill: var(--il-brand); stroke: var(--il-ink); stroke-width: 2.5; stroke-linejoin: round; }
+.il2-hex-i { fill: none; stroke: #fff; stroke-width: 3; stroke-linejoin: round; }
+.il2-base { stroke-width: 2.5; }
+.il2-shield-i { fill: var(--il-soft); stroke: var(--il-ink); stroke-width: 1.4; opacity: 0.9; }
+.il2-check-c { fill: var(--il-brand); stroke: var(--il-ink); stroke-width: 2.5; }
+.il2-pulse { fill: none; stroke: var(--il-brand); stroke-width: 2; opacity: 0; transform-origin: 400px 226px; }
+.il2-tick { fill: none; stroke: #fff; stroke-width: 5.5; stroke-linecap: round; stroke-linejoin: round; }
+.il2-otp rect { fill: var(--il-soft); stroke: var(--il-ink); stroke-width: 1.4; }
+.il2-otp rect.il2-otp-on { stroke: var(--il-brand); stroke-width: 2.2; fill: #FFEDD5; }
+.dark .il2-otp rect.il2-otp-on { fill: rgba(234, 106, 43, 0.2); }
+.il2-otp text { font-size: 15px; font-weight: 800; text-anchor: middle; fill: var(--il-ink); font-family: inherit; }
+.il2-bar { fill: var(--il-soft); stroke: var(--il-ink); stroke-width: 1; }
+.il2-bar.on { fill: var(--il-brand); stroke: none; }
+.il2-card text, .il2-shield text { font-family: inherit; }
+@media (prefers-reduced-motion: no-preference) {
+  .il2-card { animation: ilFloat 6.4s ease-in-out infinite; }
+  .il2-c2 { animation-delay: -1.5s; animation-duration: 5.6s; }
+  .il2-c3 { animation-delay: -3s; }
+  .il2-c4 { animation-delay: -4.5s; animation-duration: 7s; }
+  .il2-shield { animation: ilFloat 8s ease-in-out -2s infinite; }
+  .il2-wave { transform-origin: 206px 236px; animation: il2Wave 2.4s ease-in-out infinite; }
+  .il2-pulse { animation: il2Pulse 2.8s ease-out infinite; }
+  .il2-otp-on { animation: ilLive 1.6s ease-in-out infinite; }
+}
+@keyframes il2Wave { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(9deg); } 75% { transform: rotate(-4deg); } }
+@keyframes il2Pulse { 0% { opacity: 0.7; transform: scale(1); } 100% { opacity: 0; transform: scale(1.9); } }
+.il2-c2 path { fill: none; }
+@keyframes ilFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes ilWaveR { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(4deg); } }
+@keyframes ilLive { 0%, 100% { stroke-width: 1.8; } 50% { stroke-width: 2.8; } }
+@keyframes ilWaveL { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-5deg); } }

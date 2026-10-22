@@ -1,0 +1,65 @@
+/**
+ * Veyro loading scene (shared, built on illustration.css)
+ *
+ * Idea: a clerk files project folders into a pigeonhole shelf. The shelf is the workspace being assembled;
+ * each folder flies in from the inbox tray, stays for a moment, then makes room for the next one, so the
+ * shelf is always filling. Captions state real product facts (nothing invented) and cycle on their own.
+ *
+ * Pure CSS motion (no script), guarded by prefers-reduced-motion. No text inside the SVG, so it needs no translation.
+ */
+.ld { border-radius: 22px; padding: clamp(20px, 3vw, 40px); min-height: clamp(440px, 64vh, 640px); gap: 6px; }
+.ld .il-illu svg { max-width: 640px; }
+
+/* folders: the four fills share the kit's ink outline */
+.ld .ld-fb { stroke: var(--il-ink); stroke-width: 2.5; stroke-linejoin: round; }
+.ld .ld-f.a .ld-fb { fill: var(--il-brand); }
+.ld .ld-f.b .ld-fb { fill: var(--il-sweater); }
+.ld .ld-f.c .ld-fb { fill: var(--il-soft); }
+.ld .ld-f.d .ld-fb { fill: #F2B01E; }
+.ld .ld-f.a .il-bar { fill: #fff; opacity: 0.55; }
+.ld .ld-f { transform-box: fill-box; transform-origin: 50% 50%; }
+.ld .ld-gl { fill: none; stroke: #18181B; stroke-width: 2.2; }
+.dark .ld .ld-gl { stroke: #0B0B0C; }
+.ld .ld-tray { fill: var(--il-paper); stroke: var(--il-ink); stroke-width: 2.5; }
+
+/* captions */
+.ld-caps { display: grid; width: 100%; max-width: 420px; text-align: center; min-height: 3.2em; align-items: start; }
+.ld-cap { grid-area: 1 / 1; margin: 0; font-size: clamp(1.0625rem, 1.5vw, 1.3125rem); line-height: 1.3; letter-spacing: -0.02em; font-weight: 500; opacity: 0; }
+.ld-cap:first-child { opacity: 1; }
+.ld-cap b { font-weight: 800; }
+.ld-dots { display: flex; gap: 8px; margin-top: 14px; }
+.ld-dots i { width: 9px; height: 9px; border-radius: 50%; background: color-mix(in srgb, var(--il-ink) 30%, transparent); }
+
+/* sizes */
+.ld-card { min-height: 0; padding: 18px 18px 22px; border-radius: 22px; }
+.ld-card .il-illu svg { max-width: 270px; }
+.ld-card .ld-cap { font-size: 0.9375rem; }
+.ld-card .ld-caps { min-height: 2.6em; }
+.ld-full { min-height: 100dvh; border-radius: 0; padding: clamp(24px, 5vw, 64px); }
+.ld-full .il-illu svg { max-width: 600px; }
+.ld-brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.25rem; letter-spacing: -0.03em; }
+.ld-brand img { width: 36px; height: 36px; }
+
+/* motion */
+@media (prefers-reduced-motion: no-preference) {
+  .ld .ld-f { opacity: 0; animation: ldFile 8.1s cubic-bezier(0.2, 0.8, 0.2, 1) infinite both; animation-delay: calc(var(--i) * 0.9s); }
+  .ld .ld-ring { animation: ldRing 8.1s steps(9, jump-start) infinite; }
+  .ld .ld-arm { transform-origin: 150px 270px; animation: ldArm 0.9s ease-in-out infinite alternate; }
+  .ld .ld-hold { transform-box: fill-box; transform-origin: 50% 100%; animation: ldHold 0.9s ease-in-out infinite alternate; }
+  .ld-cap { animation: ldCap 9.6s ease infinite both; animation-delay: calc(var(--k) * 3.2s); }
+  .ld-cap:first-child { opacity: 0; }
+  .ld-dots i { animation: ldDot 1.2s ease-in-out infinite; }
+  .ld-dots i:nth-child(2) { animation-delay: 0.2s; } .ld-dots i:nth-child(3) { animation-delay: 0.4s; }
+}
+@keyframes ldRing { from { stroke-dashoffset: 94.25; } to { stroke-dashoffset: 0; } } /* nine steps, one per folder that lands on the shelf */
+@keyframes ldFile {
+  0% { opacity: 0; transform: translate(var(--dx), var(--dy)) rotate(-14deg) scale(0.6); }
+  4% { opacity: 1; }
+  9% { opacity: 1; transform: none; }
+  84% { opacity: 1; transform: none; }
+  94%, 100% { opacity: 0; transform: translateY(6px) scale(0.96); }
+}
+@keyframes ldArm { from { transform: rotate(-5deg); } to { transform: rotate(3deg); } }
+@keyframes ldHold { from { transform: rotate(-4deg); } to { transform: rotate(5deg); } }
+@keyframes ldCap { 0% { opacity: 0; transform: translateY(8px); } 5%, 30% { opacity: 1; transform: none; } 35%, 100% { opacity: 0; transform: translateY(-6px); } }
+@keyframes ldDot { 0%, 100% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.5); opacity: 1; } }

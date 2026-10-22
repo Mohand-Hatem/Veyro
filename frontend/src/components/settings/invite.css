@@ -1,0 +1,33 @@
+/* Invite dialog, ported from screens/groups/03-workspace-dashboard/settings.css (Parity Gate). */
+.iv-view { display: grid; gap: 18px; align-content: start; }
+.iv-view[hidden] { display: none; }
+.iv-roles legend, .iv-lbl { font-weight: 700; font-size: 0.8125rem; padding: 0; margin-bottom: 7px; }
+.iv-lbl i { font-style: normal; font-weight: 500; color: var(--muted); margin-inline-start: 4px; }
+.iv-rgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.iv-role { position: relative; display: flex; gap: 10px; background: var(--pill); border: 1.5px solid transparent; border-radius: 14px; padding: 12px 14px; cursor: pointer; transition: border-color 150ms ease, background 150ms ease; }
+.iv-role:has(input:checked) { border-color: var(--brand); background: color-mix(in srgb, var(--brand) 9%, var(--pill)); }
+.iv-role:has(input:focus-visible) { outline: 2px solid var(--brand); outline-offset: 2px; }
+.iv-role b { font-size: 0.875rem; display: block; }
+.iv-role small { display: block; color: var(--muted); font-size: 0.75rem; line-height: 1.4; margin-top: 2px; }
+.iv-plist { display: grid; gap: 6px; max-height: 188px; overflow-y: auto; padding-inline-end: 2px; }
+.iv-p { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 12px; background: var(--pill); cursor: pointer; font-size: 0.875rem; border: 1.5px solid transparent; transition: border-color 150ms ease; }
+.iv-p:has(input:checked) { border-color: color-mix(in srgb, var(--brand) 55%, transparent); }
+.iv-p:has(input:focus-visible) { outline: 2px solid var(--brand); outline-offset: 2px; }
+.iv-p.is-off { opacity: 0.55; cursor: not-allowed; }
+.iv-p b { font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.iv-p small { color: var(--muted); font-size: 0.75rem; }
+.iv-admin-note { background: var(--pill); border-radius: 12px; padding: 12px 14px; color: var(--muted); font-size: 0.875rem; }
+.iv-admin-note[hidden] { display: none; }
+.iv-sum { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.iv-plist[hidden] { display: none; }
+.iv .pm-main { overflow-x: hidden; }
+
+.iv-projects .pm-lrow { align-items: baseline; }
+.iv-projects .pm-lrow .iv-lbl { margin-bottom: 0; }
+.pm-f .iv-role input { position: absolute; inset: 0; width: 100%; height: 100%; min-height: 0; opacity: 0; margin: 0; cursor: pointer; padding: 0; }
+.pm-f .iv-p input { appearance: none; -webkit-appearance: none; width: 18px; height: 18px; min-height: 0; flex: none; padding: 0; margin: 0; border-radius: 6px; border: 1.8px solid var(--muted); background: transparent; cursor: inherit; }
+.pm-f .iv-p input:checked { background: var(--color-primary) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='4.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5L20 7'/%3E%3C/svg%3E") center / 12px no-repeat; border-color: var(--color-primary); }
+
+@media (max-width: 480px) {
+  .iv-rgrid { grid-template-columns: 1fr; }
+}

@@ -1,0 +1,66 @@
+/* Create-project dialog, ported verbatim from screens/groups/03-workspace-dashboard/group.css (SCR-PRJ-02, Parity Gate). Button and spinner rules live in projects.css. */
+/* Tailwind preflight zeroes every margin, which removes the browser's own `margin: auto` that centres a modal <dialog>; zero specificity so the ported rules still win. */
+:where(dialog.pm) { margin: auto; }
+.pm { border: 0; padding: 0; background: var(--card); color: var(--ink); border-radius: 28px; width: min(900px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow: hidden; box-shadow: 0 40px 80px -24px rgba(24, 24, 27, 0.55); font-family: inherit; }
+.pm:not([open]) { display: none; }
+.pm[open] { animation: pm-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+.pm::backdrop { background: rgba(11, 11, 12, 0.55); backdrop-filter: blur(3px); }
+.pm-form { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: 8px; max-height: calc(100dvh - 32px); }
+.pm-main { padding: 18px 20px 14px; display: grid; gap: 18px; align-content: start; overflow-y: auto; }
+.pm-head { display: flex; gap: 16px; justify-content: space-between; align-items: flex-start; }
+.pm-head h2 { font-size: 1.5rem; letter-spacing: -0.03em; line-height: 1.15; }
+.pm-head p { color: var(--muted); font-size: 0.875rem; margin-top: 6px; max-width: 42ch; }
+.pm-x { flex: none; width: 40px; height: 40px; border: 0; border-radius: 50%; background: var(--pill); color: var(--ink); display: grid; place-items: center; cursor: pointer; transition: background 150ms ease; }
+.pm-x:hover { background: var(--inset); }
+.pm-f { display: grid; gap: 7px; }
+.pm-f label { font-weight: 700; font-size: 0.8125rem; }
+.pm-f label i { font-style: normal; font-weight: 500; color: var(--muted); margin-inline-start: 4px; }
+.pm-lrow { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.pm-f input, .pm-f textarea { width: 100%; background: var(--pill); color: var(--ink); border: 1.5px solid transparent; border-radius: 14px; font: inherit; font-size: 0.9375rem; padding: 0 16px; min-height: 48px; outline: none; transition: border-color 150ms ease, box-shadow 150ms ease; }
+.pm-f textarea { padding: 12px 16px; resize: vertical; min-height: 92px; line-height: 1.5; }
+.pm-f input::placeholder, .pm-f textarea::placeholder { color: var(--muted); opacity: 0.8; }
+.pm-f input:focus-visible, .pm-f textarea:focus-visible { border-color: var(--brand); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 22%, transparent); }
+.pm-f.is-bad input { border-color: var(--rose); }
+.pm-keyrow { display: flex; align-items: center; gap: 12px; }
+.pm-keyrow input { width: 128px; flex: none; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; font-variant-numeric: tabular-nums; }
+.pm-link { border: 0; background: transparent; color: var(--brand-ink); font: inherit; font-weight: 700; font-size: 0.8125rem; cursor: pointer; padding: 6px 0; text-decoration: underline; text-underline-offset: 3px; }
+.pm-link[hidden] { display: none; }
+.pm-auto { font-size: 0.6875rem; font-weight: 800; padding: 2px 9px; border-radius: 9999px; background: var(--ok-soft); color: var(--ok); transition: opacity 150ms ease; }
+.pm-auto.off { opacity: 0; }
+.pm-hint { color: var(--muted); font-size: 0.75rem; line-height: 1.45; }
+.pm-err { color: var(--rose); font-size: 0.8125rem; font-weight: 600; }
+.pm-err[hidden], .pm-alert[hidden] { display: none; }
+.pm-count { color: var(--muted); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+.pm-count.warn { color: var(--warn); font-weight: 700; }
+.pm-alert { border-radius: 14px; background: var(--rose-soft); color: var(--rose); font-size: 0.875rem; font-weight: 600; padding: 12px 14px; }
+.pm-note { display: none; color: var(--muted); font-size: 0.8125rem; }
+.pm-foot { display: flex; justify-content: flex-end; gap: 10px; padding-top: 4px; }
+.pm :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.pm-form { padding: 10px; }
+.pm-side { border-radius: 20px; padding: 22px 18px 20px; min-height: 0; }
+.pm-side .il-illu svg { max-width: 400px; }
+.pm-side .il-caps { max-width: 320px; }
+.pm-side .il-cap { font-size: 1.0625rem; }
+.pm-side .il-pager { margin-top: 12px; }
+[dir="rtl"] .app .pm-keyrow input { text-align: end; }
+.pm-count { unicode-bidi: isolate; direction: ltr; }
+
+@media (max-width: 859px) {
+  .pm-form { grid-template-columns: 1fr; }
+  .pm-side { display: none; }
+  .pm-note { display: block; }
+}
+
+@media (max-width: 767px) {
+  .pm { width: 100%; max-width: 100%; margin: auto 0 0; border-radius: 24px 24px 0 0; max-height: 92dvh; }
+  .pm-form { max-height: 92dvh; }
+  .pm-main { padding: 22px 18px 18px; }
+  .pm-form { padding: 0; }
+  .pm[open] { animation-name: pm-up; }
+  .pm-foot { position: sticky; bottom: 0; background: var(--card); padding-block: 12px 2px; }
+  .pm-f input, .pm-f textarea { font-size: 1rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pm[open], .pm-dots span.next, .pm-spin { animation-duration: 1ms; animation-iteration-count: 1; }
+}

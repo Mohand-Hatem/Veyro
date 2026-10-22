@@ -1,0 +1,19 @@
+/* Create-workspace dialog (SCR-WKSP-02, Parity Gate). It reuses the .pm frame from components/projects/create-project.css; ported from screens/groups/03-workspace-dashboard/group.css. */
+.wm-addr { display: flex; align-items: center; gap: 0; background: var(--pill); border: 1.5px solid transparent; border-radius: 14px; min-height: 48px; transition: border-color 150ms ease, box-shadow 150ms ease; }
+.wm-addr:focus-within { border-color: var(--brand); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 22%, transparent); }
+.pm-f.is-bad .wm-addr { border-color: var(--rose); }
+.wm-pre { padding-inline-start: 16px; color: var(--muted); font-weight: 700; font-size: 0.9375rem; direction: ltr; }
+.pm-f .wm-addr input { background: transparent; border: 0; box-shadow: none; padding-inline-start: 2px; min-height: 44px; flex: 1; min-width: 0; text-align: left; }
+.pm-f .wm-addr input:focus-visible { border: 0; box-shadow: none; }
+.wm-addr .pm-link { flex: none; padding-inline: 12px; }
+.wm-up { color: inherit; font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
+.pm-go:disabled { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
+.wm .pm-main { display: flex; flex-direction: column; gap: 18px; }
+.wm .pm-foot { margin-top: auto; }
+/* a web address always reads left to right, also in Arabic */
+.wm-addr { direction: ltr; }
+[dir="rtl"] .wm-addr .pm-link { direction: rtl; }
+@media (max-width: 767px) {
+  .wm .pm-foot .pm-btn { padding: 0 18px; white-space: nowrap; }
+  .wm .pm-foot .pm-go { flex: 1; }
+}

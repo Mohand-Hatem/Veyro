@@ -1,0 +1,42 @@
+/* Create task and Reopen dialogs, ported from screens/groups/04-projects-tasks/board.css (Parity Gate). The shared .pm-* dialog kit lives in projects/create-project.css. */
+.iv-lbl { font-weight: 700; font-size: 0.8125rem; padding: 0; margin-bottom: 7px; }
+.iv-lbl i { font-style: normal; font-weight: 500; color: var(--muted); margin-inline-start: 4px; }
+.tk-prio { display: flex; gap: 8px; flex-wrap: wrap; }
+.tk-prio label { position: relative; cursor: pointer; }
+.pm-f .tk-prio input { position: absolute; inset: 0; width: 100%; height: 100%; min-height: 0; opacity: 0; margin: 0; padding: 0; cursor: pointer; }
+.tk-prio .pr { font-size: 0.8125rem; padding: 8px 16px; border: 2px solid transparent; transition: border-color 150ms ease; }
+.tk-prio label:has(input:checked) .pr { border-color: currentColor; }
+.tk-prio label:has(input:focus-visible) .pr { outline: 2px solid var(--brand); outline-offset: 2px; }
+.tk-two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.tk .ap-select select { width: 100%; max-width: none; min-height: 48px; border-radius: 14px; }
+.tk .pm-f .ap-select { display: block; }
+.tk-pv-empty, #tk-pv-title.is-empty { opacity: 0.45; }
+.rp-ic { width: 52px; height: 52px; border-radius: 16px; background: var(--brand-soft); color: var(--brand-ink); display: grid; place-items: center; }
+.rp-flow { display: flex; align-items: center; gap: 10px; }
+.rp-arrow { color: var(--muted); }
+[dir="rtl"] .app .rp-arrow { transform: scaleX(-1); }
+.rp .pm-f textarea { min-height: 96px; }
+.rp .pm-go:disabled { opacity: 0.45; cursor: not-allowed; }
+.rp .st-dlg-in { gap: 14px; }
+
+@media (prefers-reduced-motion: reduce) { .tk-prio .pr { transition: none; } }
+
+@media (max-width: 767px) {
+  .tk-two { grid-template-columns: 1fr; }
+}
+
+/* Project members dialog (CS-05, ADR-012) */
+.pmb { width: min(580px, calc(100vw - 32px)); }
+.pmb-list { display: grid; list-style: none; margin: 0; padding: 0; max-height: 44vh; overflow-y: auto; }
+.pmb-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+.pmb-row:first-child { border-top: 0; }
+.pmb-who { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.pmb-who b { font-size: 0.875rem; margin-inline-end: 6px; }
+.pmb-av.bd-av { width: 34px; height: 34px; font-size: 0.6875rem; }
+.pmb-tag { font-style: normal; font-size: 0.6875rem; font-weight: 700; color: var(--muted); background: var(--pill); border-radius: 9999px; padding: 1px 8px; margin-inline-end: 4px; }
+.pmb-rsel select { min-height: 36px; font-size: 0.8125rem; max-width: 170px; }
+.pmb-x { width: 40px; display: flex; justify-content: flex-end; }
+.pmb-add { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding-top: 14px; border-top: 1px solid var(--line); }
+.pmb-add[hidden], .pm-hint[hidden] { display: none; }
+.pmb-add .ap-select select { width: 100%; max-width: none; min-height: 42px; }
+@media (max-width: 560px) { .pmb-add { grid-template-columns: 1fr; } .pmb-row { grid-template-columns: minmax(0, 1fr) auto; } .pmb-x { grid-column: 2; grid-row: 1; } .pmb-r { grid-column: 1 / -1; } }

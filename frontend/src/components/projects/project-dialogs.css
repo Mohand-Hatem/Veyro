@@ -1,0 +1,31 @@
+/* Project settings and confirm dialogs, ported from screens/groups/04-projects-tasks/projects.css and the shared group styles (SCR-PRJ-05, Parity Gate). Base dialog rules live in create-project.css. */
+.st-dlg { width: min(460px, calc(100vw - 32px)); }
+.st-dlg-in { padding: 26px 26px 22px; display: grid; gap: 12px; }
+.st-dlg h2 { font-size: 1.25rem; letter-spacing: -0.03em; }
+.st-dlg p { color: var(--muted); font-size: 0.9375rem; line-height: 1.5; overflow-wrap: anywhere; }
+.st-dlg .pm-foot { padding-top: 6px; }
+.st-danger { background: var(--rose); color: #fff; }
+.dark .app .st-danger { background: #DC4A3A; }
+.st-danger:hover { filter: brightness(0.92); }
+.st-danger[aria-busy="true"] { opacity: 0.85; pointer-events: none; }
+.st-danger[aria-busy="true"] .pm-spin { display: inline-block; }
+.pj-dlg { width: min(940px, calc(100vw - 32px)); }
+.pj-dlg .pm-main { overflow-x: hidden; }
+.pj-key-in { font-weight: 800; letter-spacing: 0.12em; opacity: 0.7; cursor: default; max-width: 160px; }
+.pj-danger { display: grid; gap: 10px; border-top: 1px solid var(--line); padding-top: 14px; }
+.pj-danger[hidden] { display: none; }
+.pj-danger h3 { font-size: 0.8125rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.pj-dz-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.pj-dz-row[hidden] { display: none; }
+.pj-dz-row b { font-size: 0.875rem; }
+.pj-dz-row p { color: var(--muted); font-size: 0.8125rem; margin-top: 2px; max-width: 34ch; }
+.pj-side { border-radius: 20px; padding: 22px 18px 20px; --il-sweater: #E8A55C; }
+.dark .pj-side, .dark .app .pj-side { --il-sweater: #B9803A; }
+.pj-side .il-illu svg { max-width: 400px; }
+.pj-side .il-caps { max-width: 320px; min-height: 3.2em; }
+.pj-side .il-cap { font-size: 1.0625rem; }
+
+@media (max-width: 880px) {
+  .pj-side { display: none; }
+  .pj-dlg .pm-form { grid-template-columns: minmax(0, 1fr); }
+}
