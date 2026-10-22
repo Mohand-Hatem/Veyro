@@ -1,7 +1,12 @@
-import { IsOptional, IsString, IsInt, Min, Max } from 'class-validator';
+import { IsOptional, IsString, IsInt, Min, Max, IsISO8601 } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class QueryAuditLogsDto {
+  /** Account-level trail (CS-07): only the account's own events (billing, plan, offboarding). Account Owner only. */
+  @IsString()
+  @IsOptional()
+  accountId?: string;
+
   @IsString()
   @IsOptional()
   workspaceId?: string;
@@ -14,9 +19,24 @@ export class QueryAuditLogsDto {
   @IsOptional()
   taskId?: string;
 
+  /** One action or a comma-separated list (max 40), e.g. `TASK_CREATED,TASK_DELETED`. */
   @IsString()
   @IsOptional()
   action?: string;
+
+  @IsString()
+  @IsOptional()
+  actorUserId?: string;
+
+  /** Inclusive lower bound, ISO-8601 (CS-03). */
+  @IsISO8601()
+  @IsOptional()
+  from?: string;
+
+  /** Inclusive upper bound, ISO-8601. A date-only value (YYYY-MM-DD) covers that whole UTC day. */
+  @IsISO8601()
+  @IsOptional()
+  to?: string;
 
   @Type(() => Number)
   @IsInt()

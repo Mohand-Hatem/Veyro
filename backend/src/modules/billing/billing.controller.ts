@@ -25,6 +25,18 @@ export class BillingController {
     return this.billingService.getAccountSubscription(accountId);
   }
 
+  @Get('accounts/:id/billing-events')
+  @UseGuards(AccountOwnerGuard)
+  async listBillingEvents(@Param('id') accountId: string) {
+    return this.billingService.listBillingEvents(accountId);
+  }
+
+  @Get('accounts/:id/projects')
+  @UseGuards(AccountOwnerGuard)
+  async listAccountProjects(@Param('id') accountId: string) {
+    return this.billingService.listAccountProjects(accountId);
+  }
+
   @Get('users/me/ai-subscription')
   async getUserAiSubscription(@CurrentUser('id') userId: string) {
     return this.billingService.getUserAiSubscription(userId);

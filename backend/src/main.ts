@@ -37,8 +37,11 @@ async function bootstrap() {
   app.useGlobalInterceptors(new TransformInterceptor());
   app.useGlobalFilters(new AllExceptionsFilter());
 
-  const port = process.env.PORT || 3001;
-  await app.listen(port);
+  const port = process.env.PORT || 5000;
+  const server = await app.listen(port);
+  // Node closes idle connections after 5s by default, while the Next.js proxy reuses them for longer: the race shows up as ECONNRESET and a 500. Stay open longer than any proxy or load balancer in front.
+  server.keepAliveTimeout = 65_000;
+  server.headersTimeout = 66_000;
   logger.log(`Veyro Modular Monolith API running on http://localhost:${port}/api/v1`);
 }
 

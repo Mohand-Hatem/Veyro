@@ -7,7 +7,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { WorkspaceRole, AccountOffboardingState } from '@prisma/client';
+import { WorkspaceRole, AccountOffboardingState, ProjectRole } from '@prisma/client';
 
 @Injectable()
 export class ProjectAccessGuard implements CanActivate {
@@ -81,7 +81,11 @@ export class ProjectAccessGuard implements CanActivate {
     // Attach contextual project and authorization metadata to request
     request.project = project;
     request.workspace = project.workspace;
-    request.isProjectAdmin = isAccountOwner || isWorkspaceAdmin;
+    // CS-05 / ADR-012: workspace admins and the account owner override everywhere; otherwise the project role decides.
+    const isWorkspaceOverride = isAccountOwner || isWorkspaceAdmin;
+    request.isWorkspaceOverride = isWorkspaceOverride;
+    request.projectRole = isWorkspaceOverride ? ProjectRole.ADMIN : project.members[0]?.role ?? ProjectRole.MEMBER;
+    request.isProjectAdmin = isWorkspaceOverride || project.members[0]?.role === ProjectRole.ADMIN;
     request.isAccountOwner = isAccountOwner;
 
     return true;

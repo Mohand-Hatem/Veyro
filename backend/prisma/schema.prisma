@@ -17,33 +17,48 @@ generator client {
 // ============================================================================
 
 model User {
-  id           String   @id @default(cuid(2))
-  email        String   @unique
-  passwordHash String
-  name         String
-  avatarUrl    String?
-  isEmailVerified Boolean  @default(false)
+  id              String     @id @default(cuid(2))
+  email           String     @unique
+  passwordHash    String
+  name            String
+  avatarUrl       String?
+  /// Display preferences (CS-09): saved on the account so they follow the person to every device.
+  locale          UserLocale @default(EN)
+  theme           UserTheme  @default(SYSTEM)
+  isEmailVerified Boolean    @default(false)
   emailVerifiedAt DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
 
   // Relationships
-  ownedAccounts           Account[]              @relation("AccountOwner")
-  sessions                UserSession[]
-  workspaceMemberships    WorkspaceMember[]
-  projectMemberships      ProjectMember[]
-  authoredTasks           Task[]                 @relation("TaskAuthor")
-  assignedTasks           Task[]                 @relation("TaskAssignee")
-  taskComments            TaskComment[]
-  aiSubscription          UserAiSubscription?
-  aiUsageRecords          AiDailyUsage[]
-  aiUsageReservations     AiUsageReservation[]
-  aiConversations         AiConversation[]
-  sentWorkspaceInvitations WorkspaceInvitation[] @relation("WorkspaceInviter")
-  otpVerifications        UserOtpVerification[]
-  passwordResetTokens     UserPasswordResetToken[]
+  ownedAccounts            Account[]                @relation("AccountOwner")
+  sessions                 UserSession[]
+  workspaceMemberships     WorkspaceMember[]
+  projectMemberships       ProjectMember[]
+  createdProjects          Project[]                @relation("ProjectCreator")
+  authoredTasks            Task[]                   @relation("TaskAuthor")
+  assignedTasks            Task[]                   @relation("TaskAssignee")
+  taskComments             TaskComment[]
+  aiSubscription           UserAiSubscription?
+  aiUsageRecords           AiDailyUsage[]
+  aiUsageReservations      AiUsageReservation[]
+  aiConversations          AiConversation[]
+  sentWorkspaceInvitations WorkspaceInvitation[]    @relation("WorkspaceInviter")
+  otpVerifications         UserOtpVerification[]
+  passwordResetTokens      UserPasswordResetToken[]
 
   @@map("users")
+}
+
+enum UserLocale {
+  EN
+  AR
+}
+
+enum UserTheme {
+  LIGHT
+  DARK
+  SYSTEM
 }
 
 model UserSession {
@@ -201,12 +216,27 @@ model WorkspaceInvitation {
   createdAt   DateTime         @default(now())
 
   // Relationships
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
-  inviter   User      @relation("WorkspaceInviter", fields: [inviterId], references: [id], onDelete: Restrict)
+  workspace Workspace                    @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  inviter   User                         @relation("WorkspaceInviter", fields: [inviterId], references: [id], onDelete: Restrict)
+  projects  WorkspaceInvitationProject[]
 
   @@index([workspaceId, email])
   @@index([status, expiresAt])
   @@map("workspace_invitations")
+}
+
+/// Optional project pre-assignment carried by an invitation (CS-01, ADR-004).
+model WorkspaceInvitationProject {
+  id           String @id @default(cuid(2))
+  invitationId String
+  projectId    String
+
+  invitation WorkspaceInvitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  project    Project             @relation(fields: [projectId], references: [id], onDelete: Restrict)
+
+  @@unique([invitationId, projectId])
+  @@index([projectId])
+  @@map("workspace_invitation_projects")
 }
 
 // ============================================================================
@@ -218,32 +248,56 @@ enum ProjectLifecycleStatus {
   ARCHIVED
 }
 
+/// Role inside one project (CS-05, ADR-012). Workspace admins and the account owner always have admin rights everywhere.
+enum ProjectRole {
+  ADMIN
+  MEMBER
+}
+
+/// Fixed, small category set for tasks (CS-05). Optional on every task.
+enum TaskCategory {
+  FEATURE
+  BUG
+  IMPROVEMENT
+  DESIGN
+  RESEARCH
+  DOCS
+  OTHER
+}
+
 model Project {
   id                String                 @id @default(cuid(2))
   workspaceId       String
   name              String
+  key               String                 @db.VarChar(5)
   description       String?
   lifecycleStatus   ProjectLifecycleStatus @default(ACTIVE)
   deletedAt         DateTime?
   isBillingReadOnly Boolean                @default(false)
+  /// The user who created the project: its protected owner (cannot be demoted or removed by other project admins).
+  createdById       String?
   createdAt         DateTime               @default(now())
   updatedAt         DateTime               @updatedAt
 
   // Relationships
-  workspace Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
-  members   ProjectMember[]
-  tasks     Task[]
+  workspace          Workspace                    @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  createdBy          User?                        @relation("ProjectCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  members            ProjectMember[]
+  tasks              Task[]
+  invitationProjects WorkspaceInvitationProject[]
 
+  @@unique([workspaceId, key])
   @@index([workspaceId, lifecycleStatus])
   @@index([workspaceId, deletedAt])
   @@map("projects")
 }
 
 model ProjectMember {
-  id         String   @id @default(cuid(2))
+  id         String      @id @default(cuid(2))
   projectId  String
   userId     String
-  assignedAt DateTime @default(now())
+  role       ProjectRole @default(MEMBER)
+  assignedAt DateTime    @default(now())
 
   // Relationships
   project Project @relation(fields: [projectId], references: [id], onDelete: Restrict)
@@ -270,18 +324,20 @@ enum TaskPriority {
 }
 
 model Task {
-  id          String       @id @default(cuid(2))
+  id          String        @id @default(cuid(2))
   projectId   String
   title       String
   description String?
-  status      TaskStatus   @default(TODO)
-  priority    TaskPriority @default(MEDIUM)
+  status      TaskStatus    @default(TODO)
+  priority    TaskPriority  @default(MEDIUM)
   authorId    String
   assigneeId  String?
   dueDate     DateTime?
+  category    TaskCategory?
+  completedAt DateTime?
   deletedAt   DateTime?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
   // Relationships
   project  Project       @relation(fields: [projectId], references: [id], onDelete: Restrict)
@@ -291,6 +347,7 @@ model Task {
 
   @@index([projectId, status])
   @@index([projectId, deletedAt])
+  @@index([projectId, completedAt])
   @@index([assigneeId])
   @@index([authorId])
   @@map("tasks")
@@ -473,9 +530,9 @@ model AiConversation {
   updatedAt    DateTime       @updatedAt
 
   // Relationships
-  user      User                  @relation(fields: [userId], references: [id], onDelete: Restrict)
-  account   Account?              @relation(fields: [accountId], references: [id], onDelete: SetNull)
-  workspace Workspace?            @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Restrict)
+  account   Account?             @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  workspace Workspace?           @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
   messages  AiMessage[]
   proposals AiMutationProposal[]
 
@@ -499,7 +556,9 @@ model AiMessage {
   createdAt      DateTime     @default(now())
 
   // Relationships
-  conversation AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversation AiConversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  /// The mutation proposal this assistant message carries, if any (CS-06).
+  proposal     AiMutationProposal?
 
   @@index([conversationId, createdAt])
   @@map("ai_messages")
@@ -532,12 +591,15 @@ model AiMutationProposal {
   targetWorkspaceId String?
   targetProjectId   String?
   proposedPayload   Json
+  /// The assistant message that carries this proposal (CS-06).
+  messageId         String?                @unique
   status            AiProposalStatus       @default(PENDING)
   createdAt         DateTime               @default(now())
   executedAt        DateTime?
 
   // Relationships
   conversation AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  message      AiMessage?     @relation(fields: [messageId], references: [id], onDelete: SetNull)
 
   @@index([conversationId, status])
   @@map("ai_mutation_proposals")
@@ -564,4 +626,40 @@ model AuditLog {
   @@index([taskId, createdAt])
   @@index([actorUserId, createdAt])
   @@map("audit_logs")
+}
+
+
+// ============================================================================
+// CONTACT (CS-10, ADR-017)
+// ============================================================================
+
+enum ContactTopic {
+  QUESTION
+  PROBLEM
+  BILLING
+  FEEDBACK
+  OTHER
+}
+
+enum ContactStatus {
+  NEW
+  HANDLED
+}
+
+/// A message from the public Contact us form. Read by the team from this table until the email provider is connected.
+model ContactMessage {
+  id        String        @id @default(cuid(2))
+  name      String
+  email     String
+  topic     ContactTopic
+  message   String
+  /// Salted SHA-256 of the sender's network address: enough to rate-limit, not to identify a person.
+  ipHash    String
+  status    ContactStatus @default(NEW)
+  createdAt DateTime      @default(now())
+
+  @@index([email, createdAt])
+  @@index([ipHash, createdAt])
+  @@index([status, createdAt])
+  @@map("contact_messages")
 }

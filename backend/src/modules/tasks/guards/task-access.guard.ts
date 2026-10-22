@@ -7,7 +7,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { WorkspaceRole, AccountOffboardingState } from '@prisma/client';
+import { WorkspaceRole, AccountOffboardingState, ProjectRole } from '@prisma/client';
 
 @Injectable()
 export class TaskAccessGuard implements CanActivate {
@@ -59,7 +59,12 @@ export class TaskAccessGuard implements CanActivate {
       });
     }
 
-    if (task.deletedAt !== null && !isRestoreRequest) {
+    // CS-04: the detail route may open a soft-deleted task so the restore window can be shown;
+    // the service then answers 404 unless the caller is the author or an administrator.
+    const path = String(request.originalUrl || request.url || '').split('?')[0];
+    const isDetailRead = request.method === 'GET' && /\/tasks\/[^/]+\/?$/.test(path);
+
+    if (task.deletedAt !== null && !isRestoreRequest && !isDetailRead) {
       throw new NotFoundException({
         code: 'RESOURCE_NOT_FOUND',
         message: 'The requested task does not exist.',
@@ -94,7 +99,8 @@ export class TaskAccessGuard implements CanActivate {
     // Attach contextual task and authorization metadata to request
     request.task = task;
     request.project = task.project;
-    request.isProjectAdmin = isAccountOwner || isWorkspaceAdmin;
+    // CS-05 / ADR-012: workspace override or project ADMIN role.
+    request.isProjectAdmin = isAccountOwner || isWorkspaceAdmin || task.project.members[0]?.role === ProjectRole.ADMIN;
     request.isTaskAuthor = task.authorId === user.id;
 
     return true;

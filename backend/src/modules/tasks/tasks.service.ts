@@ -10,10 +10,16 @@ import { UpdateTaskDto } from './dto/update-task.dto';
 import { ReopenTaskDto } from './dto/reopen-task.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { QueryTasksDto } from './dto/query-tasks.dto';
+import { QueryMyTasksDto, MyTasksView, MyTasksBucket } from './dto/query-my-tasks.dto';
+import { completedAtPatch } from './task-completion';
 import {
   TaskStatus,
   ProjectLifecycleStatus,
 } from '@prisma/client';
+
+/** Business rule: a soft-deleted task can be restored for 30 days (docs/03, STATE-TSK-RESTORE). */
+export const TASK_RESTORE_WINDOW_DAYS = 30;
+const purgeAtOf = (deletedAt: Date | null) => (deletedAt ? new Date(deletedAt.getTime() + TASK_RESTORE_WINDOW_DAYS * 86400000) : null);
 
 export const ALLOWED_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
   [TaskStatus.TODO]: [TaskStatus.IN_PROGRESS, TaskStatus.CANCELLED],
@@ -27,7 +33,7 @@ export const ALLOWED_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
 export class TasksService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createTask(userId: string, projectId: string, dto: CreateTaskDto) {
+  async createTask(userId: string, projectId: string, dto: CreateTaskDto, isProjectAdmin: boolean) {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
       include: {
@@ -39,6 +45,14 @@ export class TasksService {
       throw new NotFoundException({
         code: 'RESOURCE_NOT_FOUND',
         message: 'The requested project does not exist.',
+      });
+    }
+
+    // CS-05 / ADR-012: only project admins (incl. workspace admins and the account owner) create tasks.
+    if (!isProjectAdmin) {
+      throw new ForbiddenException({
+        code: 'PERMISSION_DENIED',
+        message: 'Only project administrators can create tasks.',
       });
     }
 
@@ -84,6 +98,7 @@ export class TasksService {
           title: dto.title,
           description: dto.description,
           priority: dto.priority,
+          category: dto.category,
           authorId: userId,
           assigneeId: dto.assigneeId,
           dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
@@ -118,15 +133,20 @@ export class TasksService {
     });
   }
 
-  async listProjectTasks(projectId: string, query: QueryTasksDto) {
+  async listProjectTasks(projectId: string, query: QueryTasksDto, viewer: { userId: string; isAdmin: boolean }) {
     const page = query.page || 1;
     const limit = query.limit || 20;
     const skip = (page - 1) * limit;
 
-    const whereClause: any = {
-      projectId,
-      deletedAt: null,
-    };
+    // Deleted tasks are visible only to administrators and to the task's own author (CS-04).
+    // Deleted tasks (the restore window) are visible to project admins only (CS-05); others get an empty list.
+    if (query.deleted && !viewer.isAdmin) {
+      return { tasks: [], meta: { total: 0, page, limit, totalPages: 0 } };
+    }
+    const whereClause: any = query.deleted ? { projectId, deletedAt: { not: null } } : { projectId, deletedAt: null };
+    if (query.category) {
+      whereClause.category = query.category;
+    }
 
     if (query.status) {
       whereClause.status = query.status;
@@ -152,7 +172,7 @@ export class TasksService {
             select: { comments: true },
           },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: query.deleted ? [{ deletedAt: 'desc' }, { id: 'desc' }] : [{ createdAt: 'desc' }, { id: 'desc' }],
         skip,
         take: limit,
       }),
@@ -160,7 +180,7 @@ export class TasksService {
     ]);
 
     return {
-      tasks,
+      tasks: query.deleted ? tasks.map((t) => ({ ...t, purgeAt: purgeAtOf(t.deletedAt) })) : tasks,
       meta: {
         total,
         page,
@@ -170,7 +190,7 @@ export class TasksService {
     };
   }
 
-  async getTaskDetails(taskId: string) {
+  async getTaskDetails(taskId: string, viewer: { userId: string; isAdmin: boolean; isAuthor: boolean }) {
     const task = await this.prisma.task.findUnique({
       where: { id: taskId },
       include: {
@@ -201,17 +221,41 @@ export class TasksService {
       },
     });
 
-    if (!task || task.deletedAt !== null || task.project.lifecycleStatus === ProjectLifecycleStatus.ARCHIVED && task.deletedAt !== null) {
+    const privileged = viewer.isAdmin;
+    // A soft-deleted task is only visible to project admins; everyone else gets 404.
+    // (CS-05: authors who are plain members can no longer delete or restore, so they no longer see it either.)
+    if (!task || (task.deletedAt !== null && !privileged)) {
       throw new NotFoundException({
         code: 'RESOURCE_NOT_FOUND',
         message: 'The requested task does not exist.',
       });
     }
 
-    return task;
+    const deleted = task.deletedAt !== null;
+    const terminal = task.status === TaskStatus.DONE || task.status === TaskStatus.CANCELLED;
+    const isAssignee = task.assigneeId === viewer.userId;
+    return {
+      ...task,
+      purgeAt: purgeAtOf(task.deletedAt),
+      // What this caller may do, so the UI never has to guess (the server stays the authority).
+      viewer: {
+        userId: viewer.userId,
+        isProjectAdmin: viewer.isAdmin,
+        isTaskAuthor: viewer.isAuthor,
+        isAssignee,
+        canEdit: privileged && !deleted,
+        canAssign: privileged && !deleted,
+        canReopen: privileged && terminal && !deleted,
+        canDelete: privileged && !deleted,
+        canRestore: privileged && deleted,
+        // Statuses this caller can move the task to: admins any allowed step, an assigned member the normal
+        // steps except cancelling. Terminal tasks go back only through /reopen.
+        allowedStatuses: deleted || terminal ? [] : viewer.isAdmin ? ALLOWED_TRANSITIONS[task.status] : isAssignee ? ALLOWED_TRANSITIONS[task.status].filter((s) => s !== TaskStatus.CANCELLED) : [],
+      },
+    };
   }
 
-  async updateTask(userId: string, taskId: string, dto: UpdateTaskDto) {
+  async updateTask(userId: string, taskId: string, dto: UpdateTaskDto, isProjectAdmin: boolean) {
     const task = await this.prisma.task.findUnique({
       where: { id: taskId },
       include: {
@@ -241,6 +285,32 @@ export class TasksService {
         code: 'PROJECT_ARCHIVED',
         message: 'Cannot modify tasks in an archived project.',
       });
+    }
+
+    // CS-05 / ADR-012: task information and assignment belong to project admins. An assigned member may only
+    // move the status (never cancel); everyone can comment through the comments endpoint.
+    if (!isProjectAdmin) {
+      const infoKeys = ['title', 'description', 'priority', 'category', 'assigneeId', 'dueDate'] as const;
+      if (infoKeys.some((k) => dto[k] !== undefined)) {
+        throw new ForbiddenException({
+          code: 'PERMISSION_DENIED',
+          message: 'Only project administrators can edit task information or assign tasks.',
+        });
+      }
+      if (dto.status && dto.status !== task.status) {
+        if (task.assigneeId !== userId) {
+          throw new ForbiddenException({
+            code: 'PERMISSION_DENIED',
+            message: 'Members can only move tasks that are assigned to them.',
+          });
+        }
+        if (dto.status === TaskStatus.CANCELLED) {
+          throw new ForbiddenException({
+            code: 'PERMISSION_DENIED',
+            message: 'Only project administrators can cancel a task.',
+          });
+        }
+      }
     }
 
     // Assignee validation if changed
@@ -287,9 +357,11 @@ export class TasksService {
           title: dto.title,
           description: dto.description,
           priority: dto.priority,
+          category: dto.category,
           assigneeId: dto.assigneeId,
           dueDate: dto.dueDate !== undefined ? (dto.dueDate ? new Date(dto.dueDate) : null) : undefined,
           status: dto.status,
+          ...(dto.status ? completedAtPatch(task.status, dto.status) : {}),
         },
         include: {
           author: {
@@ -345,12 +417,11 @@ export class TasksService {
       });
     }
 
-    // Role check: Strictly Author, Workspace Admin, or Account Owner (BR-TSK-01.1)
-    const isAuthor = task.authorId === userId;
-    if (!isAuthor && !isPrivilegedAdmin) {
+    // Role check (CS-05 / ADR-012): project administrators only (this includes workspace admins and the account owner).
+    if (!isPrivilegedAdmin) {
       throw new ForbiddenException({
         code: 'PERMISSION_DENIED',
-        message: 'Only the original task author, workspace administrators, or the account owner can reopen tasks.',
+        message: 'Only project administrators can reopen tasks.',
       });
     }
 
@@ -401,6 +472,7 @@ export class TasksService {
         where: { id: taskId },
         data: {
           status: dto.targetStatus,
+          ...completedAtPatch(task.status, dto.targetStatus),
         },
         include: {
           author: {
@@ -514,7 +586,6 @@ export class TasksService {
     userId: string,
     taskId: string,
     isProjectAdmin: boolean,
-    isTaskAuthor: boolean,
   ) {
     const task = await this.prisma.task.findUnique({
       where: { id: taskId },
@@ -534,11 +605,10 @@ export class TasksService {
       });
     }
 
-    if (!isProjectAdmin && !isTaskAuthor) {
+    if (!isProjectAdmin) {
       throw new ForbiddenException({
         code: 'PERMISSION_DENIED',
-        message:
-          'Only the task author, project administrators, workspace administrators, or account owners can delete this task.',
+        message: 'Only project administrators can delete this task.',
       });
     }
 
@@ -569,7 +639,6 @@ export class TasksService {
     userId: string,
     taskId: string,
     isProjectAdmin: boolean,
-    isTaskAuthor: boolean,
   ) {
     const task = await this.prisma.task.findUnique({
       where: { id: taskId },
@@ -596,11 +665,10 @@ export class TasksService {
       });
     }
 
-    if (!isProjectAdmin && !isTaskAuthor) {
+    if (!isProjectAdmin) {
       throw new ForbiddenException({
         code: 'PERMISSION_DENIED',
-        message:
-          'Only the task author, project administrators, workspace administrators, or account owners can restore this task.',
+        message: 'Only project administrators can restore this task.',
       });
     }
 
@@ -643,5 +711,71 @@ export class TasksService {
 
       return restored;
     });
+  }
+
+  /**
+   * "My tasks" across the projects of one workspace (CS-08, ADR-015). Only tasks assigned to the caller, only in projects
+   * the caller can see (members see their own projects; admins and the owner see all), never soft-deleted ones.
+   * `counts` describe the whole open set (honouring `projectId`) so the bucket chips stay stable while one is selected.
+   */
+  async listMyTasks(userId: string, workspaceId: string, isPrivileged: boolean, query: QueryMyTasksDto) {
+    const page = query.page || 1;
+    const limit = query.limit || 20;
+    const view = query.view || MyTasksView.OPEN;
+    const now = new Date();
+    const startOfDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const endOfDay = new Date(startOfDay.getTime() + 86_400_000);
+
+    const visible: any = {
+      assigneeId: userId,
+      deletedAt: null,
+      project: {
+        workspaceId,
+        deletedAt: null,
+        ...(isPrivileged ? {} : { members: { some: { userId } } }),
+      },
+    };
+    const base: any = { ...visible, ...(query.projectId ? { projectId: query.projectId } : {}) };
+    const open = { status: { in: [TaskStatus.TODO, TaskStatus.IN_PROGRESS, TaskStatus.IN_REVIEW] } };
+
+    const bucketWhere = (b?: MyTasksBucket) =>
+      b === MyTasksBucket.OVERDUE ? { dueDate: { lt: startOfDay } }
+        : b === MyTasksBucket.TODAY ? { dueDate: { gte: startOfDay, lt: endOfDay } }
+        : b === MyTasksBucket.UPCOMING ? { dueDate: { gte: endOfDay } }
+        : b === MyTasksBucket.NO_DATE ? { dueDate: null }
+        : {};
+
+    const where = view === MyTasksView.DONE
+      ? { ...base, status: TaskStatus.DONE }
+      : { ...base, ...open, ...bucketWhere(query.bucket) };
+
+    const [tasks, total, overdue, today, upcoming, noDate, done, openProjects] = await Promise.all([
+      this.prisma.task.findMany({
+        where,
+        orderBy: view === MyTasksView.DONE
+          ? [{ completedAt: { sort: 'desc', nulls: 'last' } }, { id: 'desc' }]
+          : [{ dueDate: { sort: 'asc', nulls: 'last' } }, { priority: 'desc' }, { createdAt: 'desc' }, { id: 'desc' }],
+        skip: (page - 1) * limit,
+        take: limit,
+        select: {
+          id: true, title: true, status: true, priority: true, category: true, dueDate: true, completedAt: true,
+          project: { select: { id: true, key: true, name: true, lifecycleStatus: true, isBillingReadOnly: true } },
+        },
+      }),
+      this.prisma.task.count({ where }),
+      this.prisma.task.count({ where: { ...base, ...open, ...bucketWhere(MyTasksBucket.OVERDUE) } }),
+      this.prisma.task.count({ where: { ...base, ...open, ...bucketWhere(MyTasksBucket.TODAY) } }),
+      this.prisma.task.count({ where: { ...base, ...open, ...bucketWhere(MyTasksBucket.UPCOMING) } }),
+      this.prisma.task.count({ where: { ...base, ...open, ...bucketWhere(MyTasksBucket.NO_DATE) } }),
+      this.prisma.task.count({ where: { ...base, status: TaskStatus.DONE } }),
+      // CS-12: how many projects my open tasks sit in (ignores the project filter, so the page headline stays stable)
+      this.prisma.task.groupBy({ by: ['projectId'], where: { ...visible, ...open } }),
+    ]);
+
+    return {
+      tasks,
+      counts: { open: overdue + today + upcoming + noDate, overdue, today, upcoming, noDate, done, projects: openProjects.length },
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    };
   }
 }

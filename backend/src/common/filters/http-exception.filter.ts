@@ -34,7 +34,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
       } else if (typeof res === 'object' && res !== null) {
         const resObj = res as Record<string, any>;
         message = resObj.message || exception.message;
-        errorCode = resObj.error || this.getDefaultErrorCode(status);
+        // Domain exceptions carry a machine-readable `code` (docs/06 §1.4). The Nest `error` string
+        // (e.g. "Not Found") is not part of the contract, so fall back to the catalog default instead.
+        errorCode = resObj.code || this.getDefaultErrorCode(status);
 
         if (Array.isArray(resObj.message)) {
           details = resObj.message;

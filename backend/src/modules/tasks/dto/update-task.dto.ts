@@ -5,7 +5,7 @@ import {
   IsEnum,
   IsDateString,
 } from 'class-validator';
-import { TaskPriority, TaskStatus } from '@prisma/client';
+import { TaskPriority, TaskStatus, TaskCategory } from '@prisma/client';
 
 export class UpdateTaskDto {
   @IsString()
@@ -21,6 +21,11 @@ export class UpdateTaskDto {
   @IsEnum(TaskPriority)
   @IsOptional()
   priority?: TaskPriority;
+
+  /** `null` clears the category (CS-05). */
+  @IsEnum(TaskCategory)
+  @IsOptional()
+  category?: TaskCategory | null;
 
   @IsString()
   @IsOptional()

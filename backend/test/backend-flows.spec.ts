@@ -74,6 +74,7 @@ describe('Veyro Backend Business Flows (OTP, Password Recovery, Task Soft Delete
       data: {
         workspaceId: testWorkspaceId,
         name: 'Test Flow Project',
+        key: 'TFP',
       },
     });
     testProjectId = project.id;
@@ -307,12 +308,12 @@ describe('Veyro Backend Business Flows (OTP, Password Recovery, Task Soft Delete
         title: 'Task Lifecycle Verification',
         description: 'Verify soft delete and restore',
         priority: TaskPriority.HIGH,
-      });
+      }, true);
       testTaskId = task.id;
     });
 
     it('should soft delete a task by marking deletedAt without destroying data', async () => {
-      await tasksService.softDeleteTask(testUserId, testTaskId, true, true);
+      await tasksService.softDeleteTask(testUserId, testTaskId, true);
 
       const task = await prisma.task.findUnique({
         where: { id: testTaskId },
@@ -335,7 +336,7 @@ describe('Veyro Backend Business Flows (OTP, Password Recovery, Task Soft Delete
     it('should throw 404 when attempting to delete an already deleted task', async () => {
       await assert.rejects(
         async () => {
-          await tasksService.softDeleteTask(testUserId, testTaskId, true, true);
+          await tasksService.softDeleteTask(testUserId, testTaskId, true);
         },
         (err: any) => {
           assert.strictEqual(err.status, 404);
@@ -346,7 +347,7 @@ describe('Veyro Backend Business Flows (OTP, Password Recovery, Task Soft Delete
     });
 
     it('should restore a soft-deleted task and clear deletedAt', async () => {
-      const restored = await tasksService.restoreTask(testUserId, testTaskId, true, true);
+      const restored = await tasksService.restoreTask(testUserId, testTaskId, true);
       assert.strictEqual(restored.deletedAt, null);
 
       // Verify it reappears in active task listings
@@ -364,7 +365,7 @@ describe('Veyro Backend Business Flows (OTP, Password Recovery, Task Soft Delete
     it('should throw 400 when attempting to restore an already active task', async () => {
       await assert.rejects(
         async () => {
-          await tasksService.restoreTask(testUserId, testTaskId, true, true);
+          await tasksService.restoreTask(testUserId, testTaskId, true);
         },
         (err: any) => {
           assert.strictEqual(err.status, 400);
@@ -376,7 +377,7 @@ describe('Veyro Backend Business Flows (OTP, Password Recovery, Task Soft Delete
 
     it('should block task restoration if project is archived or in billing read-only hold', async () => {
       // Soft delete task again
-      await tasksService.softDeleteTask(testUserId, testTaskId, true, true);
+      await tasksService.softDeleteTask(testUserId, testTaskId, true);
 
       // Set project to ARCHIVED
       await prisma.project.update({
@@ -386,7 +387,7 @@ describe('Veyro Backend Business Flows (OTP, Password Recovery, Task Soft Delete
 
       await assert.rejects(
         async () => {
-          await tasksService.restoreTask(testUserId, testTaskId, true, true);
+          await tasksService.restoreTask(testUserId, testTaskId, true);
         },
         (err: any) => {
           assert.strictEqual(err.status, 400);

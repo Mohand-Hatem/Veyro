@@ -24,6 +24,9 @@ import {
   SubscriptionPlanTier,
   TaskStatus,
   ProjectLifecycleStatus,
+  Prisma,
+  WorkspaceRole,
+  ProjectRole,
 } from '@prisma/client';
 
 export const TIER_PROJECT_LIMITS: Record<SubscriptionPlanTier, number> = {
@@ -176,10 +179,14 @@ export class AiService {
   async getMessages(userId: string, conversationId: string) {
     await this.getConversation(userId, conversationId);
 
-    return this.prisma.aiMessage.findMany({
+    const messages = await this.prisma.aiMessage.findMany({
       where: { conversationId },
       orderBy: { createdAt: 'asc' },
+      include: { proposal: true },
     });
+    const proposals = await this.withProject(messages.map((m) => m.proposal).filter((p): p is NonNullable<typeof p> => p !== null));
+    const byId = new Map(proposals.map((p) => [p.id, p]));
+    return messages.map((m) => ({ ...m, proposal: m.proposal ? byId.get(m.proposal.id) ?? null : null }));
   }
 
   async getQuota(userId: string) {
@@ -329,7 +336,15 @@ export class AiService {
       // If user asks to create or schedule a task, the assistant proposes a structured mutation!
       if (promptLower.includes('create task') || promptLower.includes('add task') || promptLower.includes('new task')) {
         const taskTitle = dto.content.replace(/.*(create task|add task|new task)[:\s]*/i, '').trim() || 'Follow up on sprint review';
-        assistantContent = `I have drafted a proposal to create the task "${taskTitle}". Please review and confirm the proposal below to apply the change.`;
+        // CS-06 / ADR-013: a proposal needs a workspace context and a project where THIS user can create tasks
+        // (project admin, workspace admin or account owner). Otherwise the assistant explains instead of proposing.
+        const targetProject = conversation.workspaceId ? await this.findTaskTargetProject(this.prisma, userId, conversation.workspaceId) : null;
+        if (!targetProject) {
+          assistantContent = conversation.workspaceId
+            ? 'I can only draft tasks in a project where you are a project admin. Ask a project admin to create it, or to make you one.'
+            : 'I need a workspace to draft a task. Open an assistant conversation inside a workspace and ask again.';
+        } else {
+        assistantContent = `I have drafted a proposal to create the task "${taskTitle}" in ${targetProject.key} · ${targetProject.name}. Please review and confirm the proposal below to apply the change.`;
         citations = [
           {
             type: 'WORKSPACE_CONTEXT',
@@ -342,12 +357,14 @@ export class AiService {
           targetEntityType: AiProposalTargetType.TASK,
           mutationAction: AiProposalMutationType.CREATE,
           targetWorkspaceId: conversation.workspaceId,
+          targetProjectId: targetProject.id,
           proposedPayload: {
             title: taskTitle.slice(0, 100),
             description: `Auto-generated from AI conversation: ${conversation.title}`,
             priority: 'MEDIUM',
           },
         };
+        }
       }
 
       // Step 3: Atomic Finalization
@@ -380,6 +397,8 @@ export class AiService {
               targetEntityType: proposalData.targetEntityType,
               mutationAction: proposalData.mutationAction,
               targetWorkspaceId: proposalData.targetWorkspaceId,
+              targetProjectId: proposalData.targetProjectId,
+              messageId: assistantMessage.id,
               proposedPayload: proposalData.proposedPayload,
               status: AiProposalStatus.PENDING,
             },
@@ -399,7 +418,7 @@ export class AiService {
           message: assistantMessage,
           proposal: createdProposal,
         };
-      });
+      }).then(async (r) => ({ ...r, proposal: r.proposal ? (await this.withProject([r.proposal]))[0] : null }));
     } catch (err) {
       // Step 4: Compensation on failure (Refund Quota)
       await this.prisma.$transaction(async (tx) => {
@@ -433,10 +452,12 @@ export class AiService {
   async listProposals(userId: string, conversationId: string) {
     await this.getConversation(userId, conversationId);
 
-    return this.prisma.aiMutationProposal.findMany({
-      where: { conversationId },
-      orderBy: { createdAt: 'desc' },
-    });
+    return this.withProject(
+      await this.prisma.aiMutationProposal.findMany({
+        where: { conversationId },
+        orderBy: { createdAt: 'desc' },
+      }),
+    );
   }
 
   async confirmProposal(userId: string, proposalId: string) {
@@ -476,14 +497,21 @@ export class AiService {
           });
         }
 
-        const project = await tx.project.findFirst({
-          where: {
-            workspaceId,
-            deletedAt: null,
-            lifecycleStatus: ProjectLifecycleStatus.ACTIVE,
-            isBillingReadOnly: false,
-          },
-        });
+        // CS-06 / ADR-013: execute in the project named by the proposal, and re-check the confirming user's rights NOW
+        // (they may have been demoted or removed since the proposal was drafted). Legacy proposals without a target
+        // fall back to the first project where the user can create tasks.
+        let project = null as Awaited<ReturnType<typeof this.findTaskTargetProject>>;
+        if (proposal.targetProjectId) {
+          const named = await tx.project.findFirst({ where: { id: proposal.targetProjectId, workspaceId, deletedAt: null } });
+          if (named) {
+            if (!(await this.canCreateTasksIn(tx, userId, named))) {
+              throw new ForbiddenException({ code: 'PERMISSION_DENIED', message: 'You can no longer create tasks in this project, so the proposal cannot be applied.' });
+            }
+            project = named.lifecycleStatus === ProjectLifecycleStatus.ACTIVE && !named.isBillingReadOnly ? named : null;
+          }
+        } else {
+          project = await this.findTaskTargetProject(tx, userId, workspaceId);
+        }
 
         if (!project) {
           throw new UnprocessableEntityException({
@@ -562,5 +590,43 @@ export class AiService {
         status: AiProposalStatus.REJECTED,
       },
     });
+  }
+
+  /** Workspace admins and the account owner override everywhere; otherwise the user must be an ADMIN of the project (CS-05). */
+  private async canCreateTasksIn(client: Prisma.TransactionClient | PrismaService, userId: string, project: { id: string; workspaceId: string }) {
+    const [wsMember, owner, pm] = await Promise.all([
+      client.workspaceMember.findUnique({ where: { workspaceId_userId: { workspaceId: project.workspaceId, userId } } }),
+      client.workspace.findFirst({ where: { id: project.workspaceId, account: { ownerId: userId } }, select: { id: true } }),
+      client.projectMember.findUnique({ where: { projectId_userId: { projectId: project.id, userId } } }),
+    ]);
+    return wsMember?.role === WorkspaceRole.ADMIN || Boolean(owner) || pm?.role === ProjectRole.ADMIN;
+  }
+
+  /** The project an AI-drafted task may land in for this user: active, editable, and where they can create tasks. */
+  private async findTaskTargetProject(client: Prisma.TransactionClient | PrismaService, userId: string, workspaceId: string) {
+    const [wsMember, owner] = await Promise.all([
+      client.workspaceMember.findUnique({ where: { workspaceId_userId: { workspaceId, userId } } }),
+      client.workspace.findFirst({ where: { id: workspaceId, account: { ownerId: userId } }, select: { id: true } }),
+    ]);
+    const overrides = wsMember?.role === WorkspaceRole.ADMIN || Boolean(owner);
+    if (!overrides && !wsMember) return null;
+    return client.project.findFirst({
+      where: {
+        workspaceId,
+        deletedAt: null,
+        lifecycleStatus: ProjectLifecycleStatus.ACTIVE,
+        isBillingReadOnly: false,
+        ...(overrides ? {} : { members: { some: { userId, role: ProjectRole.ADMIN } } }),
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  /** Adds `project: { id, key, name } | null` to proposals so the confirmation card can name where the task will land. */
+  private async withProject<T extends { targetProjectId: string | null }>(proposals: T[]) {
+    const ids = [...new Set(proposals.map((p) => p.targetProjectId).filter((x): x is string => !!x))];
+    const projects = ids.length ? await this.prisma.project.findMany({ where: { id: { in: ids } }, select: { id: true, key: true, name: true } }) : [];
+    const byId = new Map(projects.map((p) => [p.id, p]));
+    return proposals.map((p) => ({ ...p, project: p.targetProjectId ? byId.get(p.targetProjectId) ?? null : null }));
   }
 }

@@ -9,13 +9,16 @@ import { TasksModule } from './modules/tasks/tasks.module';
 import { AiModule } from './modules/ai/ai.module';
 import { BillingModule } from './modules/billing/billing.module';
 import { AuditModule } from './modules/audit/audit.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { UsersModule } from './modules/users/users.module';
+import { ContactModule } from './modules/contact/contact.module';
 import { LoggingMiddleware } from './common/middleware/logging.middleware';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['../.env', '.env'],
+      envFilePath: '.env',
     }),
     PrismaModule,
     HealthModule,
@@ -26,6 +29,9 @@ import { LoggingMiddleware } from './common/middleware/logging.middleware';
     AiModule,
     BillingModule,
     AuditModule,
+    DashboardModule,
+    UsersModule,
+    ContactModule,
   ],
 })
 export class AppModule implements NestModule {

@@ -16,6 +16,7 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ResendOtpDto } from './dto/resend-otp.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
@@ -100,6 +101,7 @@ export class AuthService {
     this.logger.warn(
       `[AUTH_DELIVERY_DEFERRED] Verification challenge created for user ${user.id} (${user.email}). Outbound dispatch deferred: No external email provider configured in environment.`,
     );
+    this.devOutbox(`Verification code for ${user.email}: ${initialRawOtp}`);
 
     const session = user.sessions[0];
     const accessToken = this.signAccessToken({
@@ -511,6 +513,7 @@ export class AuthService {
     this.logger.warn(
       `[AUTH_DELIVERY_DEFERRED] Resend OTP challenge created for user ${user.id} (${user.email}). Outbound dispatch deferred: No external email provider configured in environment.`,
     );
+    this.devOutbox(`Verification code for ${user.email}: ${rawCode}`);
 
     return {
       message: 'If this email address is registered, a new verification code has been dispatched.',
@@ -561,6 +564,7 @@ export class AuthService {
       this.logger.warn(
         `[AUTH_DELIVERY_DEFERRED] Password reset token generated for user ${user.id}. Outbound dispatch deferred: No external email provider configured in environment.`,
       );
+      this.devOutbox(`Password reset link for ${user.email}: ${process.env.APP_URL || 'http://localhost:3000'}/reset-password?token=${rawToken}`);
     }
 
     return {
@@ -622,7 +626,41 @@ export class AuthService {
     };
   }
 
+  /** Local-development stand-in for email: prints the code or link only when DEV_OUTBOX=true. Never enable in production. */
+  private devOutbox(message: string) {
+    if (process.env.DEV_OUTBOX === 'true') this.logger.warn(`[DEV_OUTBOX] ${message}`);
+  }
+
   private signAccessToken(payload: JwtPayload): string {
     return this.jwtService.sign(payload);
+  }
+
+  /**
+   * Authenticated password change (CS-09, ADR-016). The current password is verified first (401, no hint about which part
+   * failed), the new one must differ, and every session family except the caller's is revoked so a stolen session dies
+   * with the old password.
+   */
+  async changePassword(userId: string, currentFamilyId: string, dto: ChangePasswordDto) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true, passwordHash: true } });
+    if (!user) {
+      throw new UnauthorizedException({ code: 'INVALID_CREDENTIALS', message: 'Authentication required.' });
+    }
+    if (!(await this.comparePasswords(dto.currentPassword, user.passwordHash))) {
+      throw new UnauthorizedException({ code: 'INVALID_CURRENT_PASSWORD', message: 'The current password is incorrect.' });
+    }
+    if (dto.currentPassword === dto.newPassword) {
+      throw new BadRequestException({ code: 'PASSWORD_UNCHANGED', message: 'Choose a password different from the current one.' });
+    }
+    const passwordHash = await this.hashPassword(dto.newPassword);
+    const revoked = await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({ where: { id: userId }, data: { passwordHash } });
+      const r = await tx.userSession.updateMany({
+        where: { userId, isRevoked: false, familyId: { not: currentFamilyId } },
+        data: { isRevoked: true },
+      });
+      await tx.auditLog.create({ data: { actorUserId: userId, action: 'USER_PASSWORD_CHANGED', metadata: { otherSessionsRevoked: r.count } } });
+      return r.count;
+    });
+    return { success: true, otherSessionsRevoked: revoked };
   }
 }

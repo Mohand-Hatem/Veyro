@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   Req,
   UseGuards,
   HttpCode,
@@ -15,7 +16,9 @@ import {
 import { ProjectsService } from './projects.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
+import { QueryProjectsDto } from './dto/query-projects.dto';
 import { AssignProjectMemberDto } from './dto/assign-project-member.dto';
+import { UpdateProjectMemberRoleDto } from './dto/update-project-member-role.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { TenantGuard } from '../tenancy/guards/tenant.guard';
 import { ProjectAccessGuard } from './guards/project-access.guard';
@@ -31,6 +34,7 @@ export class ProjectsController {
   async listWorkspaceProjects(
     @CurrentUser('id') userId: string,
     @Param('workspaceId') workspaceId: string,
+    @Query() query: QueryProjectsDto,
     @Req() req: any,
   ) {
     const isPrivileged =
@@ -39,6 +43,7 @@ export class ProjectsController {
       userId,
       workspaceId,
       isPrivileged,
+      query,
     );
   }
 
@@ -65,8 +70,17 @@ export class ProjectsController {
 
   @Get('projects/:id')
   @UseGuards(ProjectAccessGuard)
-  async getProjectDetails(@Param('id') projectId: string) {
-    return this.projectsService.getProjectDetails(projectId);
+  async getProjectDetails(
+    @CurrentUser('id') userId: string,
+    @Param('id') projectId: string,
+    @Req() req: any,
+  ) {
+    return this.projectsService.getProjectDetails(projectId, {
+      userId,
+      isAdmin: Boolean(req.isProjectAdmin),
+      isOverride: Boolean(req.isWorkspaceOverride),
+      projectRole: req.projectRole,
+    });
   }
 
   @Patch('projects/:id')
@@ -75,8 +89,9 @@ export class ProjectsController {
     @CurrentUser('id') userId: string,
     @Param('id') projectId: string,
     @Body() dto: UpdateProjectDto,
+    @Req() req: any,
   ) {
-    return this.projectsService.updateProject(userId, projectId, dto);
+    return this.projectsService.updateProject(userId, projectId, dto, Boolean(req.isWorkspaceOverride));
   }
 
   @Delete('projects/:id')
@@ -85,8 +100,19 @@ export class ProjectsController {
   async deleteProject(
     @CurrentUser('id') userId: string,
     @Param('id') projectId: string,
+    @Req() req: any,
   ) {
-    return this.projectsService.softDeleteProject(userId, projectId);
+    return this.projectsService.softDeleteProject(userId, projectId, Boolean(req.isWorkspaceOverride));
+  }
+
+  /** CS-08: deliberately without ProjectAccessGuard (it answers 404 for deleted projects); the service checks the caller. */
+  @Post('projects/:id/restore')
+  @HttpCode(HttpStatus.OK)
+  async restoreProject(
+    @CurrentUser('id') userId: string,
+    @Param('id') projectId: string,
+  ) {
+    return this.projectsService.restoreProject(userId, projectId);
   }
 
   @Post('projects/:id/members')
@@ -97,7 +123,7 @@ export class ProjectsController {
     @Param('id') projectId: string,
     @Body() dto: AssignProjectMemberDto,
   ) {
-    return this.projectsService.assignMember(userId, projectId, dto.userId);
+    return this.projectsService.assignMember(userId, projectId, dto.userId, dto.role);
   }
 
   @Delete('projects/:id/members/:userId')
@@ -107,8 +133,21 @@ export class ProjectsController {
     @CurrentUser('id') userId: string,
     @Param('id') projectId: string,
     @Param('userId') targetUserId: string,
+    @Req() req: any,
   ) {
-    return this.projectsService.removeMember(userId, projectId, targetUserId);
+    return this.projectsService.removeMember(userId, projectId, targetUserId, Boolean(req.isWorkspaceOverride));
+  }
+
+  @Patch('projects/:id/members/:userId')
+  @UseGuards(ProjectAccessGuard, ProjectAdminGuard)
+  async updateMemberRole(
+    @CurrentUser('id') userId: string,
+    @Param('id') projectId: string,
+    @Param('userId') targetUserId: string,
+    @Body() dto: UpdateProjectMemberRoleDto,
+    @Req() req: any,
+  ) {
+    return this.projectsService.updateMemberRole(userId, projectId, targetUserId, dto.role, Boolean(req.isWorkspaceOverride));
   }
 
   @Get('projects/:id/members')
