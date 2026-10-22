@@ -116,7 +116,7 @@ erDiagram
 | **Phase 1** | **Product Discovery & MVP Baseline** | `docs/01-PROJECT-BRIEF.md`, `02-USER-ROLES-AND-FLOWS.md`, `03-BUSINESS-RULES.md` | ✅ **Completed (`v1.5.2`)** |
 | **Phase 2** | **System Design & API Contracts** | ERD (`04-ERD.md`), Physical DB Spec (`05-DB.md`), OpenAPI Contracts (`06-API.md`), Sequence Diagrams | ✅ **Completed (100%)** |
 | **Phase 3** | **NestJS Backend Implementation** | 7 Modular Monolith modules, Prisma 7, Neon DB migration, Guards, Interceptors, Filters | ✅ **Completed (100%)** |
-| **Phase 4** | **Frontend Development & Design Gate** | `design.md` baseline, Next.js 16 App Router, Tailwind CSS, Shadcn/ui, TypeUI MCP, Kanban Board | 🟡 **Active (Design Gate)** |
+| **Phase 4** | **Frontend Development & Design Gate** | `design.md` baseline, Next.js 16 App Router app in `frontend/` (English and Arabic, light and dark), every screen checked against its reference with parity scripts | ✅ **Completed** |
 | **Phase 5** | **Integration, Security & E2E Testing** | Multi-tenant penetration tests, Stripe & OAuth live testing, Jest/Supertest suite | ⚪ *Planned* |
 | **Phase 6** | **Deployment, CI/CD & Portfolio** | Docker containerization, Vercel & Neon staging/prod environments, Monitoring | ⚪ *Planned* |
 
@@ -126,7 +126,7 @@ erDiagram
 
 - **Backend:** [NestJS 11](https://nestjs.com/) (TypeScript, Express platform, Class Validator, Passport)
 - **Database & ORM:** [PostgreSQL 16+](https://www.postgresql.org/) via [Neon](https://neon.tech/), [Prisma ORM 7](https://www.prisma.io/) with `@prisma/adapter-pg`
-- **Frontend (Phase 4):** [Next.js 16 App Router](https://nextjs.org/), [Tailwind CSS](https://tailwindcss.com/), [Shadcn/ui](https://ui.shadcn.com/) (Radix UI primitives), [TypeUI MCP](https://mcp.typeui.sh/mcp)
+- **Frontend:** [Next.js 16 App Router](https://nextjs.org/) with React 19, [Tailwind CSS 4](https://tailwindcss.com/), [Radix UI](https://www.radix-ui.com/) through [shadcn/ui](https://ui.shadcn.com/), [TanStack Query](https://tanstack.com/query), [next-intl](https://next-intl.dev/) (English and Arabic, right-to-left), react-hook-form with zod, next-themes
 - **Security:** Argon2/Bcrypt password hashing, SHA-256 invitation tokens, HttpOnly JWT cookies, Rate limiting, Strict RBAC guards
 
 ---
@@ -159,21 +159,56 @@ JWT_SECRET="your-super-secure-jwt-secret-min-32-chars"
 
 ### 3. Install Dependencies
 ```bash
+cd backend && npm install
+cd ../frontend && npm install
+```
+
+### 4. Apply the Database Migrations
+```bash
 cd backend
-npm install
+# Applies the SQL in backend/prisma/migrations to your PostgreSQL / Neon database
+npx prisma migrate deploy
 ```
 
-### 4. Sync Database Schema
+### 5. Start the Backend
 ```bash
-# Push Prisma schema to your PostgreSQL / Neon database
-npx prisma db push
-```
-
-### 5. Start the Backend Development Server
-```bash
+cd backend
 npm run start:dev
 ```
-The NestJS API will be running at `http://localhost:5000/api/v1`.
+The NestJS API runs at `http://localhost:5000/api/v1`.
+
+### 6. Start the Frontend
+```bash
+cd frontend
+npm run dev
+```
+The app runs at `http://localhost:3000` (English at `/en`, Arabic at `/ar`). It calls the API through `/api/v1`, which Next.js forwards to the backend, so the session cookies stay first-party.
+
+---
+
+## ✅ Tests and Checks
+
+| Where | Command | What it covers |
+| :--- | :--- | :--- |
+| `backend/` | `npm test` | 18 suites, 183 tests of the business rules, role rules, tenant isolation, plan limits, AI proposals and the HTTP contract. They run against the database in `DATABASE_URL` and create and remove their own data. |
+| `backend/` | `npx tsc --noEmit` | Type check |
+| `frontend/` | `npm test` | 96 unit tests (vitest): API client, validation, helpers, message coverage in both languages |
+| `frontend/` | `npm run lint`, `npx tsc --noEmit`, `npm run build` | Lint, types and the production build |
+| `frontend/` | `node scripts/parity/run.mjs scripts/parity/<screen>.js` | Parity check of one screen against its reference page: computed styles, layout and text at 1440 and 390 px wide, light and dark, English and Arabic. The reference pages live in `screens/`, which is kept locally and is not part of this repository. Each script's header lists what it needs (Playwright with Chrome, the running servers and its test data). |
+
+Automated CI/CD is not set up yet; it is planned for Phase 6.
+
+---
+
+## 🖥️ What Is Built
+
+- **Account and access:** sign in, registration with email code, password reset, onboarding, invitations, profile and preferences
+- **Workspace:** dashboard, projects, my tasks, project board with task lifecycle and reopening with a reason, task page with comments, members and settings, audit trail, creating more workspaces within the plan limit
+- **Account governance:** billing and plans, choosing which projects stay editable after a downgrade, account deletion, account audit trail
+- **AI assistant:** a full page and a quick-ask drawer; the assistant proposes a change and nothing is written until you confirm it
+- **Help and public site:** how it works guide, contact form, landing page, 404, 403 and error states
+
+**Prototype today (real accounts and configuration come in Phase 5):** email sending (codes and reset links are printed in the backend console when `DEV_OUTBOX=true`), Google and GitHub sign-in, payments, a real AI model (replies are scripted, the flow around them is real), notifications and file storage for avatars.
 
 ---
 
@@ -185,9 +220,9 @@ The NestJS API will be running at `http://localhost:5000/api/v1`.
 | `POST` | `/api/v1/auth/login` | Authenticate and issue JWT cookies | Public |
 | `POST` | `/api/v1/onboarding/atomic` | Atomic creation of Account + Workspace | `JwtAuthGuard` |
 | `POST` | `/api/v1/workspaces/:id/invitations`| Invite member with SHA-256 token | `JwtAuthGuard`, `TenantGuard` |
-| `GET` | `/api/v1/projects` | List accessible workspace projects | `JwtAuthGuard`, `TenantGuard` |
+| `GET` | `/api/v1/workspaces/:workspaceId/projects` | List accessible workspace projects | `JwtAuthGuard`, `TenantGuard` |
 | `GET` | `/api/v1/projects/:id` | Get project details (404 for private) | `ProjectAccessGuard` (`BR-PRJ-01`) |
-| `POST` | `/api/v1/tasks` | Create task within project | `ProjectAccessGuard` |
+| `POST` | `/api/v1/projects/:projectId/tasks` | Create task within project (project admins) | `ProjectAccessGuard` |
 | `POST` | `/api/v1/tasks/:id/reopen` | Reopen task with mandatory reason | `TaskAccessGuard` (`BR-TSK-03.3`) |
 | `POST` | `/api/v1/ai/conversations` | Start AI session (Knowledge/Project) | `JwtAuthGuard` |
 | `POST` | `/api/v1/billing/webhook` | Deduplicated Stripe payment webhook | Public (Signature Verified) |
