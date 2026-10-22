@@ -145,16 +145,17 @@ cd Veyro
 ```
 
 ### 2. Configure Environment Variables
-Copy the environment template and provide your database credentials:
+Each app owns its environment file; there is no root `.env`.
 ```bash
-cp .env.example .env
-cp .env.example backend/.env
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env.local
 ```
-Edit `.env` and set your database connection:
+Edit `backend/.env` and set your database connection:
 ```env
 DATABASE_URL="postgresql://user:password@ep-sample.neon.tech/veyro?sslmode=require"
 JWT_SECRET="your-super-secure-jwt-secret-min-32-chars"
 ```
+`frontend/.env.local` only needs `API_ORIGIN` (where the backend listens) and the OAuth switch; the defaults work locally.
 
 ### 3. Install Dependencies
 ```bash
@@ -172,7 +173,7 @@ npx prisma db push
 ```bash
 npm run start:dev
 ```
-The NestJS API will be running at `http://localhost:3000/api/v1`.
+The NestJS API will be running at `http://localhost:5000/api/v1`.
 
 ---
 

@@ -41,3 +41,6 @@ skills-lock.json
 
 # Generated knowledge-graph output
 graphify-out/
+
+# TypeScript incremental build info
+*.tsbuildinfo

@@ -33,10 +33,11 @@ Veyro is developed strictly through sequential, ordered phases. Each phase conta
    *Status: COMPLETED (typecheck clean, 14/14 backend flow tests passing).*  
    Build the NestJS modular monolith backend in small, testable, gated steps, adhering strictly to approved contracts.
 4. **Phase 4 — Frontend Development:**  
-   *Status: IN PROGRESS — Frontend Design Gate (`design.md` and `docs/07` awaiting approval; no Next.js app yet).*  
+   *Status: IN PROGRESS — design baseline (`design.md` v2.4.0, `screens/SCREEN-INVENTORY.md` v4.3.0) APPROVED on 2026-10-18; Next.js app in `frontend/`, steps 4.1 (scaffold), 4.2 (tokens, theme, EN/AR, base kit) and 4.3a (API client, session, route gate) 4.3b (sign-in, register, verify, forgot, reset) 4.3c (auth parity with the reference pages) 4.4 (app shell) and 4.5 (onboarding and invitations, with backend change set CS-11) 4.6 (dashboard) and 4.7 (projects and my tasks, with backend change set CS-12) 4.8a (create project dialog) and 4.8b (project settings, archive, delete and restore dialogs) and 4.9a (project board) and 4.9b (create-task and reopen dialogs) and 4.9c (project members dialog and deleted tasks view) and 4.10 (task page) and 4.11a (members and settings page) and 4.11b (invite dialog) and 4.11c (audit trail, with backend change CS-13) and 4.12a (billing page and 403 state) and 4.12b (select-projects and account deletion dialogs) and 4.12c (account audit trail) and 4.12d (profile and account menu) done (so 4.12 is complete) and 4.13 (in-app 404, workspace 403 and crash states) and 4.14a (contact page) and 4.14b (How it works guide) and 4.15 (create-workspace dialog, with backend change CS-14) and 4.16a (AI assistant page) and 4.16b (quick-ask drawer with proposal cards) and 4.17a (landing page: shell and sections) and 4.17b (bento features grid) and 4.17c (public How it works and Contact pages) done, so the landing page is complete; next: the Phase 4 exit review, to be agreed.*  
    Build the Next.js App Router frontend consuming verified, implemented backend APIs after passing the Mandatory Frontend Design Gate.
 5. **Phase 5 — Integration, Security & Quality:**  
-   End-to-end workflow verification, tenant isolation stress-testing, automated RBAC testing, reliability, and performance benchmarks.
+   End-to-end workflow verification, tenant isolation stress-testing, automated RBAC testing, reliability, and performance benchmarks.  
+   Also in Phase 5, each as its own gated step with the external-service explanation (Section 6): the features that are prototype or stubbed today and need real accounts and configuration: email provider (Resend: OTP, reset, invitations, contact), Google and GitHub sign-in, payments (Stripe), a real AI model with a knowledge source, notifications (the bell), and file storage for avatars (Cloudinary or an alternative).
 6. **Phase 6 — Deployment & Portfolio Readiness:**  
    Containerization, CI/CD pipelines, production deployment, structured logging, monitoring, and portfolio documentation.
 
@@ -72,6 +73,12 @@ During Phase 4 design and screen implementation, the agent must actively leverag
 2. **`/design-taste-frontend` (`.claude/skills/design-taste-frontend/SKILL.md`):** Enforces anti-slop frontend taste, reads the room for B2B SaaS workspaces, delivers Linear/Raycast/Vercel-level polish, and bans generic AI-default templates and empty aesthetics.
 3. **`/ui-ux-pro-max` (Claude Code plugin `ui-ux-pro-max@ui-ux-pro-max-skill`):** Supplies UI/UX design intelligence, reasoned color palettes, harmonious font pairings, data-dense layout principles, and 119 UX guidelines.
 4. **`TypeUI MCP` (`https://mcp.typeui.sh/mcp`):** Configured component registry MCP for discovering, inspecting, and adopting high-fidelity, accessible, production-grade UI component primitives and patterns.
+
+**Standing workflow for UI work:** At the start of every new screen or major redesign under `screens/`, load `/impeccable`, `/design-taste-frontend` and `/ui-ux-pro-max` with the Skill tool. Skip them for trivial tweaks (a colour, a text change, a spacing fix). Finish every screen with one batched Playwright check at 1440px and 390px (overflow, console errors, key states), then fix everything in one pass. `design.md` and the user's reference images always win over a skill's generic taste rules.
+
+**Parity Gate (required for every Next.js screen):** a screen is not done until `frontend/scripts/parity/` reports no unexplained differences from its reference page in `screens/`: no missing text or elements, no computed-style differences (font, size, weight, color, background, border, radius, height, padding) and no layout offsets, at 1440px and 390px, light and dark, English and Arabic. Judging "looks close" by eye is not accepted. Report the before and after diff to the user.
+
+**Illustrated surfaces (approved style):** Wherever a screen has a non-input area (dialog side panels, auth side panels, empty states, first-run and success states), compose it from the shared kit `screens/shared/illustration.css`, the same visual language as `screens/groups/02-auth-onboarding/side.html` and `side2.html` (peach ground with grid texture, ink-outlined white cards, friendly flat character, dotted links, floating cards, caption and pager). Rules: invent a **new scene and idea for each screen** tied to what that screen does (never a copy), bind live form or data values into the SVG where it helps, keep it decorative-but-informative (captions carry real product facts, no invented stats), support dark mode and RTL, and guard motion with `prefers-reduced-motion`. Do not use it on dense working surfaces (tables, Kanban boards, charts, forms). Built so far: Group 02 auth panels, Create Project dialog (`SCR-PRJ-02`), Create Workspace dialog (`SCR-WKSP-02`), quick-ask drawer (`SCR-AI-01`), invite and settings panels (Group 03), the assistant page, the Group 06 project-selection and account-deletion dialogs, the 403 and 404 states, and the shared loading scene (`screens/shared/loading.html`: a clerk filing project folders into a shelf; page, card and full-screen sizes).
 
 ### Authoritative Deliverable: `design.md`
 The central deliverable of the design gate is `design.md`, which serves as the immutable single source of truth for all Phase 4 frontend screens:
@@ -194,6 +201,7 @@ Every meaningful task must strictly follow this sequential cycle:
 4. **Step 4 — Implement Within Approved Scope:** Execute only the approved step and its explicitly permitted dependencies. Do not expand scope, add unapproved libraries, or silently refactor unrelated code.
 5. **Step 5 — Verify:** Execute real tests, linters, or non-mutating validation commands. Report actual outcomes honestly without fabricating results. If a step fails, investigate and report; do not proceed with dependent work.
 6. **Step 6 — Teach the Result:** Review the implementation, highlight critical lines and diffs, analyze edge cases and failure modes, update plan evidence, and reinforce interview talking points.
+   - **Learning recap (required after every step and phase):** state **what** was built, **how** it was built (key files, commands, code), **why** this solution was chosen over the alternatives, and what went wrong or surprised us. Keep it short and concrete so the developer can explain it in an interview.
 7. **Halt:** Stop before proposing or starting the next step.
 
 ---
@@ -224,7 +232,7 @@ Every meaningful task must strictly follow this sequential cycle:
 
 - **Phase 1 Baseline:** **LOCKED & APPROVED** by the User at version `1.5.2` on October 11, 2026 (`docs/01-PROJECT-BRIEF.md`, `docs/02-USER-ROLES-AND-FLOWS.md`, `docs/03-BUSINESS-RULES.md`, `docs/DECISIONS-TO-APPROVE.md`).
 - **Phases 2 & 3:** Completed. Backend source of truth is `backend/prisma/schema.prisma` (the former root `prisma/` duplicate was removed).
-- **Phase 4 (Current):** At the Frontend Design Gate. Do not scaffold the Next.js app or implement screens until `design.md` is explicitly approved. Next review target: the landing page (`screens/groups/01-public-marketing`).
+- **Phase 4 (Current):** Design baseline approved (2026-10-18). Build the Next.js app in `frontend/` one gated step at a time (4.1 scaffold and 4.2 tokens/theme/i18n/kit and 4.3a API client/session/gate, 4.3b auth screens, 4.3c auth parity, 4.4 app shell, 4.5 onboarding/invitations, 4.6 dashboard, 4.7 projects/my tasks and 4.8a create-project dialog and 4.8b project settings/confirm/restore and 4.9a project board and 4.9b create-task/reopen dialogs and 4.9c members dialog/deleted tasks and 4.10 task page and 4.11a members/settings page and 4.11b invite dialog and 4.11c audit trail and 4.12a billing page and 4.12b select-projects/delete-account dialogs and 4.12c account audit trail and 4.12d profile/account menu and 4.13 in-app 404/403/crash states and 4.14a contact page and 4.14b How it works guide and 4.15 create-workspace dialog and 4.16a AI assistant page and 4.16b quick-ask drawer and 4.17a landing page and 4.17b bento grid and 4.17c public How it works/Contact pages done; the next step is the Phase 4 exit review, to be agreed). Screens follow `design.md` and the reference pages in `screens/`.
 
 ---
 
@@ -233,4 +241,9 @@ Every meaningful task must strictly follow this sequential cycle:
 - **Modular Monolith Discipline:** Enforce strict module boundaries in NestJS and Next.js. Avoid premature microservices and over-engineered abstractions.
 - **Multi-Tenant Security:** Defense-in-depth tenant scoping (`organizationId`/`workspaceId`), strict RBAC guards, input sanitization, CSRF defenses, hashed tokens, and zero cross-tenant leakage.
 - **Reliability:** Atomic transactional guarantees (`prisma.$transaction`), bounded background cleanup, resilient error handling, and structured logging.
+- **Roles & permissions** (source of truth: `docs/03-BUSINESS-RULES.md` §2 and BR-PRJ-04; contracts in `docs/06`; decision in `docs/13-ADR-CS05-PROJECT-ROLES.md`):
+  - Workspace admins and the account owner act as project admins on every project.
+  - Project admins (the creator is protected) create, edit, assign, cancel, delete, restore and reopen tasks and manage project members.
+  - Project members only move tasks assigned to them (never cancel) and comment.
+  - Enforce in the service layer and return capabilities to the UI (`viewer.*`); never rely on hidden buttons.
 - **Honest Engineering:** Help the developer build real-world engineering intuition, avoid common junior mistakes, and accurately represent their work in technical interviews without exaggeration.
