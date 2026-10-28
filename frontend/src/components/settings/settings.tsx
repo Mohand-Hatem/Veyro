@@ -6,7 +6,8 @@ import { Link, useRouter } from "@/i18n/navigation";
 import { useShell } from "@/components/shell/shell-context";
 import { useFormat } from "@/components/dashboard/use-format";
 import { ApiError } from "@/lib/api";
-import { avatarClass, initials } from "@/lib/dashboard";
+import { avatarClass } from "@/lib/dashboard";
+import { Avatar } from "@/components/ui/avatar";
 import {
   daysUntil, settingsErrorKey, useChangeRole, useInvitations, useMembers, useRemoveMember, useResendInvitation, useRevokeInvitation, useUpdateWorkspace, useWorkspaceDetails, validSlug,
   type WsMember, type WsRole,
@@ -266,7 +267,7 @@ function MembersCard() {
                 const fixed = m.isAccountOwner || me;
                 return (
                   <div className={`st-tr st-row${busyId === m.id ? " is-busy" : ""}`} role="row" key={m.id}>
-                    <span className="st-who" role="cell"><span className={`st-av ${avatarClass(m.userId)}`}>{initials(m.name)}</span><span className="st-wt"><b>{m.name}{me && <> <i className="st-you">{t("you")}</i></>}</b><small>{m.email}</small></span></span>
+                    <span className="st-who" role="cell"><Avatar className={`st-av ${avatarClass(m.userId)}`} name={m.name} url={m.avatarUrl} /><span className="st-wt"><b>{m.name}{me && <> <i className="st-you">{t("you")}</i></>}</b><small>{m.email}</small></span></span>
                     <span role="cell" className="st-rc">
                       {m.isAccountOwner ? <span className="st-badge b-owner">{t("owner")}</span>
                         : me ? <span className={`st-badge b-${m.role.toLowerCase()}`}>{roleLabel(m.role)}</span>

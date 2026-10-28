@@ -2,18 +2,20 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "./api";
+import type { Preset } from "./avatar";
 import type { Me } from "./queries";
 
 // Shapes of the profile endpoints (docs/06, CS-09 / ADR-016).
 export type Locale = "EN" | "AR";
 export type ThemePref = "LIGHT" | "DARK" | "SYSTEM";
+export type AvatarType = "INITIALS" | "PRESET" | "UPLOAD";
 export type Tier = "FREE" | "PRO" | "ENTERPRISE" | "EPIC";
 export type ProfileWorkspace = {
   id: string; name: string; slug: string; lifecycleStatus: string; role: "ADMIN" | "MEMBER"; isAccountOwner: boolean; joinedAt: string; projectCount: number;
   account: { id: string; name: string; plan: { tier: Tier; status: string } | null };
 };
 export type Profile = {
-  id: string; email: string; name: string; avatarUrl: string | null; isEmailVerified: boolean; createdAt: string;
+  id: string; email: string; name: string; avatarUrl: string | null; avatarType: AvatarType; avatarPresetKey: string | null; isEmailVerified: boolean; createdAt: string;
   preferences: { locale: Locale; theme: ThemePref };
   stats: { workspaces: number; projects: number; openTasks: number; ownedAccounts: number };
   workspaces: ProfileWorkspace[];
@@ -34,6 +36,44 @@ export function useUpdateProfile() {
       void qc.invalidateQueries({ queryKey: ["profile"] });
       void qc.invalidateQueries({ queryKey: ["me"] });
     },
+  });
+}
+
+type AvatarResult = { avatarUrl: string | null; avatarType: AvatarType; avatarPresetKey: string | null };
+
+/** The picture shows everywhere (header, board, member lists), so after a change every cached screen refreshes. */
+function avatarChanged(qc: ReturnType<typeof useQueryClient>, r: AvatarResult) {
+  qc.setQueryData<Profile>(["profile"], (p) => p && { ...p, avatarUrl: r.avatarUrl, avatarType: r.avatarType, avatarPresetKey: r.avatarPresetKey });
+  qc.setQueryData<Me>(["me"], (m) => m && { ...m, avatarUrl: r.avatarUrl });
+  void qc.invalidateQueries();
+}
+
+/**
+ * Sends the cropped picture as the request body. The server checks it really is a picture, shrinks it to a small WebP, strips its
+ * metadata and stores only that (nothing the browser says about the file is trusted).
+ */
+export function useUploadAvatar() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (image: Blob) => api<AvatarResult>("/users/me/avatar", { method: "PUT", headers: { "Content-Type": image.type }, body: image }),
+    onSuccess: (r) => avatarChanged(qc, r),
+  });
+}
+
+export function useSetPreset() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (key: Preset) => api<AvatarResult>("/users/me/avatar/preset", { method: "PUT", body: JSON.stringify({ key }) }),
+    onSuccess: (r) => avatarChanged(qc, r),
+  });
+}
+
+/** Back to initials. */
+export function useRemoveAvatar() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api<AvatarResult>("/users/me/avatar", { method: "DELETE" }),
+    onSuccess: (r) => avatarChanged(qc, r),
   });
 }
 

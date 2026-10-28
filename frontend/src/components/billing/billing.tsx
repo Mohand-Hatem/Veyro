@@ -1,15 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
+import { useSearchParams } from "next/navigation";
 import { Link } from "@/i18n/navigation";
 import { Loader } from "@/components/loader/loader";
 import { Forbidden } from "@/components/state/forbidden";
 import { useShell } from "@/components/shell/shell-context";
 import { useFormat } from "@/components/dashboard/use-format";
-import { PLANS, TIERS, eventKey, fetchAccountProjects, meterOf, useBillingEvents, useSubscription, type AccountProjects, type BillingEvent, type Subscription, type Tier } from "@/lib/billing";
-import { DeleteAccountDialog, SelectProjectsDialog } from "./billing-dialogs";
+import { PLANS, TIERS, eventKey, isUpgrade, fetchAccountProjects, formatPrice, meterOf, useBillingEvents, useStripeRedirect, useSubscription, type AccountProjects, type BillingEvent, type PaidTier, type Subscription, type Tier } from "@/lib/billing";
+import { DeleteAccountDialog, SelectProjectsDialog, SwitchPlanDialog } from "./billing-dialogs";
 import "@/components/dashboard/illustration.css";
 import "@/components/dashboard/dashboard.css";
 import "@/components/projects/projects.css";
@@ -19,17 +20,28 @@ const WARN = <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke=
 const CLOCK = <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9.5" /><path d="M12 7v5l3 2" /></svg>;
 
 // SCR-SET-02. Markup and class names follow screens/groups/06-account-governance/billing.html (Parity Gate).
-// Account owner only. There is no payment provider yet, so plan changes and payments say so instead of doing anything.
+// Account owner only. Plans are bought and managed on Stripe's own pages (checkout and billing portal); this screen sends the owner there
+// and shows the result. Switching between paid plans asks for confirmation here and is applied by Stripe (prorated, immediately).
 export function Billing() {
   const t = useTranslations("Billing");
   const tw = useTranslations("Work");
   const ts = useTranslations("Shell");
-  const { workspace, role, notify } = useShell();
+  const { workspace, role } = useShell();
   const owner = role === "owner";
   const slug = workspace?.slug ?? "";
   const accountId = workspace?.account.id;
-  const sub = useSubscription(accountId, owner);
-  const events = useBillingEvents(accountId, owner);
+  // Coming back from Stripe: ?checkout=success|cancelled. Read once, then the address is cleaned so a refresh does not repeat the banner.
+  const params = useSearchParams();
+  const [returned, setReturned] = useState(() => params.get("checkout"));
+  useEffect(() => {
+    if (returned) window.history.replaceState(null, "", window.location.pathname);
+  }, [returned]);
+  // After paying or switching, the plan changes when Stripe's webhook arrives: keep asking until it shows the plan we expect.
+  const [waitFor, setWaitFor] = useState<Tier | "paid" | null>(returned === "success" ? "paid" : null);
+  const sub = useSubscription(accountId, owner, waitFor !== null);
+  const events = useBillingEvents(accountId, owner, waitFor !== null);
+  const nowTier = sub.data?.subscription.tier;
+  if (waitFor && nowTier && (waitFor === "paid" ? nowTier !== "FREE" : nowTier === waitFor)) setWaitFor(null);
 
   if (workspace && !owner) return <Forbidden from="billing" />;
   const head = (
@@ -52,30 +64,40 @@ export function Billing() {
     );
   }
   if (!sub.data) return <Loader />;
-  return <BillingView data={sub.data} events={events.data ?? []} head={head} soon={() => notify(t("soonToast"))} />;
+  return <BillingView data={sub.data} events={events.data ?? []} head={head} returned={returned} onSwitched={(to) => { setReturned(null); setWaitFor(to); }} />;
 }
 
-function BillingView({ data, events, head, soon }: { data: Subscription; events: BillingEvent[]; head: React.ReactNode; soon: () => void }) {
+function BillingView({ data, events, head, returned, onSwitched }: { data: Subscription; events: BillingEvent[]; head: React.ReactNode; returned: string | null; onSwitched: (to: Tier) => void }) {
   const t = useTranslations("Billing");
   const qc = useQueryClient();
   const { notify } = useShell();
   const [dlg, setDlg] = useState<"sel" | "del" | null>(null);
+  const [switchTo, setSwitchTo] = useState<PaidTier | null>(null);
   const [picks, setPicks] = useState<AccountProjects | null>(null);
   const { date } = useFormat();
-  const { subscription: sub, limits, grace, account, readOnlyProjects } = data;
+  const { subscription: sub, limits, grace, account, readOnlyProjects, billing } = data;
+  const { checkout, portal } = useStripeRedirect(account.id);
+  const redirecting = checkout.isPending || checkout.isSuccess || portal.isPending || portal.isSuccess;
+  const openPortal = () => portal.mutate(undefined, { onError: () => notify(t("errPay")) });
+  const buy = (k: PaidTier) => checkout.mutate(k, { onError: () => notify(t("errPay")) });
+  const paid = sub.tier !== "FREE";
+  const priceOf = (k: Tier) => <><b>{formatPrice(k === "FREE" ? 0 : billing.priceCents[k])}</b> <span>{t("perMonth")}</span></>;
   const locked = account.offboardingState === "PENDING";
   const fmt = (s: string) => date(s, true);
   const tier = (k: Tier) => t(`tier${k}`);
 
   const [statusClass, statusText] = locked ? ["gv-st-locked", t("stLOCKED")] : [sub.status === "ACTIVE" ? "st-active" : sub.status === "PAST_DUE" ? "st-readonly" : "gv-st-warn", t(`st${sub.status}`)];
-  const meta = sub.billingCycleEndsAt ? `${sub.status === "PAST_DUE" ? t("cycleEnd") : t("renews")} ${fmt(sub.billingCycleEndsAt)}` : t("noCycle");
+  const meta = sub.billingCycleEndsAt ? `${sub.cancelAtPeriodEnd ? t("ends") : sub.status === "PAST_DUE" ? t("cycleEnd") : t("renews")} ${fmt(sub.billingCycleEndsAt)}` : t("noCycle");
 
-  type Banner = { kind: "bad" | "warn"; title: string; text: string; cta?: { id: string; label: string; run: () => void } };
+  type Banner = { kind: "bad" | "warn" | "ok" | "info"; title: string; text: string; cta?: { id: string; label: string; run: () => void } };
   let banner: Banner | null = null;
   if (locked) banner = { kind: "bad", title: t("bOffT"), text: t("bOffD") };
   else if (sub.requiresProjectSelection) banner = { kind: "warn", title: t("bSelT"), text: t("bSelD", { n: limits.maxProjects }), cta: { id: "gv-open-sel", label: t("bSelCta"), run: openSelect } };
   else if (grace?.expired) banner = { kind: "bad", title: t("bGoT"), text: t("bGoD") };
-  else if (grace) banner = { kind: "warn", title: t("bPdT"), text: t("bPdD", { date: fmt(grace.endsAt), days: grace.daysLeft }), cta: { id: "gv-banner-cta", label: t("bPdCta"), run: soon } };
+  else if (grace) banner = { kind: "warn", title: t("bPdT"), text: t("bPdD", { date: fmt(grace.endsAt), days: grace.daysLeft }), cta: { id: "gv-banner-cta", label: t("bPdCta"), run: openPortal } };
+  // What the owner just did on Stripe is the most useful thing to say first, unless the account is being deleted.
+  if (!locked && returned === "success") banner = { kind: "ok", title: t("okT"), text: t("okD") };
+  else if (!locked && returned === "cancelled") banner = { kind: "info", title: t("cancelT"), text: t("cancelD") };
 
   // The picker always starts from the flags as they are on the server right now.
   async function openSelect() {
@@ -118,10 +140,15 @@ function BillingView({ data, events, head, soon }: { data: Subscription; events:
             <div className="gv-plan-name"><h2 id="gv-plan-name">{tier(sub.tier)}</h2><span className={`ap-st ${statusClass}`} id="gv-status">{statusText}</span></div>
             <p className="gv-meta" id="gv-meta">{meta}</p>
             <div className="gv-actions">
-              <button type="button" className="pm-btn pm-go" id="gv-change" disabled={locked} onClick={soon}><span>{t("change")}</span></button>
+              {billing.canManage ? (
+                <button type="button" className="pm-btn pm-go" id="gv-change" disabled={locked || redirecting} onClick={openPortal}><span>{portal.isPending || portal.isSuccess ? t("going") : t("manage")}</span></button>
+              ) : (
+                <button type="button" className="pm-btn pm-go" id="gv-change" disabled={locked} onClick={() => document.getElementById("gv-pgrid")?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" })}><span>{t("choosePlan")}</span></button>
+              )}
               <Link className="pm-btn pm-ghost" href="/account/audit" id="gv-audit-link"><span>{t("audit")}</span></Link>
             </div>
-            <p className="pm-hint">{t("soonH")}</p>
+            <p className="pm-hint">{t("stripeH")}</p>
+            {billing.testMode && <p className="gv-test"><span className="ap-st st-readonly">{t("testT")}</span> {t("testD")}</p>}
           </div>
           <div className="gv-meters" id="gv-meters" aria-label={t("usage")}>
             {meter(t("pProjects"), limits.currentProjects, limits.maxProjects)}
@@ -132,6 +159,7 @@ function BillingView({ data, events, head, soon }: { data: Subscription; events:
 
         <section className="gv-plans" aria-labelledby="gv-plans-h">
           <header className="gv-sh"><h3 id="gv-plans-h">{t("plans")}</h3><p>{t("plansD")}</p></header>
+          {paid && <p className="pm-hint">{t("paidSwitch")}</p>}
           <div className="gv-pgrid" id="gv-pgrid">
             {TIERS.map((k) => {
               const p = PLANS[k], on = k === sub.tier;
@@ -140,9 +168,17 @@ function BillingView({ data, events, head, soon }: { data: Subscription; events:
               return (
                 <article className={`gv-pc${on ? " is-cur" : ""}`} key={k}>
                   <header><h4>{tier(k)}</h4>{on && <span className="gv-curtag">{t("cur")}</span>}</header>
-                  <p className="gv-price">{t("price")}</p>
+                  <p className="gv-price">{priceOf(k)}</p>
                   <ul><li><b>{p.projects}</b> {t("cProjects")}</li><li><b>{first}</b> {rest.join(" ")}</li></ul>
-                  <button type="button" className="pm-btn pm-ghost st-sm" disabled={on} onClick={on ? undefined : soon}>{on ? t("cur") : t("soon")}</button>
+                  {on ? (
+                    <button type="button" className="pm-btn pm-ghost st-sm" disabled>{t("cur")}</button>
+                  ) : k === "FREE" ? (
+                    <button type="button" className="pm-btn pm-ghost st-sm" disabled>{t("freeVia")}</button>
+                  ) : !paid ? (
+                    <button type="button" className="pm-btn pm-go st-sm" disabled={locked || redirecting} onClick={() => buy(k)}>{checkout.isPending && checkout.variables === k ? t("going") : t("pick", { plan: tier(k) })}</button>
+                  ) : (
+                    <button type="button" className={`pm-btn st-sm ${isUpgrade(sub.tier, k) ? "pm-go" : "pm-ghost"}`} disabled={locked || redirecting || !billing.canSwitch} onClick={() => setSwitchTo(k)}>{billing.canSwitch ? t("switchTo", { plan: tier(k) }) : t("swBlocked")}</button>
+                  )}
                 </article>
               );
             })}
@@ -187,6 +223,7 @@ function BillingView({ data, events, head, soon }: { data: Subscription; events:
       </div>
       <SelectProjectsDialog data={dlg === "sel" ? picks : null} tier={sub.tier} accountId={account.id} onClose={closeDialog} />
       <DeleteAccountDialog open={dlg === "del"} accountId={account.id} slug={account.slug} onClose={closeDialog} />
+      <SwitchPlanDialog target={switchTo} from={sub.tier} accountId={account.id} priceCents={billing.priceCents} currentProjects={limits.currentProjects} onClose={() => setSwitchTo(null)} onSwitched={(to) => { setSwitchTo(null); notify(t("swDone", { plan: tier(to) })); onSwitched(to); }} />
     </div>
   );
 }

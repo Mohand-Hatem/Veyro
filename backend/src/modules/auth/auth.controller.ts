@@ -8,7 +8,9 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  applyDecorators,
 } from '@nestjs/common';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
@@ -22,12 +24,18 @@ import { Public } from './decorators/public.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { AuthenticatedUser } from './interfaces/jwt-payload.interface';
 import { AuthGuard } from '@nestjs/passport';
+import { OAuthCallback, OAuthConfigured } from './guards/oauth.guards';
+
+/** Per-IP brute-force protection: at most `limit` calls per minute to this route (each route has its own counter). */
+const rateLimited = (limit: number) =>
+  applyDecorators(UseGuards(ThrottlerGuard), Throttle({ default: { limit, ttl: 60_000 } }));
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Public()
+  @rateLimited(5)
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   async register(
@@ -37,13 +45,11 @@ export class AuthController {
     const result = await this.authService.register(dto);
     this.setAuthCookies(response, result.accessToken, result.refreshToken);
 
-    return {
-      user: result.user,
-      accessToken: result.accessToken,
-    };
+    return { user: result.user };
   }
 
   @Public()
+  @rateLimited(10)
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(
@@ -53,10 +59,7 @@ export class AuthController {
     const result = await this.authService.login(dto);
     this.setAuthCookies(response, result.accessToken, result.refreshToken);
 
-    return {
-      user: result.user,
-      accessToken: result.accessToken,
-    };
+    return { user: result.user };
   }
 
   @Public()
@@ -73,10 +76,7 @@ export class AuthController {
     const result = await this.authService.refresh(rawRefreshToken);
     this.setAuthCookies(response, result.accessToken, result.refreshToken);
 
-    return {
-      user: result.user,
-      accessToken: result.accessToken,
-    };
+    return { user: result.user };
   }
 
   @Post('logout')
@@ -113,6 +113,7 @@ export class AuthController {
 
   // --- OTP Verification ---
   @Public()
+  @rateLimited(10)
   @Post('otp/verify')
   @HttpCode(HttpStatus.OK)
   async verifyOtp(@Body() dto: VerifyOtpDto) {
@@ -120,6 +121,7 @@ export class AuthController {
   }
 
   @Public()
+  @rateLimited(5)
   @Post('otp/resend')
   @HttpCode(HttpStatus.OK)
   async resendOtp(@Body() dto: ResendOtpDto) {
@@ -128,6 +130,7 @@ export class AuthController {
 
   // --- Password Recovery ---
   @Public()
+  @rateLimited(5)
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
@@ -135,56 +138,51 @@ export class AuthController {
   }
 
   @Public()
+  @rateLimited(5)
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
   async resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto);
   }
 
-  // --- Google OAuth ---
+  // --- Google / GitHub sign-in ---
+  // Start: redirects to the provider. Callback: the provider sends the person back here (through the Next.js proxy, so the
+  // cookies below are first-party).
   @Public()
   @Get('google')
-  @UseGuards(AuthGuard('google'))
+  @UseGuards(OAuthConfigured('google'), AuthGuard('google'))
   async googleAuth() {
     // Initiates Google OAuth consent screen redirect
   }
 
   @Public()
   @Get('google/callback')
-  @UseGuards(AuthGuard('google'))
-  async googleAuthCallback(
-    @Req() req: Request,
-    @Res() res: Response,
-  ) {
-    const profile = req.user as any;
-    const result = await this.authService.validateOAuthUser(profile);
-    this.setAuthCookies(res, result.accessToken, result.refreshToken);
-
-    const redirectUrl = process.env.APP_URL || 'http://localhost:3000';
-    return res.redirect(`${redirectUrl}/dashboard`);
+  @UseGuards(OAuthConfigured('google'), OAuthCallback('google'))
+  async googleAuthCallback(@Req() req: Request, @Res() res: Response) {
+    return this.finishOAuth(req, res);
   }
 
-  // --- GitHub OAuth ---
   @Public()
   @Get('github')
-  @UseGuards(AuthGuard('github'))
+  @UseGuards(OAuthConfigured('github'), AuthGuard('github'))
   async githubAuth() {
     // Initiates GitHub OAuth consent screen redirect
   }
 
   @Public()
   @Get('github/callback')
-  @UseGuards(AuthGuard('github'))
-  async githubAuthCallback(
-    @Req() req: Request,
-    @Res() res: Response,
-  ) {
-    const profile = req.user as any;
+  @UseGuards(OAuthConfigured('github'), OAuthCallback('github'))
+  async githubAuthCallback(@Req() req: Request, @Res() res: Response) {
+    return this.finishOAuth(req, res);
+  }
+
+  private async finishOAuth(req: Request, res: Response) {
+    const appUrl = process.env.APP_URL || 'http://localhost:3000';
+    const profile = req.user as { email: string; name: string; avatarUrl: string | null } | false | undefined;
+    if (!profile) return res.redirect(`${appUrl}/login?oauth=failed`);
     const result = await this.authService.validateOAuthUser(profile);
     this.setAuthCookies(res, result.accessToken, result.refreshToken);
-
-    const redirectUrl = process.env.APP_URL || 'http://localhost:3000';
-    return res.redirect(`${redirectUrl}/dashboard`);
+    return res.redirect(`${appUrl}/${result.user.locale === 'AR' ? 'ar' : 'en'}/dashboard`);
   }
 
   // --- Helpers for Secure Cookies ---

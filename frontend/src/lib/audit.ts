@@ -9,7 +9,7 @@ export type AuditLog = {
   action: string;
   createdAt: string;
   metadata: Record<string, unknown> | null;
-  actor: { id: string; name: string } | null;
+  actor: { id: string; name: string; avatarUrl: string | null } | null;
   project: { id: string; key: string; name: string; isDeleted: boolean } | null;
   subjectUser: { id: string; name: string } | null;
 };

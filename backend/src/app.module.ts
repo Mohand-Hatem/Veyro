@@ -1,5 +1,9 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { validateEnv } from './config/env.validation';
+import { EmailModule } from './modules/email/email.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { HealthModule } from './modules/health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -19,8 +23,13 @@ import { LoggingMiddleware } from './common/middleware/logging.middleware';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
+      validate: validateEnv,
     }),
+    // Counters live in memory, per instance; the limits themselves are set per route with @Throttle (auth.controller.ts).
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 10 }]),
     PrismaModule,
+    EmailModule,
+    NotificationsModule,
     HealthModule,
     AuthModule,
     TenancyModule,

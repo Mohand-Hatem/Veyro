@@ -2,7 +2,8 @@
 
 import { useTranslations } from "next-intl";
 import { useShell } from "@/components/shell/shell-context";
-import { avatarClass, initials } from "@/lib/dashboard";
+import { avatarClass } from "@/lib/dashboard";
+import { Avatar } from "@/components/ui/avatar";
 import { agoParts, boardErrorKey, daysLeft, useDeletedTasks, useRestoreTask } from "@/lib/board";
 import "./board.css";
 
@@ -35,7 +36,7 @@ export function DeletedTasks({ projectId, blocked, onOpen }: { projectId: string
           return (
             <li className="bd-tli" key={tk.id}>
               <span className="bd-tlt"><b>{tk.title}</b><small>{t("deletedAgo")} {t(ago.key, { n: ago.n })} · {t("removedIn", { n: daysLeft(tk.purgeAt) })}</small></span>
-              <span className="bd-tlm"><span className={`bd-av ${avatarClass(tk.author.id)}`} title={tk.author.name}>{initials(tk.author.name)}</span><small>{tk.author.name}</small></span>
+              <span className="bd-tlm"><Avatar className={`bd-av ${avatarClass(tk.author.id)}`} title={tk.author.name} name={tk.author.name} url={tk.author.avatarUrl} /><small>{tk.author.name}</small></span>
               <span className="bd-tla">
                 <button type="button" className="pm-btn pm-ghost st-sm" onClick={() => onOpen(tk.id)}>{t("open")}</button>
                 <button type="button" className="pm-btn pm-go st-sm" disabled={blocked || busy} aria-busy={busy} onClick={() => void onRestore(tk.id)}>{UNDO} {t("restore")}</button>

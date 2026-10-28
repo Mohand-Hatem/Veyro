@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent, type ReactNode, type RefObject } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { useShell } from "@/components/shell/shell-context";
 import {
-  countdown, findConversation, proposalFailure, sendFailure,
+  citationChips, countdown, findConversation, proposalFailure, sendFailure,
   useAiConversations, useAiMessages, useAiQuota, useResolveProposal, useSendMessage,
-  type AiMessage, type AiProposal, type ChatTarget,
+  type AiMessage, type AiProposal, type ChatTarget, type CitationChip,
 } from "@/lib/ai";
 import { initials } from "@/lib/dashboard";
 import "@/components/dashboard/illustration.css";
@@ -60,7 +61,7 @@ export function useChat(target: ChatTarget, refs: ChatRefs) {
     ...(pending ? [{ id: "pending", senderRole: "USER" as const, content: pending.text, createdAt: pending.at }] : []),
   ];
   const shownCount = messages.length;
-  useEffect(() => { const el = scrollRef.current; if (el) el.scrollTop = el.scrollHeight; }, [shownCount, busy, scrollRef]); // the newest message stays in view; typing in the box must not move the thread
+  useEffect(() => { const el = scrollRef.current; if (el) el.scrollTop = el.scrollHeight; }, [shownCount, busy, max, scrollRef]); // the newest message stays in view (also when the limit notice takes room below it); typing in the box must not move the thread
 
   const autosize = (el: HTMLTextAreaElement) => { el.style.height = "auto"; el.style.height = `${Math.min(160, el.scrollHeight)}px`; };
 
@@ -96,17 +97,41 @@ export function useChat(target: ChatTarget, refs: ChatRefs) {
 }
 export type Chat = ReturnType<typeof useChat>;
 
+const CITE_ICON = {
+  doc: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 3h8l4 4v14H6z" /><path d="M14 3v4h4M9 12h6M9 16h6" /></svg>,
+  task: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3" /><path d="m8.5 12 2.5 2.5 4.5-5" /></svg>,
+  project: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="7" height="16" rx="2" /><rect x="14" y="4" width="7" height="10" rx="2" /></svg>,
+};
+
+/** The row under an answer that names what it rests on. Nothing is drawn for an answer with no citations. */
+function Sources({ chips }: { chips: CitationChip[] }) {
+  const t = useTranslations("Assistant");
+  if (!chips.length) return null;
+  return (
+    <div className="ai-src">
+      <span className="ai-src-l">{t("src")}</span>
+      {chips.map((c) => {
+        const inner = <>{CITE_ICON[c.kind]}<span>{c.strong && <b>{c.strong}</b>}{c.strong ? " " : ""}{c.label}</span></>;
+        return c.href ? <Link key={c.key} className="ai-src-c" href={c.href}>{inner}</Link> : <span key={c.key} className="ai-src-c">{inner}</span>;
+      })}
+    </div>
+  );
+}
+
 function ProposalCard({ p, busy, error, onConfirm, onReject, boardHref }: { p: AiProposal; busy: boolean; error: string; onConfirm: () => void; onReject: () => void; boardHref: string }) {
   const t = useTranslations("Assistant");
   const pl = p.proposedPayload;
+  const tag = useLocale() === "ar" ? "ar-EG-u-nu-latn" : "en-US";
   const tone = { PENDING: "", EXECUTED: "is-done", REJECTED: "is-no", FAILED: "is-no" }[p.status];
   return (
     <div className={`ai-pc${tone ? ` ${tone}` : ""}${busy ? " is-busy" : ""}`}>
       <div className="ai-pc-h">{SPARK}<b>{t("pcTitle")}</b></div>
       <p className="ai-pc-t">{pl.title}</p>
+      {pl.description && <p className="ai-pc-desc">{pl.description}</p>}
       <dl className="ai-pc-d">
         <div><dt>{t("pcProject")}</dt><dd><span className="ap-key">{p.project ? p.project.key : "—"}</span> {p.project ? p.project.name : ""}</dd></div>
         <div><dt>{t("pcPriority")}</dt><dd><span className={`pr pr-${pl.priority}`}>{t(`prio${pl.priority}`)}</span></dd></div>
+        {pl.dueDate && <div><dt>{t("pcDue")}</dt><dd>{new Date(`${pl.dueDate}T00:00:00Z`).toLocaleDateString(tag, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })}</dd></div>}
       </dl>
       {p.status === "PENDING" ? (
         <div className="ai-pc-act">
@@ -159,6 +184,7 @@ export function ChatThread({ chat, suggestions }: { chat: Chat; suggestions: str
                 <div className="ai-b">
                   <div className="ai-bt"><b>{mine ? t("you") : t("bot")}</b><small>{hm(m.createdAt)}</small></div>
                   <p>{m.content}</p>
+                  {!mine && <Sources chips={citationChips(m.citations, workspace?.slug)} />}
                   {m.proposal && <ProposalCard p={m.proposal} busy={acting === m.proposal.id} error={cardError[m.proposal.id] ?? ""} onConfirm={() => void act(m.proposal!, "confirm")} onReject={() => void act(m.proposal!, "reject")} boardHref={workspace && m.proposal.project ? `/w/${workspace.slug}/projects/${m.proposal.project.key}` : "#"} />}
                 </div>
               </li>

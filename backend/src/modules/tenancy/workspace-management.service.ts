@@ -5,9 +5,12 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { Prisma, InvitationStatus, WorkspaceRole } from '@prisma/client';
+import { Prisma, InvitationStatus, WorkspaceRole, NotificationType } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
 import * as crypto from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
+import { EmailService } from '../email/email.service';
+import { sendInvitationEmail } from './invitation-email';
 import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
 import { ChangeMemberRoleDto } from './dto/change-member-role.dto';
 
@@ -22,7 +25,11 @@ const INVITATION_LIST_LIMIT = 100;
  */
 @Injectable()
 export class WorkspaceManagementService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly email: EmailService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   /* ------------------------------------------------------------------ helpers */
 
@@ -162,6 +169,7 @@ export class WorkspaceManagementService {
           metadata: { memberUserId: target.user.id, from: target.role, to: dto.role },
         },
       });
+      await this.notifications.notify(tx, { type: NotificationType.ROLE_CHANGED, recipientId: target.user.id, actorId, workspaceId, data: { role: dto.role, workspaceName: workspace.name, workspaceSlug: workspace.slug } });
       return m;
     });
     return this.memberView(updated, ownerId);
@@ -282,13 +290,17 @@ export class WorkspaceManagementService {
     });
 
     const appUrl = process.env.APP_URL || 'http://localhost:3000';
+    const inviteLink = `${appUrl}/invitations/accept?token=${rawToken}`;
+    void sendInvitationEmail(this.prisma, this.email, {
+      inviterId: actorId, workspaceName: workspace.name, to: invitation.email, role: invitation.role, url: inviteLink, days: INVITE_DAYS,
+    });
     return {
       invitationId: invitation.id,
       email: invitation.email,
       role: invitation.role,
       projectIds: invitation.projects.map((p) => p.projectId),
       expiresAt,
-      inviteLink: `${appUrl}/invitations/accept?token=${rawToken}`,
+      inviteLink,
       rawToken,
     };
   }

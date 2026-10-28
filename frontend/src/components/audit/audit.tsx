@@ -5,7 +5,8 @@ import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { useShell } from "@/components/shell/shell-context";
 import { useFormat } from "@/components/dashboard/use-format";
-import { avatarClass, initials } from "@/lib/dashboard";
+import { avatarClass } from "@/lib/dashboard";
+import { Avatar } from "@/components/ui/avatar";
 import { agoParts } from "@/lib/board";
 import { useProjectList } from "@/lib/projects";
 import { useMembers } from "@/lib/settings";
@@ -190,7 +191,7 @@ export function AuditRow({ log: l, cat, icon, children }: { log: AuditLog; cat: 
     <div className="au-tr au-row" role="row">
       <span className="au-when" role="cell"><b>{date(l.createdAt, true)}</b><small>{new Date(l.createdAt).toLocaleTimeString(tag, { hour: "2-digit", minute: "2-digit" })} · {tb(ago.key, { n: ago.n })}</small></span>
       <span className="au-who" role="cell">
-        {l.actor ? <><span className={`st-av ${avatarClass(l.actor.id)}`}>{initials(l.actor.name)}</span><span className="au-wn">{l.actor.name}</span></> : <><span className="st-av au-sys">⚙</span><span className="au-wn">{t("system")}</span></>}
+        {l.actor ? <><Avatar className={`st-av ${avatarClass(l.actor.id)}`} name={l.actor.name} url={l.actor.avatarUrl} /><span className="au-wn">{l.actor.name}</span></> : <><span className="st-av au-sys">⚙</span><span className="au-wn">{t("system")}</span></>}
       </span>
       <span className="au-what" role="cell">
         <span className={`au-ic au-ic-${cat}`} aria-hidden="true">{icon}</span>

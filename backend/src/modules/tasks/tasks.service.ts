@@ -15,7 +15,9 @@ import { completedAtPatch } from './task-completion';
 import {
   TaskStatus,
   ProjectLifecycleStatus,
+  NotificationType,
 } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
 
 /** Business rule: a soft-deleted task can be restored for 30 days (docs/03, STATE-TSK-RESTORE). */
 export const TASK_RESTORE_WINDOW_DAYS = 30;
@@ -31,7 +33,15 @@ export const ALLOWED_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
 
 @Injectable()
 export class TasksService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
+
+  /** The words a task notification needs, copied now so a later rename or delete does not change it. */
+  private noticeData(title: string, project: { name: string; key: string; workspace: { name: string; slug: string } }) {
+    return { taskTitle: title, projectName: project.name, projectKey: project.key, workspaceName: project.workspace.name, workspaceSlug: project.workspace.slug };
+  }
 
   async createTask(userId: string, projectId: string, dto: CreateTaskDto, isProjectAdmin: boolean) {
     const project = await this.prisma.project.findUnique({
@@ -128,6 +138,10 @@ export class TasksService {
           },
         },
       });
+
+      if (task.assigneeId) {
+        await this.notifications.notify(tx, { type: NotificationType.TASK_ASSIGNED, recipientId: task.assigneeId, actorId: userId, workspaceId: project.workspaceId, projectId: project.id, taskId: task.id, data: this.noticeData(task.title, project) });
+      }
 
       return task;
     });
@@ -391,6 +405,11 @@ export class TasksService {
         },
       });
 
+      // Only a NEW assignee is told (editing other fields of an assigned task is not an assignment).
+      if (updated.assigneeId && updated.assigneeId !== task.assigneeId) {
+        await this.notifications.notify(tx, { type: NotificationType.TASK_ASSIGNED, recipientId: updated.assigneeId, actorId: userId, workspaceId: task.project.workspaceId, projectId: task.projectId, taskId: task.id, data: this.noticeData(updated.title, task.project) });
+      }
+
       return updated;
     });
   }
@@ -562,6 +581,12 @@ export class TasksService {
           action: 'COMMENT_CREATED',
         },
       });
+
+      // The person the task is assigned to and the person who created it hear about a comment (never the commenter).
+      for (const recipientId of new Set([task.assigneeId, task.authorId])) {
+        if (!recipientId) continue;
+        await this.notifications.notify(tx, { type: NotificationType.TASK_COMMENTED, recipientId, actorId: userId, workspaceId: task.project.workspaceId, projectId: task.projectId, taskId: task.id, data: this.noticeData(task.title, task.project) });
+      }
 
       return comment;
     });

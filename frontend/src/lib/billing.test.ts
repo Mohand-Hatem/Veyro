@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PLANS, TIERS, deleteErrorKey, eventKey, initialPick, meterOf, selectErrorKey, type AccountProject } from "./billing";
+import { PLANS, TIERS, changeErrorKey, deleteErrorKey, eventKey, formatPrice, initialPick, isUpgrade, meterOf, projectsToChoose, selectErrorKey, type AccountProject } from "./billing";
 
 describe("billing helpers", () => {
   it("measures usage against a limit", () => {
@@ -17,6 +17,32 @@ describe("billing helpers", () => {
   it("words known billing events only", () => {
     expect(eventKey("invoice.payment_failed")).toBe("evFailed");
     expect(eventKey("something.else")).toBeNull();
+  });
+  it("words every Stripe event the backend records, so the history never shows a raw event name", () => {
+    for (const type of ["checkout.session.completed", "customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted", "invoice.paid", "invoice.payment_failed"]) {
+      expect(eventKey(type), type).not.toBeNull();
+    }
+  });
+  it("tells an upgrade from a downgrade by the order of the plans", () => {
+    expect(isUpgrade("PRO", "EPIC")).toBe(true);
+    expect(isUpgrade("EPIC", "PRO")).toBe(false);
+    expect(isUpgrade("ENTERPRISE", "PRO")).toBe(false);
+  });
+  it("warns only when a smaller plan keeps fewer projects than the account has", () => {
+    expect(projectsToChoose(20, "PRO")).toBe(7);
+    expect(projectsToChoose(7, "PRO")).toBeNull();
+    expect(projectsToChoose(2, "PRO")).toBeNull();
+  });
+  it("words each refusal of a plan change, with a general fallback", () => {
+    expect(changeErrorKey("PAYMENT_FAILED")).toBe("errSwitchPay");
+    expect(changeErrorKey("PAYMENT_PAST_DUE")).toBe("errSwitchDue");
+    expect(changeErrorKey("ACCOUNT_OFFBOARDING_LOCKED")).toBe("selELocked");
+    expect(changeErrorKey("SOMETHING_ELSE")).toBe("errSwitch");
+  });
+  it("prints whole-dollar plan prices", () => {
+    expect(formatPrice(900)).toBe("$9");
+    expect(formatPrice(2900)).toBe("$29");
+    expect(formatPrice(1900)).toBe("$19");
   });
 });
 

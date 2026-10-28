@@ -7,7 +7,9 @@ import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { InvitationStatus, ProjectLifecycleStatus, WorkspaceRole } from '@prisma/client';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { NotificationsService } from '../src/modules/notifications/notifications.service';
 import { TenancyService } from '../src/modules/tenancy/tenancy.service';
+import { EmailService } from '../src/modules/email/email.service';
 import { InviteMemberDto } from '../src/modules/tenancy/dto/invite-member.dto';
 import { buildFixture, Fixture } from './helpers/fixture';
 
@@ -36,7 +38,7 @@ describe('CS-01 / ADR-004: invitations with project assignment', () => {
   before(async () => {
     prisma = new PrismaService();
     await prisma.onModuleInit();
-    tenancy = new TenancyService(prisma);
+    tenancy = new TenancyService(prisma, new EmailService(), new NotificationsService(prisma));
     fx = await buildFixture(prisma);
   });
 

@@ -5,6 +5,7 @@ import * as assert from 'node:assert/strict';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { NotificationsService } from '../src/modules/notifications/notifications.service';
 import { ProjectsService } from '../src/modules/projects/projects.service';
 import { CreateProjectDto } from '../src/modules/projects/dto/create-project.dto';
 import { generateProjectKey, isValidProjectKey } from '../src/modules/projects/project-key';
@@ -61,7 +62,7 @@ describe('CS-01 / ADR-003: Project.key', () => {
     let fx: Fixture;
     before(async () => {
       prisma = new PrismaService(); await prisma.onModuleInit();
-      projects = new ProjectsService(prisma);
+      projects = new ProjectsService(prisma, new NotificationsService(prisma));
       fx = await buildFixture(prisma);
     });
     after(async () => { try { await fx.cleanup(); } finally { await prisma.onModuleDestroy(); } });

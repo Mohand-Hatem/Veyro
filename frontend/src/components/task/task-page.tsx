@@ -9,6 +9,7 @@ import { useFormat } from "@/components/dashboard/use-format";
 import { ReopenDialog } from "@/components/board/task-dialogs";
 import { ApiError } from "@/lib/api";
 import { avatarClass, initials } from "@/lib/dashboard";
+import { Avatar } from "@/components/ui/avatar";
 import { CATEGORIES, agoParts, boardErrorKey, daysLeft, isTerminal, useBoardProject, useRestoreTask, type Priority, type Status } from "@/lib/board";
 import { useAddComment, useDeleteTask, usePatchTask, useTask, type TaskDetail, type TaskPatch } from "@/lib/task";
 import "@/components/dashboard/illustration.css";
@@ -237,7 +238,7 @@ function TaskView({ task, projectKey }: { task: TaskDetail; projectKey: string }
                   const ago = agoParts(c.createdAt);
                   return (
                     <li className={`td-c${sys ? " is-sys" : ""}`} key={c.id}>
-                      {sys ? <span className="td-sysic">{UNDO}</span> : <span className={`bd-av ${avatarClass(c.author.id)}`} title={c.author.name}>{initials(c.author.name)}</span>}
+                      {sys ? <span className="td-sysic">{UNDO}</span> : <Avatar className={`bd-av ${avatarClass(c.author.id)}`} title={c.author.name} name={c.author.name} url={c.author.avatarUrl} />}
                       <div><b>{c.author.name}</b><small>{tb(ago.key, { n: ago.n })}</small><p>{c.content}</p></div>
                     </li>
                   );

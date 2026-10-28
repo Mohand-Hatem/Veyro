@@ -2,6 +2,8 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { AiPlanTier, TaskStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { effectiveAiQuota } from '../ai/ai-quota';
+import { IDENTITY, toIdentity } from './identity';
 
 const OPEN_STATUSES = [TaskStatus.TODO, TaskStatus.IN_PROGRESS, TaskStatus.IN_REVIEW];
 
@@ -17,7 +19,7 @@ export class UsersService {
   async getProfile(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, name: true, avatarUrl: true, isEmailVerified: true, createdAt: true, locale: true, theme: true },
+      select: { id: true, email: true, name: true, avatarUrl: true, avatarType: true, avatarPresetKey: true, isEmailVerified: true, createdAt: true, locale: true, theme: true },
     });
     if (!user) throw new NotFoundException({ code: 'RESOURCE_NOT_FOUND', message: 'User not found.' });
 
@@ -43,7 +45,7 @@ export class UsersService {
       this.prisma.task.count({
         where: { assigneeId: userId, deletedAt: null, status: { in: OPEN_STATUSES }, project: { deletedAt: null } },
       }),
-      this.prisma.userAiSubscription.findUnique({ where: { userId }, select: { tier: true, dailyQuota: true, status: true } }),
+      effectiveAiQuota(this.prisma, userId),
     ]);
 
     const projectsByWorkspace = new Map<string, number>();
@@ -74,6 +76,8 @@ export class UsersService {
       email: user.email,
       name: user.name,
       avatarUrl: user.avatarUrl,
+      avatarType: user.avatarType,
+      avatarPresetKey: user.avatarPresetKey,
       isEmailVerified: user.isEmailVerified,
       createdAt: user.createdAt,
       preferences: { locale: user.locale, theme: user.theme },
@@ -95,9 +99,9 @@ export class UsersService {
     const u = await this.prisma.user.update({
       where: { id: userId },
       data,
-      select: { id: true, email: true, name: true, avatarUrl: true, locale: true, theme: true },
+      select: IDENTITY,
     });
-    return { id: u.id, email: u.email, name: u.name, avatarUrl: u.avatarUrl, preferences: { locale: u.locale, theme: u.theme } };
+    return toIdentity(u);
   }
 }
 

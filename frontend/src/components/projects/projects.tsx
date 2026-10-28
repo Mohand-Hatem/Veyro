@@ -5,7 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { useShell } from "@/components/shell/shell-context";
-import { useDashboard, avatarClass, initials } from "@/lib/dashboard";
+import { useDashboard, avatarClass } from "@/lib/dashboard";
+import { Avatar } from "@/components/ui/avatar";
 import { daysSince, progressPercent, projectState, useProjectList, useRestoreProject, type ProjectRow, type ProjectState } from "@/lib/projects";
 import { ConfirmDialog, ProjectSettingsDialog, useProjectErrors, type Confirm } from "./project-dialogs";
 import { useFormat } from "@/components/dashboard/use-format";
@@ -183,7 +184,7 @@ function Row({ p, onSettings, onConfirm }: { p: ProjectRow; onSettings: () => vo
   return (
     <div className={`pj-tr pj-row${del ? " is-del" : ""}`} role="row">
       <span className="pj-name" role="cell"><span className="ap-key">{p.key}</span><span className="pj-nm"><b>{del ? p.name : <Link href={`/w/${workspace?.slug ?? ""}/projects/${p.key}`}>{p.name}</Link>}</b><small>{p.description || ""}</small></span></span>
-      <span className="pj-mem" role="cell"><span className="bd-stack">{p.members.map((m) => <span key={m.userId} className={`bd-av in-stack ${avatarClass(m.userId)}`} title={m.name}>{initials(m.name)}</span>)}</span><small>{t("members", { n: p._count.members })}</small></span>
+      <span className="pj-mem" role="cell"><span className="bd-stack">{p.members.map((m) => <Avatar key={m.userId} className={`bd-av in-stack ${avatarClass(m.userId)}`} title={m.name} name={m.name} url={m.avatarUrl} />)}</span><small>{t("members", { n: p._count.members })}</small></span>
       <span className="pj-prog" role="cell"><span className="pj-bar" role="progressbar" aria-label={p.name} aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}><i style={{ width: `${pct}%` }} /></span><small>{total ? t("doneOf", { done: p.taskCounts.done, total }) : t("noTasks")}</small></span>
       <span className="pj-cr" role="cell">{del ? <b>{days === 0 ? t("today") : t("deletedAgo", { n: days })}</b> : <b>{date(p.createdAt, true)}</b>}<small>{t("by")} {p.createdBy?.name}</small></span>
       <span role="cell"><span className={`ap-st ${STATE_CLASS[state]}`}>{label[state]}</span></span>

@@ -3,8 +3,9 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { api } from "./api";
 
-// Shapes of the owner-only billing endpoints (docs/06 §2.4, CS-07 / ADR-014). There is no payment provider yet.
+// Shapes of the owner-only billing endpoints (docs/06 §2.4, CS-07 / ADR-014). Payments run on Stripe's hosted pages.
 export type Tier = "FREE" | "PRO" | "ENTERPRISE" | "EPIC";
+export type PaidTier = Exclude<Tier, "FREE">;
 export type SubStatus = "ACTIVE" | "PAST_DUE" | "DOWNGRADED";
 export type Subscription = {
   account: { id: string; name: string; slug: string; offboardingState: "NONE" | "PENDING" | string };
@@ -12,6 +13,8 @@ export type Subscription = {
   limits: { tier: Tier; maxProjects: number; currentProjects: number; maxWorkspaces: number | null; currentWorkspaces: number };
   grace: { endsAt: string; daysLeft: number; expired: boolean } | null;
   readOnlyProjects: number;
+  /** Monthly prices in cents, and whether Stripe's billing portal can be opened (the account has been through checkout). */
+  billing: { currency: string; priceCents: Record<PaidTier, number>; canManage: boolean; canSwitch: boolean; testMode: boolean };
 };
 export type BillingEvent = { id: string; eventType: string; amount: number | null; currency: string | null; occurredAt: string };
 
@@ -24,11 +27,34 @@ export const PLANS: Record<Tier, { projects: number; ws: number | null }> = {
 };
 export const TIERS: Tier[] = ["FREE", "PRO", "ENTERPRISE", "EPIC"];
 
-export const useSubscription = (accountId: string | undefined, enabled: boolean) =>
-  useQuery({ queryKey: ["subscription", accountId], enabled: enabled && !!accountId, queryFn: () => api<Subscription>(`/accounts/${accountId}/subscription`) });
+/** Moving up or down between plans; the order of TIERS is the order of price. */
+export const isUpgrade = (from: Tier, to: Tier) => TIERS.indexOf(to) > TIERS.indexOf(from);
 
-export const useBillingEvents = (accountId: string | undefined, enabled: boolean) =>
-  useQuery({ queryKey: ["billing-events", accountId], enabled: enabled && !!accountId, queryFn: async () => (await api<{ events: BillingEvent[] }>(`/accounts/${accountId}/billing-events`)).events });
+/** The number of editable projects the new plan keeps when the account has more than that (the owner then has to choose), otherwise null. */
+export const projectsToChoose = (currentProjects: number, to: Tier) => (currentProjects > PLANS[to].projects ? PLANS[to].projects : null);
+
+/** Right after paying, the plan changes when Stripe's webhook arrives: ask again every 2 seconds, up to 15 times. */
+const pollWhile = (poll: boolean) => (q: { state: { dataUpdateCount: number } }) => (poll && q.state.dataUpdateCount < 15 ? 2000 : false);
+
+export const useSubscription = (accountId: string | undefined, enabled: boolean, poll = false) =>
+  useQuery({ queryKey: ["subscription", accountId], enabled: enabled && !!accountId, refetchInterval: pollWhile(poll), queryFn: () => api<Subscription>(`/accounts/${accountId}/subscription`) });
+
+export const useBillingEvents = (accountId: string | undefined, enabled: boolean, poll = false) =>
+  useQuery({ queryKey: ["billing-events", accountId], enabled: enabled && !!accountId, refetchInterval: pollWhile(poll), queryFn: async () => (await api<{ events: BillingEvent[] }>(`/accounts/${accountId}/billing-events`)).events });
+
+/** "$9". A dollar amount reads the same in both languages, so it is not localised (the Arabic format would print "US$"). */
+export const formatPrice = (cents: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(cents / 100);
+
+/** Checkout (a plan) and the billing portal (card, invoices, cancel): both answer with a Stripe address and we go there. */
+export function useStripeRedirect(accountId: string | undefined) {
+  const go = (r: { url: string }) => window.location.assign(r.url);
+  const checkout = useMutation({
+    mutationFn: (tier: PaidTier) => api<{ url: string }>(`/accounts/${accountId}/billing/checkout`, { method: "POST", body: JSON.stringify({ tier }) }),
+    onSuccess: go,
+  });
+  const portal = useMutation({ mutationFn: () => api<{ url: string }>(`/accounts/${accountId}/billing/portal`, { method: "POST" }), onSuccess: go });
+  return { checkout, portal };
+}
 
 /** Usage as a bar width: unlimited plans show a short fixed bar, full plans are flagged. */
 export function meterOf(used: number, max: number | null) {
@@ -36,9 +62,21 @@ export function meterOf(used: number, max: number | null) {
   return { unlimited, pct: unlimited ? 12 : Math.min(100, Math.round((used / max) * 100)), full: !unlimited && used >= max };
 }
 
-const EVENT_KEY: Record<string, "evPaid" | "evFailed" | "evUpgraded" | "evDowngraded" | "evUpdated"> = {
+const CHANGE_ERRORS: Record<string, "errSwitchPay" | "errSwitchDue" | "selELocked"> = {
+  PAYMENT_FAILED: "errSwitchPay",
+  PAYMENT_PAST_DUE: "errSwitchDue",
+  ACCOUNT_OFFBOARDING_LOCKED: "selELocked",
+};
+/** The message for a refused plan change; anything unexpected gets the general one. */
+export const changeErrorKey = (code: string) => CHANGE_ERRORS[code] ?? "errSwitch";
+
+const EVENT_KEY: Record<string, "evPaid" | "evFailed" | "evUpgraded" | "evDowngraded" | "evUpdated" | "evCheckout" | "evStarted" | "evEnded"> = {
   "invoice.paid": "evPaid",
   "invoice.payment_failed": "evFailed",
+  "checkout.session.completed": "evCheckout",
+  "customer.subscription.created": "evStarted",
+  "customer.subscription.updated": "evUpdated",
+  "customer.subscription.deleted": "evEnded",
   "subscription.upgraded": "evUpgraded",
   "subscription.downgraded": "evDowngraded",
   "subscription.updated": "evUpdated",
@@ -68,6 +106,11 @@ export const selectErrorKey = (code: string) => SELECT_ERRORS[code] ?? "errGener
 const DELETE_ERRORS: Record<string, "delESlug" | "delEDup"> = { SLUG_CONFIRMATION_MISMATCH: "delESlug", ACCOUNT_ALREADY_OFFBOARDING: "delEDup" };
 /** The banner message for a refused deletion; a wrong password has its own inline message and is not listed. */
 export const deleteErrorKey = (code: string) => DELETE_ERRORS[code] ?? "errGeneric";
+
+/** Switching to another paid plan: Stripe applies it, then its signed webhook updates the account, so the caller waits for the new plan to show up. */
+export function useChangePlan(accountId: string | undefined) {
+  return useMutation({ mutationFn: (tier: PaidTier) => api<{ tier: PaidTier }>(`/accounts/${accountId}/billing/change-plan`, { method: "POST", body: JSON.stringify({ tier }) }) });
+}
 
 /** Both actions change what the banner, the meters and the project lists say, so those are refetched before the dialog closes. */
 function useRefreshAfter(accountId: string | undefined) {

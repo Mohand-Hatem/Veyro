@@ -11,6 +11,7 @@ import { AppModule } from '../src/app.module';
 import { TransformInterceptor } from '../src/common/interceptors/transform.interceptor';
 import { AllExceptionsFilter } from '../src/common/filters/http-exception.filter';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { BillingService } from '../src/modules/billing/billing.service';
 import { AccountPurgeService } from '../src/modules/tenancy/account-purge.service';
 import { buildFixture, Fixture } from './helpers/fixture';
 
@@ -36,8 +37,15 @@ describe('CS-07: account governance (billing, downgrade selection, account audit
     const res = await fetch(`${base}${path}`, { method, headers: { cookie: cookies[who], 'content-type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
     return { status: res.status, json: (await res.json().catch(() => ({}))) as any };
   };
-  const webhook = (data: object, eventType = 'subscription.updated') =>
-    fetch(`${base}/billing/webhook`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ externalEventId: `evt_${randomUUID()}`, eventType, data }) });
+  // The HTTP webhook only accepts Stripe-signed events (p57 tests that); here the billing rules are exercised directly.
+  const webhook = async (data: object, eventType = 'subscription.updated') => {
+    try {
+      await app.get(BillingService).applyBillingEvent({ externalEventId: `evt_${randomUUID()}`, eventType, data });
+      return { status: 200 };
+    } catch (e: any) {
+      return { status: e.getStatus?.() ?? 500 };
+    }
+  };
   const sub = (f: Fixture) => prisma.accountSubscription.findUniqueOrThrow({ where: { accountId: f.accountA } });
   const readOnly = async (f: Fixture) => (await prisma.project.findMany({ where: { workspace: { accountId: f.accountA }, deletedAt: null }, select: { id: true, isBillingReadOnly: true } })).filter((p) => p.isBillingReadOnly).map((p) => p.id);
 

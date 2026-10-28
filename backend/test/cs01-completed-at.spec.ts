@@ -3,6 +3,7 @@ import { describe, it, before, after } from 'node:test';
 import * as assert from 'node:assert/strict';
 import { TaskStatus } from '@prisma/client';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { NotificationsService } from '../src/modules/notifications/notifications.service';
 import { TasksService } from '../src/modules/tasks/tasks.service';
 import { completedAtPatch } from '../src/modules/tasks/task-completion';
 import { buildFixture, Fixture } from './helpers/fixture';
@@ -32,7 +33,7 @@ describe('CS-01 / ADR-002: Task.completedAt invariant', () => {
     before(async () => {
       prisma = new PrismaService();
       await prisma.onModuleInit();
-      tasks = new TasksService(prisma);
+      tasks = new TasksService(prisma, new NotificationsService(prisma));
       fx = await buildFixture(prisma);
       const t = await tasks.createTask(fx.users.owner, fx.projectA1, { title: 'Ship the thing' } as any, true);
       taskId = t.id;

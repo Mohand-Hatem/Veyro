@@ -49,7 +49,8 @@ Veyro is built following strict software engineering and systems architecture di
 ### 1. 🔐 Authentication & Session Security (`AuthModule`)
 - **Dual Token Architecture:** Short-lived access JWTs paired with long-lived cryptographically secure refresh tokens stored in `HttpOnly`, `SameSite=Strict` cookies.
 - **Refresh Token Family Rotation (`BR-AUTH-02`):** Immediate revocation of entire token families upon reuse detection to prevent replay and session hijacking attacks.
-- **Social OAuth 2.0:** Passport strategies prepared for Google and GitHub SSO.
+- **Social OAuth 2.0:** Google and GitHub sign-in that accepts only a provider-verified email, a one-use `state` check against login CSRF, and a pre-hijacking defence (a provider claiming an unverified local account replaces its password and ends its sessions).
+- **Hardened by default:** the server refuses to start without a strong `JWT_SECRET`, tokens travel only in cookies, and the sign-in, registration, code and reset routes are rate limited per IP.
 
 ### 2. 🏢 Tenancy & Workspace Management (`TenancyModule`)
 - **Atomic Onboarding:** Transactional account creation, initial workspace provisioning, and owner role assignment in a single request (`POST /api/v1/onboarding/atomic`).
@@ -70,14 +71,30 @@ Veyro is built following strict software engineering and systems architecture di
 - **Two-Phase Quota Reservation:** Prevents LLM quota exhaustion races via atomic quota reservation (`PENDING` $\rightarrow$ `FINALIZED` or `COMPENSATED`).
 - **Human-in-the-Loop Mutation Proposals (`AiMutationProposal`, `BR-AI-01`):** AI cannot directly write to projects or tasks; it generates structured mutation proposals that require explicit user confirmation.
 - **Zero-Cost Confirmations (`DEC-23`):** Executing an approved proposal incurs zero additional AI quota.
+- **A real model with grounded answers:** Google Gemini answers from the Veyro help documents (pgvector similarity search, with cited sources) and reads the workspace through read-only tools that only see what the signed-in person may see. The user and workspace come from the server, never from the model, and tool results are treated as data, not instructions. Off-topic or injected requests get a fixed refusal.
+- **Plan-based daily limits:** Free 3, Pro 15, Enterprise 25 and Epic 50 messages a day (the best plan among the accounts a person owns).
 
 ### 6. 💳 Billing, Webhooks & Grace Periods (`BillingModule`)
-- **Stripe Webhook Idempotency:** Webhook event deduplication via database event logging (`billing_events`) keyed by `externalEventId`.
+- **Signed, idempotent webhooks:** every Stripe event is verified (HMAC-SHA256 over the timestamp and raw body, 5-minute tolerance) before anything happens, the current subscription is re-read from Stripe so out-of-order events are safe, and events are deduplicated in `billing_events` by `externalEventId`.
+- **Checkout, customer portal and plan switching:** Stripe Checkout for a new plan, the Stripe customer portal for cards and cancellation, and prorated switches between paid plans. Stripe runs in **test mode only** (a portfolio project: no real payments).
 - **7-Day Payment Grace Period:** Grace period support before account project freezing occurs.
 - **Downgrade Recalibration (`BR-SUB-03`):** When an account downgrades to Free, all projects freeze; the Account Owner can select up to 3 active projects (`POST /api/v1/accounts/:id/select-active-projects`).
 
 ### 7. 📜 Audit Logging (`AuditModule`)
 - **Tenant-Scoped Activity Trail:** Paginated, immutable audit logs tracking actions, actor identity, target resources, and before/after metadata snapshots.
+
+### 8. 🔔 Notifications (`NotificationsModule`)
+- **Written with the event:** an assignment, a comment on your task, being added to a project, a role change and an accepted invitation each create a notification inside the same transaction as the event and its audit row, so they exist together or not at all. Nobody is notified about their own action, and only people still in the workspace are.
+- **Private by construction:** the endpoints never take a user id; every query is scoped to the caller, marking someone else's notification is a `404`, and notifications from a workspace you left are hidden. A paged list (keyset cursor), an unread count, mark one and mark all read.
+- **Delivery:** the bell polls the unread count once a minute while the tab is visible. The sentence is built on screen from the type and a copied snapshot of the data, so it follows the page language.
+
+### 9. 🖼️ Profile Pictures (`UsersModule`, `StorageModule`)
+- **Server-side processing:** the browser crops, then sends the picture as the request body. The server decodes it for real, rotates it upright, crops a square, **strips all metadata** (location and camera data never leave the server) and stores only a 256 px WebP (about 10 to 30 KB) in Cloudinary. Inputs are limited to 2 MB and JPEG, PNG or WebP.
+- **Defaults and choices:** every account has initials at once; a person can pick one of five illustrated avatars or upload a photo. Google and GitHub photos are used as they are.
+- **Soft delete:** removing a stored photo hides it (private delivery, so its address stops working) and keeps it for 30 days; a retention purge deletes it for good. The schedule for that job arrives with deployment (Phase 6).
+
+### 10. ✉️ Email (`EmailModule`)
+- Verification codes, password reset, invitations and the contact form send through Resend with plain `fetch` (no SDK). Sending is never awaited and never throws, so it cannot leak whether an address exists. Production refuses the Resend test sender, so a verified domain is needed before deploying.
 
 ---
 
@@ -103,7 +120,7 @@ erDiagram
     Task ||--o{ TaskActivityLog : "records changes"
 ```
 
-- **19 Physical 3NF Models:** `users`, `accounts`, `account_members`, `workspaces`, `workspace_members`, `workspace_invitations`, `projects`, `project_members`, `tasks`, `task_comments`, `task_activity_logs`, `subscriptions`, `ai_subscriptions`, `ai_conversations`, `ai_messages`, `ai_usage_reservations`, `ai_mutation_proposals`, `billing_events`, `audit_logs`.
+- **25 Prisma models** (the source of truth is `backend/prisma/schema.prisma`; the diagram above shows the core relationships): `User`, `UserSession`, `UserOtpVerification`, `UserPasswordResetToken`, `Account`, `Workspace`, `WorkspaceMember`, `WorkspaceInvitation`, `WorkspaceInvitationProject`, `Project`, `ProjectMember`, `Task`, `TaskComment`, `AccountSubscription`, `UserAiSubscription`, `BillingEvent`, `AiDailyUsage`, `AiUsageReservation`, `AiConversation`, `AiMessage`, `AiMutationProposal`, `AuditLog`, `ContactMessage`, `KnowledgeChunk` (pgvector embeddings of the help documents) and `Notification`.
 - **Primary Keys:** Collision-resistant CUID2 identifiers (`@default(cuid())`).
 - **Indexes:** Composite indexes optimized for multi-tenant filtering (`[workspaceId, status]`, `[projectId, status]`, `[accountId, createdAt]`).
 
@@ -117,7 +134,7 @@ erDiagram
 | **Phase 2** | **System Design & API Contracts** | ERD (`04-ERD.md`), Physical DB Spec (`05-DB.md`), OpenAPI Contracts (`06-API.md`), Sequence Diagrams | ✅ **Completed (100%)** |
 | **Phase 3** | **NestJS Backend Implementation** | 7 Modular Monolith modules, Prisma 7, Neon DB migration, Guards, Interceptors, Filters | ✅ **Completed (100%)** |
 | **Phase 4** | **Frontend Development & Design Gate** | `design.md` baseline, Next.js 16 App Router app in `frontend/` (English and Arabic, light and dark), every screen checked against its reference with parity scripts | ✅ **Completed** |
-| **Phase 5** | **Integration, Security & E2E Testing** | Multi-tenant penetration tests, Stripe & OAuth live testing, Jest/Supertest suite | ⚪ *Planned* |
+| **Phase 5** | **Integration, Security & Quality** | Security hardening, a tenant-isolation and role matrix, query and reliability fixes, real email (Resend), Google and GitHub sign-in, Stripe (test mode), a real AI assistant (Gemini and help-document search), profile pictures (Cloudinary and sharp) and notifications, with automated tests for each | ✅ **Completed** |
 | **Phase 6** | **Deployment, CI/CD & Portfolio** | Docker containerization, Vercel & Neon staging/prod environments, Monitoring | ⚪ *Planned* |
 
 ---
@@ -127,7 +144,8 @@ erDiagram
 - **Backend:** [NestJS 11](https://nestjs.com/) (TypeScript, Express platform, Class Validator, Passport)
 - **Database & ORM:** [PostgreSQL 16+](https://www.postgresql.org/) via [Neon](https://neon.tech/), [Prisma ORM 7](https://www.prisma.io/) with `@prisma/adapter-pg`
 - **Frontend:** [Next.js 16 App Router](https://nextjs.org/) with React 19, [Tailwind CSS 4](https://tailwindcss.com/), [Radix UI](https://www.radix-ui.com/) through [shadcn/ui](https://ui.shadcn.com/), [TanStack Query](https://tanstack.com/query), [next-intl](https://next-intl.dev/) (English and Arabic, right-to-left), react-hook-form with zod, next-themes
-- **Security:** Argon2/Bcrypt password hashing, SHA-256 invitation tokens, HttpOnly JWT cookies, Rate limiting, Strict RBAC guards
+- **Security:** Bcrypt password hashing, SHA-256 invitation tokens, HttpOnly JWT cookies, rate limiting, strict RBAC guards, signed webhooks, OAuth `state`
+- **Integrations:** Resend (email), Google and GitHub OAuth, Stripe (test mode), Google Gemini (answers and embeddings, searched with pgvector), Cloudinary (profile pictures) with sharp (server-side image processing)
 
 ---
 
@@ -157,6 +175,8 @@ JWT_SECRET="your-super-secure-jwt-secret-min-32-chars"
 ```
 `frontend/.env.local` only needs `API_ORIGIN` (where the backend listens) and the OAuth switch; the defaults work locally.
 
+Every external service is optional in development and documented in `backend/.env.example` (Resend, Google and GitHub OAuth, Stripe test keys, Gemini, Cloudinary). Without a key the feature degrades honestly: emails are skipped (or printed with `DEV_OUTBOX=true`), the assistant answers with a fixed stand-in text, photo upload reports that it is not set up, and payments report not configured. Production refuses to start without them. `DATABASE_URL_Branch` (optional) points development and tests at a Neon branch while `DATABASE_URL` stays production.
+
 ### 3. Install Dependencies
 ```bash
 cd backend && npm install
@@ -170,14 +190,20 @@ cd backend
 npx prisma migrate deploy
 ```
 
-### 5. Start the Backend
+### 5. Load the Help Documents (only for the assistant)
+```bash
+cd backend
+npm run knowledge:ingest   # embeds backend/knowledge/*.md into pgvector (needs GEMINI_API_KEY)
+```
+
+### 6. Start the Backend
 ```bash
 cd backend
 npm run start:dev
 ```
 The NestJS API runs at `http://localhost:5000/api/v1`.
 
-### 6. Start the Frontend
+### 7. Start the Frontend
 ```bash
 cd frontend
 npm run dev
@@ -190,25 +216,29 @@ The app runs at `http://localhost:3000` (English at `/en`, Arabic at `/ar`). It 
 
 | Where | Command | What it covers |
 | :--- | :--- | :--- |
-| `backend/` | `npm test` | 18 suites, 183 tests of the business rules, role rules, tenant isolation, plan limits, AI proposals and the HTTP contract. They run against the database in `DATABASE_URL` and create and remove their own data. |
+| `backend/` | `npm test` | 31 test files, 359 tests of the business rules, role rules, tenant isolation (a route-by-route matrix that fails when a new route is not classified), plan limits, security, email, OAuth, Stripe (signed webhooks), the AI gateway, help search and tools, avatars and notifications, plus journey tests across the whole product. They run against the database in `DATABASE_URL_Branch` (or `DATABASE_URL`) and create and remove their own data. A suite can be cancelled when the database connection drops while it sets up; run it again. |
+| `backend/` | `npm run ai:eval` | The assistant's question set (22 cases: help answers, refusals, workspace data, prompt injection, task drafts) against the real model on the development branch; it refuses to run on production. |
 | `backend/` | `npx tsc --noEmit` | Type check |
-| `frontend/` | `npm test` | 96 unit tests (vitest): API client, validation, helpers, message coverage in both languages |
+| `frontend/` | `npm test` | 127 unit tests (vitest): API client, validation, helpers, initials and crop math, notification helpers, message coverage in both languages |
 | `frontend/` | `npm run lint`, `npx tsc --noEmit`, `npm run build` | Lint, types and the production build |
 | `frontend/` | `node scripts/parity/run.mjs scripts/parity/<screen>.js` | Parity check of one screen against its reference page: computed styles, layout and text at 1440 and 390 px wide, light and dark, English and Arabic. The reference pages live in `screens/`, which is kept locally and is not part of this repository. Each script's header lists what it needs (Playwright with Chrome, the running servers and its test data). |
 
-Automated CI/CD is not set up yet; it is planned for Phase 6.
+Automated CI/CD and a browser end-to-end suite are not set up yet; both are planned for Phase 6. The browser flows were checked by hand with Playwright, including the real upload, payment and notification flows.
 
 ---
 
 ## 🖥️ What Is Built
 
-- **Account and access:** sign in, registration with email code, password reset, onboarding, invitations, profile and preferences
+- **Account and access:** sign in (email, Google, GitHub), registration with email code, password reset, onboarding, invitations, profile and preferences, profile photo (upload with a crop step, one of five illustrated avatars, or initials)
 - **Workspace:** dashboard, projects, my tasks, project board with task lifecycle and reopening with a reason, task page with comments, members and settings, audit trail, creating more workspaces within the plan limit
 - **Account governance:** billing and plans, choosing which projects stay editable after a downgrade, account deletion, account audit trail
-- **AI assistant:** a full page and a quick-ask drawer; the assistant proposes a change and nothing is written until you confirm it
+- **AI assistant:** a full page and a quick-ask drawer; it answers from the help documents and your workspace data, shows its sources, and proposes a change that is only written after you confirm it
+- **Notifications:** the bell with an unread count and a popover (assignments, comments, project additions, role changes, accepted invitations), in English and Arabic
 - **Help and public site:** how it works guide, contact form, landing page, 404, 403 and error states
 
-**Prototype today (real accounts and configuration come in Phase 5):** email sending (codes and reset links are printed in the backend console when `DEV_OUTBOX=true`), Google and GitHub sign-in, payments, a real AI model (replies are scripted, the flow around them is real), notifications and file storage for avatars.
+**Needs your own accounts to run live:** email (Resend; the test sender is for testing only), Google and GitHub sign-in, Stripe (test mode), Gemini and Cloudinary. Their keys go in the gitignored `backend/.env`, never in the repository.
+
+**Not built yet (planned for Phase 6 or later):** CI/CD and deployment, scheduled jobs (the 30-day removed-photo purge and notification cleanup), a browser end-to-end suite, email or push notifications, @mentions, and deleting a person's user record.
 
 ---
 
@@ -225,7 +255,9 @@ Automated CI/CD is not set up yet; it is planned for Phase 6.
 | `POST` | `/api/v1/projects/:projectId/tasks` | Create task within project (project admins) | `ProjectAccessGuard` |
 | `POST` | `/api/v1/tasks/:id/reopen` | Reopen task with mandatory reason | `TaskAccessGuard` (`BR-TSK-03.3`) |
 | `POST` | `/api/v1/ai/conversations` | Start AI session (Knowledge/Project) | `JwtAuthGuard` |
-| `POST` | `/api/v1/billing/webhook` | Deduplicated Stripe payment webhook | Public (Signature Verified) |
+| `POST` | `/api/v1/billing/webhook` | Stripe webhook: signature verified, current state re-read, deduplicated | Public (HMAC signature required) |
+| `PUT` | `/api/v1/users/me/avatar` | Upload a profile picture (raw body, validated and re-encoded by the server) | `JwtAuthGuard`, rate limited |
+| `GET` | `/api/v1/notifications` | The caller's notifications, newest first, paged | `JwtAuthGuard` (own rows only) |
 | `GET` | `/api/v1/audit-logs` | Retrieve tenant audit trail | `TenantGuard`, `AccountOwnerGuard` |
 
 ---

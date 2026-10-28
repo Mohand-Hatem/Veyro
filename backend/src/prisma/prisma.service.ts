@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { databaseUrl } from './database-url';
 
 @Injectable()
 export class PrismaService
@@ -11,10 +12,12 @@ export class PrismaService
 
   constructor() {
     const connectionString =
-      process.env.DATABASE_URL ||
+      databaseUrl() ||
       'postgresql://postgres:postgres@localhost:5432/veyro?schema=public';
-    const adapter = new PrismaPg({ connectionString });
-    super({ adapter });
+    // Without a limit a connection attempt can hang until the OS gives up; fail in 10s so the filter can answer 503.
+    const adapter = new PrismaPg({ connectionString, connectionTimeoutMillis: 10_000 });
+    // Query events are only delivered to whoever subscribes with $on('query') (scripts/perf-baseline.ts); nobody does in normal runs.
+    super({ adapter, log: [{ emit: 'event', level: 'query' }] });
   }
 
   async onModuleInit() {

@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { useShell } from "@/components/shell/shell-context";
-import { avatarClass, initials } from "@/lib/dashboard";
+import { avatarClass } from "@/lib/dashboard";
+import { Avatar } from "@/components/ui/avatar";
 import { boardErrorKey, useProjectMemberActions, useWorkspaceMembers, type BoardProject } from "@/lib/board";
 import "@/components/dashboard/illustration.css";
 import "@/components/projects/projects.css";
@@ -81,7 +82,7 @@ function MembersBody({ project, blocked, onClose }: { project: BoardProject; blo
           return (
             <li className="pmb-row" key={m.userId}>
               <span className="pmb-who">
-                <span className={`bd-av ${avatarClass(m.user.id)} pmb-av`} title={m.user.name}>{initials(m.user.name)}</span>
+                <Avatar className={`bd-av ${avatarClass(m.user.id)} pmb-av`} title={m.user.name} name={m.user.name} url={m.user.avatarUrl} />
                 <span><b>{m.user.name}</b>{creator && <i className="pmb-tag">{t("prCREATOR")}</i>}{self && <i className="pmb-tag">{t("pmYou")}</i>}</span>
               </span>
               <span className="pmb-r">

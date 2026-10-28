@@ -20,6 +20,7 @@ async (page) => {
     SAME("grid", ".as-grid"), SAME("chat", ".as-chat"), SAME("head", ".as-head"), SAME("title", ".as-title"), SAME("spark", ".as-spark"), SAME("h3", ".as-title h3"), SAME("chip", ".as-chip"),
     SAME("quota", ".as-quota"), SAME("q", ".as-quota .ai-q"), SAME("resets", ".as-quota small"), SAME("cd", ".as-quota .ai-cd"), SAME("hint", ".as-hint"),
     SAME("scroll", ".as-scroll"), SAME("list", ".ai-list"), ...msg(1), ...msg(2), ...msg(3), ...msg(4),
+    SAME("src", ".ai-src"), SAME("src-l", ".ai-src-l"), SAME("src-a1", ".ai-src a:nth-of-type(1)"), SAME("src-a1-svg", ".ai-src a:nth-of-type(1) svg"), SAME("src-a1-t", ".ai-src a:nth-of-type(1) span"), SAME("src-a2", ".ai-src a:nth-of-type(2)"), SAME("src-a2-b", ".ai-src a:nth-of-type(2) b"),
     SAME("typing", ".ai-dots"), SAME("typing-i", ".ai-dots i:nth-child(1)"),
     SAME("empty", ".ai-empty"), SAME("empty-b", ".ai-empty b"), SAME("empty-p", ".ai-empty p"), SAME("sg", ".ai-sg button"),
     SAME("foot", ".as-foot"), SAME("max", ".ai-max:not([hidden])"), SAME("max-svg", ".ai-max svg"), SAME("max-b", ".ai-max b"), SAME("max-d", ".ai-max > span"), SAME("max-cd", ".ai-max .ai-cd"),

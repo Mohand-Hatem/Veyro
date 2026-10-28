@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @next/next/no-img-element -- the server already stored a small square WebP; next/image would add a second optimizer */
 
 import { useState, type FormEvent, type ReactNode } from "react";
 import { useLocale, useTranslations } from "next-intl";
@@ -8,13 +9,14 @@ import { Loader } from "@/components/loader/loader";
 import { useShell } from "@/components/shell/shell-context";
 import { ApiError } from "@/lib/api";
 import { initials } from "@/lib/dashboard";
-import { highestRole, nameOk, ownedPlan, passwordOk, passwordScore, themeToNext, useChangePassword, useProfile, useUpdateProfile, type Locale, type Profile as ProfileData, type ThemePref } from "@/lib/profile";
+import { highestRole, nameOk, ownedPlan, passwordOk, passwordScore, themeToNext, useChangePassword, useProfile, useRemoveAvatar, useUpdateProfile, type Locale, type Profile as ProfileData, type ThemePref } from "@/lib/profile";
 import "@/components/dashboard/illustration.css";
 import "@/components/dashboard/dashboard.css";
 import "@/components/projects/projects.css";
 import "@/components/projects/create-project.css";
 import "@/components/ui/badges.css";
 import "@/components/billing/billing.css";
+import { PhotoDialog } from "./photo-dialog";
 import "./profile.css";
 
 const CAMERA = <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>;
@@ -23,7 +25,7 @@ const THEMES: [ThemePref, "light" | "dark" | "system"][] = [["LIGHT", "light"], 
 const METER = ["mWeak", "mWeak", "mFair", "mGood", "mStrong"] as const;
 
 // SCR-ACC-01 / SCR-ACC-02. Markup and class names follow screens/groups/06-account-governance/profile.html (Parity Gate).
-// Any signed-in person. The photo needs file storage, which is not connected yet, so the avatar says so instead of pretending.
+// Any signed-in person. The photo or avatar is chosen in PhotoDialog; the server stores only a small processed picture.
 export function Profile() {
   const t = useTranslations("Profile");
   const ts = useTranslations("Shell");
@@ -62,6 +64,9 @@ function ProfileView({ p, head, notify }: { p: ProfileData; head: ReactNode; not
   const { setTheme, resolvedTheme } = useTheme();
   const update = useUpdateProfile();
   const change = useChangePassword();
+  const removePhoto = useRemoveAvatar();
+  const [photoOpen, setPhotoOpen] = useState(false);
+  const [photoBad, setPhotoBad] = useState<string | null>(null);
   const tag = locale === "ar" ? "ar-EG-u-nu-latn" : "en-US";
   const roleLabel = ts({ owner: "roleOwner", admin: "roleAdmin", member: "roleMember" }[highestRole(p)] as "roleOwner");
   const tier = (k: ProfileData["aiSubscription"]["tier"]) => t(`tier${k}`);
@@ -87,6 +92,15 @@ function ProfileView({ p, head, notify }: { p: ProfileData; head: ReactNode; not
       notify(t("saved"));
     } catch {
       setAlert(t("eGeneric"));
+    }
+  }
+
+  async function dropPhoto() {
+    try {
+      await removePhoto.mutateAsync();
+      notify(t(p.avatarType === "PRESET" ? "avatarSaved" : "photoRemoved"));
+    } catch {
+      notify(t("ePhoto"));
     }
   }
 
@@ -155,12 +169,13 @@ function ProfileView({ p, head, notify }: { p: ProfileData; head: ReactNode; not
       <div className="pf-wrap" id="pf-content">
         <section className="pf-hero il-scene" aria-labelledby="pf-name-h">
           <div className="pf-hero-l">
-            <button type="button" className="pf-avatar" id="pf-avatar" aria-label={t("avatarLabel")} onClick={() => notify(t("photoSoon"))}><span id="pf-av-t">{initials(p.name)}</span><i aria-hidden="true">{CAMERA}</i></button>
+            <button type="button" className={`pf-avatar${p.avatarUrl && photoBad !== p.avatarUrl ? " has-img" : ""}`} id="pf-avatar" aria-label={t("avatarLabel")} disabled={removePhoto.isPending} onClick={() => setPhotoOpen(true)}>{p.avatarUrl && photoBad !== p.avatarUrl ? <img className="av-img" src={p.avatarUrl} alt="" referrerPolicy="no-referrer" onError={() => setPhotoBad(p.avatarUrl)} /> : <span id="pf-av-t">{initials(p.name, p.email)}</span>}<i aria-hidden="true">{CAMERA}</i></button>
             <div className="pf-id-t">
               <h2 id="pf-name-h">{p.name}</h2>
               <p className="pf-mail"><span id="pf-mail">{p.email}</span> <span className={`pf-ver ${p.isEmailVerified ? "is-ok" : "is-no"}`} id="pf-ver">{p.isEmailVerified ? t("verified") : t("unverified")}</span></p>
               <p className="pf-since" id="pf-since">{`${t("since", { date: new Date(p.createdAt).toLocaleDateString(tag, { year: "numeric", month: "long" }) })} · ${roleLabel}`}</p>
               <p className="pf-hint">{t("heroN")}</p>
+              {p.avatarUrl && <button type="button" className="pf-photo-rm" disabled={removePhoto.isPending} onClick={dropPhoto}>{t(p.avatarType === "PRESET" ? "useInitials" : "photoRemove")}</button>}
             </div>
           </div>
           <div className="il-illu pf-ill">
@@ -285,6 +300,7 @@ function ProfileView({ p, head, notify }: { p: ProfileData; head: ReactNode; not
           </div>
         </div>
       </div>
+      <PhotoDialog open={photoOpen} profile={p} onClose={() => setPhotoOpen(false)} notify={notify} />
     </div>
   );
 }

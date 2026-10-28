@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "rea
 import { useTranslations } from "next-intl";
 import { useShell } from "@/components/shell/shell-context";
 import { ApiError } from "@/lib/api";
-import { deleteErrorKey, initialPick, selectErrorKey, useOffboard, useSelectProjects, type AccountProjects, type Tier } from "@/lib/billing";
+import { changeErrorKey, deleteErrorKey, formatPrice, initialPick, isUpgrade, projectsToChoose, selectErrorKey, useChangePlan, useOffboard, useSelectProjects, type AccountProjects, type PaidTier, type Tier } from "@/lib/billing";
 import "@/components/dashboard/illustration.css";
 import "@/components/projects/projects.css";
 import "@/components/projects/create-project.css";
@@ -17,7 +17,7 @@ const CLOSE = <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke
 const bold = { b: (c: ReactNode) => <b>{c}</b> };
 
 // Native <dialog> kept in sync with an `open` flag; the body is mounted only while open so every opening starts clean.
-function Modal({ id, titleId, subId, open, busy, onClose, children }: { id: string; titleId: string; subId: string; open: boolean; busy: boolean; onClose: () => void; children: ReactNode }) {
+function Modal({ id, titleId, subId, open, busy, onClose, children, small }: { id: string; titleId: string; subId: string; open: boolean; busy: boolean; onClose: () => void; children: ReactNode; small?: boolean }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const el = ref.current;
@@ -26,7 +26,7 @@ function Modal({ id, titleId, subId, open, busy, onClose, children }: { id: stri
     if (!open && el.open) el.close();
   }, [open]);
   return (
-    <dialog ref={ref} className="pm gv-dlg" id={id} aria-labelledby={titleId} aria-describedby={subId} onClose={onClose} onCancel={(e) => { if (busy) e.preventDefault(); }}>
+    <dialog ref={ref} className={`pm gv-dlg${small ? " gv-dlg-sm" : ""}`} id={id} aria-labelledby={titleId} aria-describedby={subId} onClose={onClose} onCancel={(e) => { if (busy) e.preventDefault(); }}>
       {open && children}
     </dialog>
   );
@@ -272,6 +272,64 @@ function DeleteBody({ accountId, slug, onClose, onBusy }: { accountId: string; s
           <path className="il-face" d="M99 316 q5 -3 10 0 M121 316 q5 -3 10 0 M108 330 q11 -5 22 0" />
         </svg>
       </Side>
+    </form>
+  );
+}
+
+// Confirmation before changing between paid plans. Compact on purpose: one decision, no form, so no side panel.
+export function SwitchPlanDialog({ target, from, accountId, priceCents, currentProjects, onClose, onSwitched }: { target: PaidTier | null; from: Tier; accountId: string; priceCents: Record<PaidTier, number>; currentProjects: number; onClose: () => void; onSwitched: (to: PaidTier) => void }) {
+  const [busy, setBusy] = useState(false);
+  return (
+    <Modal id="gv-sw" titleId="gvs-t" subId="gvs-s" open={target !== null} busy={busy} onClose={onClose} small>
+      {target && <SwitchBody target={target} from={from} accountId={accountId} priceCents={priceCents} currentProjects={currentProjects} onClose={onClose} onSwitched={onSwitched} onBusy={setBusy} />}
+    </Modal>
+  );
+}
+
+function SwitchBody({ target, from, accountId, priceCents, currentProjects, onClose, onSwitched, onBusy }: { target: PaidTier; from: Tier; accountId: string; priceCents: Record<PaidTier, number>; currentProjects: number; onClose: () => void; onSwitched: (to: PaidTier) => void; onBusy: (b: boolean) => void }) {
+  const t = useTranslations("Billing");
+  const change = useChangePlan(accountId);
+  const [alert, setAlert] = useState("");
+  const up = isUpgrade(from, target);
+  const keeps = up ? null : projectsToChoose(currentProjects, target);
+  const busy = change.isPending;
+  const plan = t(`tier${target}`);
+
+  useEffect(() => { onBusy(busy); }, [busy, onBusy]);
+
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (busy) return;
+    setAlert("");
+    try {
+      await change.mutateAsync(target);
+      onSwitched(target);
+    } catch (err) {
+      setAlert(t(changeErrorKey(err instanceof ApiError ? err.code : "")));
+    }
+  }
+
+  return (
+    <form className="pm-form" id="gvs-form" onSubmit={onSubmit} noValidate>
+      <div className="pm-main">
+        <header className="pm-head">
+          <div>
+            <h2 id="gvs-t">{t("swT", { plan })}</h2>
+            <p id="gvs-s">{t("swS", { from: t(`tier${from}`), to: plan, price: formatPrice(priceCents[target]) })}</p>
+          </div>
+          <button type="button" className="pm-x" id="gvs-x" aria-label={t("close")} onClick={onClose}>{CLOSE}</button>
+        </header>
+        <ul className="gvd-list">
+          <li>{up ? t("swUp", { plan }) : t("swDown", { plan })}</li>
+          <li>{t("swNow")}</li>
+        </ul>
+        {keeps !== null && <div className="gv-note" role="note">{t("swLimit", { plan, n: keeps, m: currentProjects })}</div>}
+        <div className="pm-alert" id="gvs-alert" role="alert" hidden={!alert}>{alert}</div>
+        <footer className="pm-foot">
+          <button type="button" className="pm-btn pm-ghost" id="gvs-cancel" onClick={onClose}>{t("cancel")}</button>
+          <button type="submit" className="pm-btn pm-go" id="gvs-go" aria-busy={busy} disabled={busy}><span className="pm-spin" aria-hidden="true" /><span>{busy ? t("swGoing") : t("swGo")}</span></button>
+        </footer>
+      </div>
     </form>
   );
 }

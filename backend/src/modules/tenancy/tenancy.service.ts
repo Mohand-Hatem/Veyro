@@ -16,6 +16,10 @@ import { AtomicOnboardingDto } from './dto/atomic-onboarding.dto';
 import { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import { InviteMemberDto } from './dto/invite-member.dto';
 import { AcceptInvitationDto } from './dto/accept-invitation.dto';
+import { EmailService } from '../email/email.service';
+import { NotificationType } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
+import { sendInvitationEmail } from './invitation-email';
 import { OffboardAccountDto } from './dto/offboard-account.dto';
 import {
   WorkspaceRole,
@@ -31,7 +35,11 @@ export class TenancyService {
   private readonly logger = new Logger(TenancyService.name);
   private readonly inviteDurationDays = 7;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly email: EmailService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   hashToken(token: string): string {
     return crypto.createHash('sha256').update(token).digest('hex');
@@ -366,6 +374,10 @@ export class TenancyService {
       },
     });
 
+    void sendInvitationEmail(this.prisma, this.email, {
+      inviterId, workspaceName: workspace.name, to: invitation.email, role: invitation.role, url: inviteLink, days: this.inviteDurationDays,
+    });
+
     return {
       invitationId: invitation.id,
       email: invitation.email,
@@ -500,6 +512,9 @@ export class TenancyService {
           metadata: { email: userEmail, role: invitation.role, assignedProjectIds, skippedProjectIds },
         },
       });
+
+      // The person who sent the invitation hears that it was accepted.
+      await this.notifications.notify(tx, { type: NotificationType.INVITATION_ACCEPTED, recipientId: invitation.inviterId, actorId: userId, workspaceId: invitation.workspaceId, data: { workspaceName: invitation.workspace.name, workspaceSlug: invitation.workspace.slug } });
 
       return {
         workspaceId: invitation.workspaceId,

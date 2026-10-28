@@ -2,6 +2,8 @@ import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateContactMessageDto } from './dto/create-contact-message.dto';
+import { EmailService } from '../email/email.service';
+import { contactNotificationEmail } from '../email/email.templates';
 
 /** Abuse limits for an endpoint that works without signing in. Windows are rolling, measured on stored rows. */
 export const CONTACT_WINDOW_MS = 60 * 60 * 1000;
@@ -12,13 +14,16 @@ export const CONTACT_MAX_PER_NETWORK = 8; // an office can share one address, so
 export class ContactService {
   private readonly logger = new Logger(ContactService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly email: EmailService,
+  ) {}
 
   /**
    * Stores a message from the public form. The sender gets the same `{ received: true }` whether the message was saved or
    * silently dropped as a honeypot hit, so a bot learns nothing. Limits are enforced before the write. The network address is
-   * kept only as a salted hash (enough to rate-limit, not to identify a person). Email notification to the team arrives with
-   * the email provider (Phase 5, AGENTS.md section 6); until then messages are read from the table.
+   * kept only as a salted hash (enough to rate-limit, not to identify a person). The row is the record; when CONTACT_INBOX is
+   * set the team is also notified by email (not awaited: a failed email never loses or delays the message).
    */
   async create(dto: CreateContactMessageDto, ip: string | undefined) {
     if (dto.website && dto.website.trim() !== '') {
@@ -45,6 +50,8 @@ export class ContactService {
     await this.prisma.contactMessage.create({
       data: { name: dto.name, email: dto.email, topic: dto.topic, message, ipHash },
     });
+    const inbox = process.env.CONTACT_INBOX;
+    if (inbox) void this.email.send({ to: inbox, ...contactNotificationEmail({ name: dto.name, email: dto.email, topic: dto.topic, message }) });
     return { received: true };
   }
 }

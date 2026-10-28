@@ -20,7 +20,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         ExtractJwt.fromAuthHeaderAsBearerToken(),
       ]),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET', 'veyro-super-secret-dev-key-change-in-prod-12345'),
+      secretOrKey: configService.getOrThrow<string>('JWT_SECRET'),
     });
   }
 

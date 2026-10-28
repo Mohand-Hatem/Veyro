@@ -4,7 +4,9 @@ import * as assert from 'node:assert/strict';
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { NotificationsService } from '../src/modules/notifications/notifications.service';
 import { AuthService } from '../src/modules/auth/auth.service';
+import { EmailService } from '../src/modules/email/email.service';
 import { TasksService } from '../src/modules/tasks/tasks.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -33,8 +35,8 @@ describe('Veyro Backend Business Flows (OTP, Password Recovery, Task Soft Delete
       signOptions: { expiresIn: '15m' },
     });
 
-    authService = new AuthService(prisma, jwtService, configService);
-    tasksService = new TasksService(prisma);
+    authService = new AuthService(prisma, jwtService, configService, new EmailService());
+    tasksService = new TasksService(prisma, new NotificationsService(prisma));
 
     // Seed test isolation context
     testUserEmail = `test.user.${Date.now()}@veyro.io`;

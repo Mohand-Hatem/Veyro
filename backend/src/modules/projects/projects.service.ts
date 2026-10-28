@@ -7,6 +7,8 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationType } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { QueryProjectsDto } from './dto/query-projects.dto';
@@ -29,7 +31,10 @@ export const TIER_PROJECT_LIMITS: Record<SubscriptionPlanTier, number> = {
 
 @Injectable()
 export class ProjectsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   private keyTaken(key: string) {
     return new ConflictException({
@@ -536,6 +541,8 @@ export class ProjectsService {
           },
         },
       });
+
+      await this.notifications.notify(tx, { type: NotificationType.ADDED_TO_PROJECT, recipientId: targetUserId, actorId: userId, workspaceId: project.workspaceId, projectId: project.id, data: { projectName: project.name, projectKey: project.key, workspaceName: project.workspace.name, workspaceSlug: project.workspace.slug } });
 
       return member;
     });

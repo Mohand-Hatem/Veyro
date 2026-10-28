@@ -1,0 +1,45 @@
+/* The notification bell and popover (step 5.9 Phase C). Follows screens/groups/07-avatar-notifications/avatar-notif.css (design.md 5.44).
+   The popover shell (.ap-bellpop: position, radius, shadow) lives in shell.css. */
+.nf-bellbtn { position: relative; }
+.nf-badge { position: absolute; top: -3px; inset-inline-end: -3px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 9999px; background: var(--brand); color: #fff; font-size: 0.6875rem; font-weight: 800; display: grid; place-items: center; border: 2px solid var(--canvas); line-height: 1; font-variant-numeric: tabular-nums; }
+
+.nf-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px 10px; }
+.nf-head h2 { font-size: 1rem; letter-spacing: -0.02em; }
+.nf-all { background: none; border: 0; padding: 6px 4px; font: inherit; font-size: 0.8125rem; font-weight: 700; color: var(--brand-ink); cursor: pointer; border-radius: 8px; }
+.nf-all:hover:not(:disabled) { text-decoration: underline; }
+.nf-all:disabled { color: var(--muted); opacity: 0.7; cursor: default; }
+.nf-all:focus-visible, .nf-more:focus-visible, .nf-it:focus-visible { outline: 3px solid color-mix(in srgb, var(--brand) 45%, transparent); outline-offset: 2px; }
+
+.nf-list { list-style: none; margin: 0; padding: 4px 0 8px; max-height: min(440px, 60dvh); overflow-y: auto; }
+.nf-it { position: relative; display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: start; padding: 12px 18px; color: inherit; text-decoration: none; cursor: pointer; transition: background 120ms ease; }
+.nf-it:hover { background: var(--inset); }
+.nf-it:focus-visible { outline-offset: -3px; }
+.nf-it.is-unread { background: color-mix(in srgb, var(--brand) 9%, var(--pill)); }
+.nf-it.is-unread:hover { background: color-mix(in srgb, var(--brand) 14%, var(--pill)); }
+.nf-av { flex: none; width: 36px; height: 36px; border-radius: 50%; display: inline-grid; place-items: center; color: #fff; font-weight: 800; font-size: 0.75rem; line-height: 1; letter-spacing: -0.02em; }
+.nf-av-none { background: var(--inset); }
+.nf-t { font-size: 0.875rem; line-height: 1.4; margin: 0; }
+.nf-t b { font-weight: 700; }
+.nf-m { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 5px; color: var(--muted); font-size: 0.75rem; }
+.nf-key { font-weight: 800; font-size: 0.6875rem; padding: 2px 8px; border-radius: 9999px; background: var(--brand-soft); color: var(--brand-ink); }
+.nf-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--brand); margin-top: 7px; }
+.nf-foot { display: grid; justify-items: center; padding: 4px 18px 16px; }
+.nf-more { min-height: 38px; padding: 0 18px; border: 0; border-radius: 9999px; background: var(--inset); color: var(--ink); font: inherit; font-size: 0.8125rem; font-weight: 700; cursor: pointer; }
+.nf-more:hover:not(:disabled) { background: color-mix(in srgb, var(--ink) 12%, var(--inset)); }
+.nf-more:disabled { opacity: 0.6; cursor: progress; }
+
+.nf-empty { display: grid; justify-items: center; gap: 6px; padding: 0 18px 24px; text-align: center; }
+.nf-scene { width: calc(100% + 36px); margin-inline: -18px; height: 168px; }
+.nf-scene .il-illu svg { max-width: 300px; }
+.nf-empty b { font-size: 1rem; letter-spacing: -0.02em; margin-top: 14px; }
+.nf-empty p { color: var(--muted); font-size: 0.8125rem; line-height: 1.5; max-width: 30ch; margin: 0; }
+.nf-sk { display: grid; grid-template-columns: auto 1fr; gap: 12px; padding: 12px 18px; align-items: center; }
+.nf-sk i { display: block; border-radius: 50%; width: 36px; height: 36px; background: var(--inset); }
+.nf-sk span { display: grid; gap: 8px; }
+.nf-sk span::before, .nf-sk span::after { content: ""; display: block; height: 10px; border-radius: 9999px; background: var(--inset); }
+.nf-sk span::before { width: 88%; } .nf-sk span::after { width: 48%; }
+.nf-sk i, .nf-sk span::before, .nf-sk span::after { animation: nf-pulse 1.4s ease-in-out infinite; }
+@keyframes nf-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+.nf-err { display: grid; justify-items: center; gap: 10px; padding: 8px 18px 22px; text-align: center; }
+.nf-err b { font-size: 0.9375rem; } .nf-err p { color: var(--muted); font-size: 0.8125rem; margin: 0; }
+@media (prefers-reduced-motion: reduce) { .nf-sk i, .nf-sk span::before, .nf-sk span::after { animation: none; } .nf-it { transition: none; } }

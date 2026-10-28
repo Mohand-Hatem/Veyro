@@ -17,6 +17,11 @@
 .pf-avatar:hover { box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand) 30%, transparent); }
 .pf-avatar i { position: absolute; inset-inline-end: -2px; bottom: -2px; width: 30px; height: 30px; border-radius: 50%; background: var(--ink); color: var(--canvas); display: grid; place-items: center; border: 3px solid var(--card); }
 .pf-avatar.has-img span { display: none; }
+.pf-avatar .av-img { position: absolute; inset: 0; }
+.pf-avatar:disabled { cursor: progress; opacity: .7; }
+.pf-photo-rm { background: none; border: 0; padding: 0; margin-top: 4px; font: inherit; font-size: 0.8125rem; color: var(--muted); text-decoration: underline; cursor: pointer; }
+.pf-photo-rm:hover { color: var(--ink); }
+.pf-photo-rm:disabled { cursor: progress; opacity: .6; }
 .pf-id-t h2 { font-size: 1.875rem; letter-spacing: -0.04em; line-height: 1.15; overflow-wrap: anywhere; }
 .pf-mail { color: var(--il-ink); opacity: 0.8; font-weight: 600; margin-top: 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .pf-ver { font-size: 0.6875rem; font-weight: 800; border-radius: 9999px; padding: 2px 10px; }

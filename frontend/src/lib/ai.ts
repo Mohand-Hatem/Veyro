@@ -3,13 +3,31 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "./api";
 
-// Shapes of the AI endpoints (docs/06 §2.5, CS-06 / ADR-013). The assistant is a scripted reply on the server today; the flow around it is the real one.
+// Shapes of the AI endpoints (docs/06 §2.5, CS-06 / ADR-013). The assistant is a real model (Gemini) that searches the help documents and reads the workspace with tools (step 5.8).
 export type AiQuota = { tier: string; dailyQuota: number; messagesUsed: number; remaining: number; resetsAt: string };
 export type AiConversation = { id: string; title: string; mode: "KNOWLEDGE" | "PROJECT"; contextScope: "GLOBAL" | "WORKSPACE" | "ACCOUNT"; workspaceId: string | null; updatedAt: string };
 export type AiPriority = "URGENT" | "HIGH" | "MEDIUM" | "LOW";
 /** A task the assistant drafted. Nothing is created until the person confirms; the server re-checks their rights at that moment. */
-export type AiProposal = { id: string; status: "PENDING" | "EXECUTED" | "REJECTED" | "FAILED"; proposedPayload: { title: string; description?: string; priority: AiPriority }; project: { id: string; key: string; name: string } | null };
-export type AiMessage = { id: string; senderRole: "USER" | "ASSISTANT"; content: string; createdAt: string; proposal?: AiProposal | null };
+export type AiProposal = { id: string; status: "PENDING" | "EXECUTED" | "REJECTED" | "FAILED"; proposedPayload: { title: string; description?: string; priority: AiPriority; dueDate?: string }; project: { id: string; key: string; name: string } | null };
+/** What an answer rests on: a help section, or a task or project it names. The server only cites records the person was shown. */
+export type AiCitation =
+  | { type: "HELP_DOC"; source: string; heading: string }
+  | { type: "TASK"; id: string; title: string; projectKey: string }
+  | { type: "PROJECT"; id: string; key: string; name: string };
+export type AiMessage = { id: string; senderRole: "USER" | "ASSISTANT"; content: string; createdAt: string; proposal?: AiProposal | null; citations?: AiCitation[] | null };
+
+/** One chip under an answer. `href` is null when it cannot link (a task or project needs the workspace). */
+export type CitationChip = { key: string; kind: "doc" | "task" | "project"; label: string; strong?: string; href: string | null };
+
+/** The chips under an answer: help sections open the in-app guide, tasks and projects open their page in the current workspace. Unknown kinds are skipped. */
+export function citationChips(list: AiCitation[] | null | undefined, slug: string | undefined): CitationChip[] {
+  return (list ?? []).flatMap((c): CitationChip[] => {
+    if (c.type === "HELP_DOC") return [{ key: `doc:${c.source}:${c.heading}`, kind: "doc", label: c.heading.split(" > ").pop() ?? c.heading, href: "/help" }];
+    if (c.type === "TASK") return [{ key: `task:${c.id}`, kind: "task", label: c.title, href: slug ? `/w/${slug}/projects/${c.projectKey}/tasks/${c.id}` : null }];
+    if (c.type === "PROJECT") return [{ key: `project:${c.id}`, kind: "project", strong: c.key, label: c.name, href: slug ? `/w/${slug}/projects/${c.key}` : null }];
+    return [];
+  });
+}
 
 /** What a chat talks about: the person's one global conversation, or the one for a workspace (so two workspaces never share a thread). */
 export type ChatTarget = { contextScope: "GLOBAL" } | { contextScope: "WORKSPACE"; workspaceId: string };

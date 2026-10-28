@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { avatarClass, initials, projectStatus, taskTotal, type DashProject, type ProjectStatus } from "@/lib/dashboard";
+import { avatarClass, projectStatus, taskTotal, type DashProject, type ProjectStatus } from "@/lib/dashboard";
+import { Avatar } from "@/components/ui/avatar";
 import { useFormat } from "./use-format";
 
 const CIRC = 2 * Math.PI * 13;
@@ -54,7 +55,7 @@ export function ProjectSummary({ projects, query }: { projects: DashProject[]; q
               <div className="ap-tr ap-row" role="row" key={p.id}>
                 <span className="ap-pn" role="cell"><b>{p.name}</b><small className="ap-key">{p.key}</small></span>
                 <span className="ap-stack" role="cell" aria-label={t("membersAria", { n: p.memberCount })}>
-                  {p.members.map((m) => <span key={m.userId} className={avatarClass(m.userId)} title={m.name}>{initials(m.name)}</span>)}
+                  {p.members.map((m) => <Avatar key={m.userId} className={avatarClass(m.userId)} title={m.name} name={m.name} url={m.avatarUrl} />)}
                   {extra > 0 && <span style={{ background: "var(--gray-soft)", color: "var(--gray-ink)" }}>+{extra}</span>}
                 </span>
                 <span role="cell">{p.tasks.done}/{total}</span>

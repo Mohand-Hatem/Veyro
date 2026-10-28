@@ -20,6 +20,8 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
+import { EmailService } from '../email/email.service';
+import { passwordResetEmail, verificationEmail } from '../email/email.templates';
 
 @Injectable()
 export class AuthService {
@@ -30,6 +32,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly email: EmailService,
   ) {}
 
   async hashPassword(password: string): Promise<string> {
@@ -98,10 +101,7 @@ export class AuthService {
       },
     });
 
-    this.logger.warn(
-      `[AUTH_DELIVERY_DEFERRED] Verification challenge created for user ${user.id} (${user.email}). Outbound dispatch deferred: No external email provider configured in environment.`,
-    );
-    this.devOutbox(`Verification code for ${user.email}: ${initialRawOtp}`);
+    this.sendVerificationCode(user, initialRawOtp);
 
     const session = user.sessions[0];
     const accessToken = this.signAccessToken({
@@ -298,18 +298,26 @@ export class AuthService {
           passwordHash,
           name: profile.name,
           avatarUrl: profile.avatarUrl,
+          // A provider photo is a picture address like any other (decision 3 of step 5.9a keeps copying it at sign-in).
+          avatarType: profile.avatarUrl ? 'UPLOAD' : 'INITIALS',
           isEmailVerified: true,
           emailVerifiedAt: new Date(),
         },
       });
     } else if (!user.isEmailVerified) {
-      user = await this.prisma.user.update({
-        where: { id: user.id },
-        data: {
-          isEmailVerified: true,
-          emailVerifiedAt: new Date(),
-        },
-      });
+      // Pre-hijacking defence: this address was registered but never confirmed, so whoever chose that password may not be the
+      // owner. The provider just proved the address is the signer's, so the old password, sessions and pending codes die here.
+      const lockedOutPasswordHash = await this.hashPassword(crypto.randomBytes(32).toString('hex'));
+      const [claimed] = await this.prisma.$transaction([
+        this.prisma.user.update({
+          where: { id: user.id },
+          data: { isEmailVerified: true, emailVerifiedAt: new Date(), passwordHash: lockedOutPasswordHash },
+        }),
+        this.prisma.userSession.updateMany({ where: { userId: user.id, isRevoked: false }, data: { isRevoked: true } }),
+        this.prisma.userOtpVerification.updateMany({ where: { userId: user.id, isConsumed: false }, data: { isConsumed: true } }),
+        this.prisma.userPasswordResetToken.updateMany({ where: { userId: user.id, isUsed: false }, data: { isUsed: true } }),
+      ]);
+      user = claimed;
     }
 
     const rawRefreshToken = this.generateRawToken();
@@ -340,6 +348,7 @@ export class AuthService {
         name: user.name,
         avatarUrl: user.avatarUrl,
         isEmailVerified: user.isEmailVerified,
+        locale: user.locale,
         createdAt: user.createdAt,
       },
       accessToken,
@@ -510,10 +519,7 @@ export class AuthService {
       },
     });
 
-    this.logger.warn(
-      `[AUTH_DELIVERY_DEFERRED] Resend OTP challenge created for user ${user.id} (${user.email}). Outbound dispatch deferred: No external email provider configured in environment.`,
-    );
-    this.devOutbox(`Verification code for ${user.email}: ${rawCode}`);
+    this.sendVerificationCode(user, rawCode);
 
     return {
       message: 'If this email address is registered, a new verification code has been dispatched.',
@@ -561,10 +567,10 @@ export class AuthService {
         },
       });
 
-      this.logger.warn(
-        `[AUTH_DELIVERY_DEFERRED] Password reset token generated for user ${user.id}. Outbound dispatch deferred: No external email provider configured in environment.`,
-      );
-      this.devOutbox(`Password reset link for ${user.email}: ${process.env.APP_URL || 'http://localhost:3000'}/reset-password?token=${rawToken}`);
+      const locale = user.locale === 'AR' ? 'ar' : 'en';
+      const link = `${process.env.APP_URL || 'http://localhost:3000'}/${locale}/reset-password?token=${rawToken}`;
+      this.devOutbox(`Password reset link for ${user.email}: ${link}`);
+      void this.email.send({ to: user.email, ...passwordResetEmail(link, locale) });
     }
 
     return {
@@ -624,6 +630,12 @@ export class AuthService {
       success: true,
       message: 'Password has been reset successfully. Please sign in with your new password.',
     };
+  }
+
+  /** Not awaited (see EmailService.send): the code is already stored and "resend" exists if the email never arrives. */
+  private sendVerificationCode(user: { email: string; locale: string }, code: string) {
+    this.devOutbox(`Verification code for ${user.email}: ${code}`);
+    void this.email.send({ to: user.email, ...verificationEmail(code, user.locale === 'AR' ? 'ar' : 'en') });
   }
 
   /** Local-development stand-in for email: prints the code or link only when DEV_OUTBOX=true. Never enable in production. */

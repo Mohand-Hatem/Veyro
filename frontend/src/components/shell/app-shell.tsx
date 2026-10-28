@@ -17,14 +17,15 @@ import { CreateProjectDialog } from "@/components/projects/create-project-dialog
 import { CreateWorkspaceDialog } from "@/components/workspace/create-workspace-dialog";
 import { AskPanel } from "@/components/assistant/ask-panel";
 import { useAskPanel } from "@/components/assistant/use-ask-panel";
-import { useDashboard } from "@/lib/dashboard";
+import { useDashboard, initials } from "@/lib/dashboard";
+import { NotificationsBell } from "./notifications";
+import { Avatar } from "@/components/ui/avatar";
 import { useProjectList } from "@/lib/projects";
 import { Icons, NavIcon } from "./icons";
 import { ShellContext } from "./shell-context";
 import { useStoredFlag } from "./use-stored-flag";
 import "./shell.css";
 
-const initials = (name: string) => name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 const NAV_LABEL: Record<NavKey, string> = { dashboard: "navDash", projects: "navProj", tasks: "navTasks", ai: "navAi", audit: "navAudit", members: "navMembers", billing: "navBilling" };
 const ROLE_LABEL: Record<Role, string> = { owner: "roleOwner", admin: "roleAdmin", member: "roleMember" };
 
@@ -253,27 +254,20 @@ export function AppShell({ children }: { children: ReactNode }) {
                   </label>
                 )}
                 <button type="button" className="ap-pill-btn ap-ai" aria-label={t("askAi")} aria-haspopup="dialog" aria-expanded={ask.open} onClick={(e) => (ask.open ? ask.hide() : ask.show(e.currentTarget))}>{Icons.ai}</button>
-                <div className="ap-bellbox" data-pop="bell">
-                  <button type="button" className="ap-pill-btn ap-bell" id="ap-bell" aria-label={t("notifications")} aria-haspopup="dialog" aria-expanded={open === "bell"} aria-controls="ap-bellpop" onClick={toggle("bell")}>{Icons.bell}</button>
-                  <div className="ap-bellpop" id="ap-bellpop" role="dialog" aria-label={t("notifications")} hidden={open !== "bell"}>
-                    <span className="ap-soon">{t("soon")}</span>
-                    <b>{t("notifTitle")}</b>
-                    <p>{t("notifText")}</p>
-                  </div>
-                </div>
+                <NotificationsBell open={open === "bell"} onToggle={toggle("bell")} onClose={() => setOpen(null)} icon={Icons.bell} />
                 <button type="button" className="ap-pill-btn js-theme-toggle" aria-label={t("toggleTheme")} onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}>{Icons.moon}{Icons.sun}</button>
                 <button type="button" className="ap-pill-btn ap-lang js-lang-toggle" aria-label={t("switchLanguage")} onClick={() => router.replace(pathname, { locale: locale === "ar" ? "en" : "ar" })}>
                   <span className="js-lang-label">{locale === "ar" ? "EN" : "ع"}</span>
                 </button>
                 <div className="ap-userbox" data-pop="user">
                   <button type="button" className="ap-user" aria-label={t("accountMenu")} aria-haspopup="menu" aria-expanded={open === "user"} onClick={toggle("user")}>
-                    <span className="ap-user-av">{user ? initials(user.name) : "—"}</span>
+                    {user ? <Avatar className="ap-user-av" name={user.name} url={user.avatarUrl} /> : <span className="ap-user-av">—</span>}
                     <span className="ap-user-t"><b>{user?.name ?? "—"}</b><small id="ap-user-role">{roleLabel}</small></span>
                     {Icons.caret}
                   </button>
                   <div className="ap-umenu" role="menu" ref={userMenuRef} hidden={open !== "user"} onKeyDown={menuKeys}>
                     <div className="ap-um-head">
-                      <span className="ap-user-av" aria-hidden="true">{user ? initials(user.name) : "—"}</span>
+                      {user ? <Avatar className="ap-user-av" name={user.name} url={user.avatarUrl} /> : <span className="ap-user-av" aria-hidden="true">—</span>}
                       <span className="ap-um-who"><small>{t("signedAs")}</small><b>{user?.name}</b><small>{user?.email}</small><em>{roleLabel}</em></span>
                     </div>
                     <Link role="menuitem" className="ap-um-i" href="/account/profile" onClick={() => setOpen(null)}>{Icons.user}<span>{t("profile")}</span></Link>

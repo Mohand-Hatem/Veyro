@@ -9,7 +9,8 @@ datasource db {
 }
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["relationJoins"]
 }
 
 // ============================================================================
@@ -21,7 +22,13 @@ model User {
   email           String     @unique
   passwordHash    String
   name            String
+  /// What the person sees (step 5.9a): the picture's address, or null for initials. Always written together with avatarType and avatarPresetKey by AvatarService.
   avatarUrl       String?
+  avatarType      AvatarType @default(INITIALS)
+  /// Set only when avatarType is PRESET: the key of one of the fixed illustrated avatars (their files live in the frontend).
+  avatarPresetKey String?
+  /// Set while a photo we stored is kept hidden (private) after the person removed it; the retention purge deletes it after 30 days.
+  avatarRemovedAt DateTime?
   /// Display preferences (CS-09): saved on the account so they follow the person to every device.
   locale          UserLocale @default(EN)
   theme           UserTheme  @default(SYSTEM)
@@ -46,8 +53,17 @@ model User {
   sentWorkspaceInvitations WorkspaceInvitation[]    @relation("WorkspaceInviter")
   otpVerifications         UserOtpVerification[]
   passwordResetTokens      UserPasswordResetToken[]
+  notificationsReceived    Notification[]           @relation("NotificationRecipient")
+  notificationsCaused      Notification[]           @relation("NotificationActor")
 
   @@map("users")
+}
+
+enum AvatarType {
+  INITIALS
+  PRESET
+  /// A picture address: a photo we stored in Cloudinary, or the Google/GitHub photo copied at sign-in.
+  UPLOAD
 }
 
 enum UserLocale {
@@ -169,6 +185,7 @@ model Workspace {
   account         Account               @relation(fields: [accountId], references: [id], onDelete: Restrict)
   members         WorkspaceMember[]
   invitations     WorkspaceInvitation[]
+  notifications   Notification[]
   projects        Project[]
   aiConversations AiConversation[]
 
@@ -662,4 +679,60 @@ model ContactMessage {
   @@index([ipHash, createdAt])
   @@index([status, createdAt])
   @@map("contact_messages")
+}
+
+// ============================================================================
+// AI knowledge base (Phase 5, step 5.8b): chunks of the public Veyro help documents with their embeddings (BR-AI-06, DEC-12).
+// No tenant column on purpose: this corpus is public product documentation and never holds customer data.
+// Written only by the ingest script (raw SQL: Prisma cannot create the vector type); searched with raw SQL.
+// ============================================================================
+model KnowledgeChunk {
+  id        String     @id @default(cuid(2))
+  locale    UserLocale
+  source    String
+  heading   String
+  position  Int
+  content   String
+  embedding Unsupported("vector(768)")
+  createdAt DateTime   @default(now())
+
+  @@index([locale])
+  @@map("knowledge_base_embeddings")
+}
+
+// ============================================================================
+// Notifications (step 5.9, Phase C)
+// ============================================================================
+
+enum NotificationType {
+  TASK_ASSIGNED
+  TASK_COMMENTED
+  ADDED_TO_PROJECT
+  ROLE_CHANGED
+  INVITATION_ACCEPTED
+}
+
+/// An in-app notification for one person. Written in the same transaction as the event that caused it, so the event and its
+/// notification exist together or not at all. The text is built on screen from `type` and `data`, never stored as a sentence.
+model Notification {
+  id          String           @id @default(cuid(2))
+  recipientId String
+  workspaceId String
+  type        NotificationType
+  actorId     String?
+  projectId   String?
+  taskId      String?
+  /// What the text needs, copied when the event happened (task title, project name and key, workspace name and slug, role,
+  /// actor name), so a later rename or delete does not rewrite history.
+  data        Json
+  readAt      DateTime?
+  createdAt   DateTime         @default(now())
+
+  recipient User      @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  actor     User?     @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([recipientId, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([recipientId, readAt])
+  @@map("notifications")
 }

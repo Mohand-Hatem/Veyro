@@ -59,6 +59,6 @@ export function gaugeShares(projects: Pick<DashProject, "tasks">[]) {
   return { all, done, review, doing, pctDone: (done / base) * 100, pctReview: (review / base) * 100, pctDoing: (doing / base) * 100, percent: all ? Math.round((done / base) * 100) : 0 };
 }
 
-export const initials = (name: string) => name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+export { initials } from "./initials";
 /** Same user, same colour (av0 to av5) on every screen. */
 export const avatarClass = (id: string) => "av" + ([...id].reduce((a, c) => a + c.charCodeAt(0), 0) % 6);

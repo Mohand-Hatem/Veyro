@@ -8,7 +8,13 @@ import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
-  const app = await NestFactory.create(AppModule);
+  // rawBody: Stripe signs the exact bytes it sends, so the webhook needs them untouched next to the parsed JSON.
+  const app = await NestFactory.create(AppModule, { rawBody: true });
+
+  // Rate limits and the contact form key on req.ip. Behind N proxies (Next.js rewrite, load balancer) set TRUST_PROXY=N so
+  // the real client IP is read from X-Forwarded-For; left unset, the header is ignored and cannot be spoofed.
+  const trustProxy = Number(process.env.TRUST_PROXY);
+  if (trustProxy > 0) app.getHttpAdapter().getInstance().set('trust proxy', trustProxy);
 
   // Security headers & cookie parsing
   app.use(helmet());

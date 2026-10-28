@@ -6,7 +6,8 @@ import { Link, useRouter } from "@/i18n/navigation";
 import { Loader } from "@/components/loader/loader";
 import { useShell } from "@/components/shell/shell-context";
 import { useFormat } from "@/components/dashboard/use-format";
-import { avatarClass, gaugeShares, initials } from "@/lib/dashboard";
+import { avatarClass, gaugeShares } from "@/lib/dashboard";
+import { Avatar } from "@/components/ui/avatar";
 import { daysFromToday } from "@/lib/my-tasks";
 import { useProjectList } from "@/lib/projects";
 import {
@@ -196,7 +197,7 @@ function BoardView({ project }: { project: BoardProject }) {
   };
 
   const avatar = (u: BoardTask["assignee"], extra = "") =>
-    u ? <span className={`bd-av ${avatarClass(u.id)} ${extra}`.trim()} title={u.name}>{initials(u.name)}</span> : <span className={`bd-av bd-av-none ${extra}`.trim()} title={t("unassigned")} />;
+    u ? <Avatar className={`bd-av ${avatarClass(u.id)} ${extra}`.trim()} title={u.name} name={u.name} url={u.avatarUrl} /> : <span className={`bd-av bd-av-none ${extra}`.trim()} title={t("unassigned")} />;
 
   const card = (task: BoardTask) => {
     const late = !!task.dueDate && !isTerminal(task.status) && daysFromToday(task.dueDate) < 0;
@@ -243,7 +244,7 @@ function BoardView({ project }: { project: BoardProject }) {
             <div className="bd-title"><span className="ap-key" id="bd-key">{project.key}</span><h2 id="bd-name">{project.name}</h2><span className={`ap-st ${statusPill[0]}`} id="bd-status">{statusPill[1]}</span></div>
             <p className="bd-desc" id="bd-desc">{project.description ?? ""}</p>
             <button type="button" className="bd-meta" id="bd-mbtn" aria-haspopup="dialog" onClick={() => setMembers(true)}>
-              <span className="bd-stack" id="bd-members" aria-hidden="true">{project.members.slice(0, 5).map((m) => <span key={m.userId} className={`bd-av ${avatarClass(m.user.id)} in-stack`} title={m.user.name}>{initials(m.user.name)}</span>)}</span>
+              <span className="bd-stack" id="bd-members" aria-hidden="true">{project.members.slice(0, 5).map((m) => <Avatar key={m.userId} className={`bd-av ${avatarClass(m.user.id)} in-stack`} title={m.user.name} name={m.user.name} url={m.user.avatarUrl} />)}</span>
               <span className="bd-mcount" id="bd-mcount">{tp("members", { n: project.members.length })}</span>
               <span className="bd-mlink">{t("manage")}</span>
             </button>

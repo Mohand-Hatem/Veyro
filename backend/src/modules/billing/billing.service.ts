@@ -3,14 +3,19 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { PaidTier, StripeService } from './stripe.service';
 import { WebhookEventDto } from './dto/webhook-event.dto';
 import { SelectActiveProjectsDto } from './dto/select-active-projects.dto';
 import {
   SubscriptionPlanTier,
   SubscriptionPaymentStatus,
   AiPlanTier,
+  AccountOffboardingState,
   Prisma,
 } from '@prisma/client';
 
@@ -20,6 +25,12 @@ export const TIER_PROJECT_LIMITS: Record<SubscriptionPlanTier, number> = {
   [SubscriptionPlanTier.ENTERPRISE]: 15,
   [SubscriptionPlanTier.EPIC]: 25,
 };
+
+/**
+ * Monthly USD prices in cents, shown on the billing screen. The amounts actually charged are the Stripe prices behind
+ * STRIPE_PRICE_ID_*; keep both in step (p57 covers the mapping, not the amounts).
+ */
+export const PLAN_PRICE_USD_CENTS: Record<PaidTier, number> = { PRO: 900, ENTERPRISE: 1900, EPIC: 2900 };
 
 /** BR-SUB-02: workspaces per account. `null` = unlimited (Epic). */
 export const TIER_WORKSPACE_LIMITS: Record<SubscriptionPlanTier, number | null> = {
@@ -36,7 +47,10 @@ const BILLING_HISTORY_LIMIT = 24;
 
 @Injectable()
 export class BillingService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly stripe: StripeService,
+  ) {}
 
   /**
    * Owner-only billing overview (CS-07, ADR-014). Provider identifiers are never returned (no payment details
@@ -66,7 +80,7 @@ export class BillingService {
       this.prisma.project.count({ where: { workspace: { accountId }, deletedAt: null, isBillingReadOnly: true } }),
     ]);
 
-    const { account, providerCustomerId: _c, providerSubscriptionId: _s, ...plan } = subscription;
+    const { account, providerCustomerId, providerSubscriptionId, ...plan } = subscription;
     const endsAt = subscription.gracePeriodEndsAt;
     const msLeft = endsAt ? endsAt.getTime() - Date.now() : null;
 
@@ -85,6 +99,15 @@ export class BillingService {
           ? { endsAt, daysLeft: Math.max(0, Math.ceil(msLeft / DAY_MS)), expired: msLeft <= 0 }
           : null,
       readOnlyProjects,
+      // No provider ids leave the server: the screen only learns the prices and whether Stripe's billing portal can be opened.
+      billing: {
+        currency: 'USD',
+        priceCents: PLAN_PRICE_USD_CENTS,
+        canManage: !!providerCustomerId,
+        // A paid plan that is up to date can move to another paid plan; a Free, failed or ended one starts over with checkout.
+        canSwitch: subscription.tier !== SubscriptionPlanTier.FREE && !!providerSubscriptionId && subscription.status === SubscriptionPaymentStatus.ACTIVE,
+        testMode: /_test_/.test(process.env.STRIPE_SECRET_KEY ?? ''),
+      },
     };
   }
 
@@ -154,7 +177,8 @@ export class BillingService {
     return new Date(Date.now() + GRACE_PERIOD_DAYS * DAY_MS);
   }
 
-  async handleWebhook(dto: WebhookEventDto) {
+  /** Applies one billing event (already authenticated by the caller: the Stripe webhook verifies its signature first). Idempotent by `externalEventId`. */
+  async applyBillingEvent(dto: WebhookEventDto) {
     // Boundary validation: unknown tiers or statuses must be a 400, not a database enum error.
     const wantedTier = dto.data?.tier;
     const wantedStatus = dto.data?.status;
@@ -198,8 +222,14 @@ export class BillingService {
             (newTier === SubscriptionPlanTier.FREE && prev.tier !== SubscriptionPlanTier.FREE) ||
             (newStatus === SubscriptionPaymentStatus.DOWNGRADED && prev.status !== SubscriptionPaymentStatus.DOWNGRADED);
           // An upgrade out of Free never reactivates projects by itself (BR-SUB-03.3): the owner must choose.
-          const isUpgradeFromFree = prev.tier === SubscriptionPlanTier.FREE && newTier !== SubscriptionPlanTier.FREE;
-          const hasReadOnly = isUpgradeFromFree
+          const isUpgrade = TIER_PROJECT_LIMITS[newTier] > TIER_PROJECT_LIMITS[prev.tier];
+          // Moving to a smaller paid plan only locks anything when the account has more projects than the new plan keeps editable.
+          const isLowerPaidTier = newTier !== SubscriptionPlanTier.FREE && prev.tier !== SubscriptionPlanTier.FREE && TIER_PROJECT_LIMITS[newTier] < TIER_PROJECT_LIMITS[prev.tier];
+          const overNewLimit = isLowerPaidTier
+            ? (await tx.project.count({ where: { workspace: { accountId: targetAccount.id }, deletedAt: null } })) > TIER_PROJECT_LIMITS[newTier]
+            : false;
+          const mustChooseProjects = isDowngradeToFree || overNewLimit;
+          const hasReadOnly = isUpgrade
             ? (await tx.project.count({ where: { workspace: { accountId: targetAccount.id }, deletedAt: null, isBillingReadOnly: true } })) > 0
             : false;
 
@@ -211,13 +241,19 @@ export class BillingService {
               gracePeriodEndsAt: this.graceEnd(prev.status, prev.gracePeriodEndsAt, newStatus),
               providerCustomerId: dto.data.providerCustomerId || prev.providerCustomerId,
               providerSubscriptionId: dto.data.providerSubscriptionId || prev.providerSubscriptionId,
+              ...(newTier === SubscriptionPlanTier.FREE
+                ? { cancelAtPeriodEnd: false, billingCycleEndsAt: null }
+                : {
+                    ...(typeof dto.data.cancelAtPeriodEnd === 'boolean' ? { cancelAtPeriodEnd: dto.data.cancelAtPeriodEnd } : {}),
+                    ...(dto.data.billingCycleEndsAt && !Number.isNaN(Date.parse(dto.data.billingCycleEndsAt)) ? { billingCycleEndsAt: new Date(dto.data.billingCycleEndsAt) } : {}),
+                  }),
               // Only a downgrade or an upgrade over read-only projects asks for a selection; ordinary renewals leave it alone.
-              requiresProjectSelection: isDowngradeToFree ? true : hasReadOnly ? true : prev.requiresProjectSelection,
+              requiresProjectSelection: mustChooseProjects ? true : hasReadOnly ? true : prev.requiresProjectSelection,
             },
           });
 
-          // Invariant (BR-SUB-03): If downgraded to Free, set all existing projects to Read-only hold
-          if (isDowngradeToFree) {
+          // Invariant (BR-SUB-03): after a downgrade that leaves more projects than the plan allows, every project is read-only until the owner chooses
+          if (mustChooseProjects) {
             await tx.project.updateMany({
               where: {
                 workspace: { accountId: targetAccount.id },
@@ -284,6 +320,74 @@ export class BillingService {
     });
   }
 
+  /** Starts Stripe's hosted checkout for the account owner. Switching between paid plans goes through the billing portal, never a second subscription. */
+  async startCheckout(userId: string, accountId: string, tier: PaidTier) {
+    const [account, user] = await Promise.all([
+      this.prisma.account.findUnique({ where: { id: accountId }, include: { subscription: true } }),
+      this.prisma.user.findUnique({ where: { id: userId }, select: { email: true, locale: true } }),
+    ]);
+    if (!account || !user) throw new NotFoundException({ code: 'RESOURCE_NOT_FOUND', message: 'Account not found.' });
+    if (account.offboardingState === AccountOffboardingState.PENDING) {
+      throw new ForbiddenException({ code: 'ACCOUNT_OFFBOARDING_LOCKED', message: 'This account is undergoing offboarding. All workspace modifications are locked.' });
+    }
+    const sub = account.subscription;
+    if (sub && sub.tier !== SubscriptionPlanTier.FREE && sub.providerSubscriptionId && sub.status !== SubscriptionPaymentStatus.DOWNGRADED) {
+      throw new ConflictException({ code: 'ALREADY_SUBSCRIBED', message: 'This account already has a paid plan. Manage it from the billing portal.' });
+    }
+    const base = this.billingPageUrl(user.locale);
+    const url = await this.stripe.checkoutUrl({
+      accountId, tier, customerId: sub?.providerCustomerId ?? null, email: user.email,
+      successUrl: `${base}?checkout=success`, cancelUrl: `${base}?checkout=cancelled`,
+    });
+    return { url };
+  }
+
+  /**
+   * Moves a paying account to another paid plan. Stripe applies it (prorated, immediately) and the signed webhook then updates our
+   * record, exactly as for any other change, so the lower-plan rules in applyBillingEvent run in one place.
+   */
+  async changePlan(accountId: string, tier: PaidTier) {
+    const account = await this.prisma.account.findUnique({ where: { id: accountId }, include: { subscription: true } });
+    if (!account) throw new NotFoundException({ code: 'RESOURCE_NOT_FOUND', message: 'Account not found.' });
+    if (account.offboardingState === AccountOffboardingState.PENDING) {
+      throw new ForbiddenException({ code: 'ACCOUNT_OFFBOARDING_LOCKED', message: 'This account is undergoing offboarding. All workspace modifications are locked.' });
+    }
+    const sub = account.subscription;
+    if (!sub || sub.tier === SubscriptionPlanTier.FREE || !sub.providerSubscriptionId || sub.status === SubscriptionPaymentStatus.DOWNGRADED) {
+      throw new ConflictException({ code: 'NO_ACTIVE_SUBSCRIPTION', message: 'This account has no paid plan to change. Choose a plan first.' });
+    }
+    if (sub.status === SubscriptionPaymentStatus.PAST_DUE) {
+      throw new ConflictException({ code: 'PAYMENT_PAST_DUE', message: 'The last payment failed. Update your payment method before changing plans.' });
+    }
+    if (sub.tier === tier) throw new ConflictException({ code: 'SAME_PLAN', message: 'The account is already on this plan.' });
+    try {
+      await this.stripe.changePlan(sub.providerSubscriptionId, tier);
+    } catch (e) {
+      const err = e as { type?: string; code?: string };
+      if (err.type === 'StripeCardError' || err.code?.startsWith('subscription_payment')) {
+        throw new HttpException({ code: 'PAYMENT_FAILED', message: 'The payment for this change was declined, so the plan was not changed.' }, HttpStatus.PAYMENT_REQUIRED);
+      }
+      throw e;
+    }
+    return { tier };
+  }
+
+  /** Stripe's hosted page for the card, invoices and cancelling. Only exists once the account has been through checkout. */
+  async startPortal(userId: string, accountId: string) {
+    const [sub, user] = await Promise.all([
+      this.prisma.accountSubscription.findUnique({ where: { accountId } }),
+      this.prisma.user.findUnique({ where: { id: userId }, select: { locale: true } }),
+    ]);
+    if (!sub?.providerCustomerId) {
+      throw new ConflictException({ code: 'NO_BILLING_CUSTOMER', message: 'This account has no payment history yet. Choose a plan first.' });
+    }
+    return { url: await this.stripe.portalUrl(sub.providerCustomerId, this.billingPageUrl(user?.locale)) };
+  }
+
+  private billingPageUrl(locale: string | undefined | null) {
+    return `${process.env.APP_URL || 'http://localhost:3000'}/${locale === 'AR' ? 'ar' : 'en'}/account/billing`;
+  }
+
   /**
    * Owner chooses which projects stay (or become) editable (BR-SUB-03). The plan cap is enforced here, not in the DTO,
    * because it depends on the current tier. Unselected projects become read-only; archived projects may be selected
@@ -311,6 +415,13 @@ export class BillingService {
       throw new BadRequestException({
         code: 'PERMISSION_DENIED',
         message: 'Only the account owner can confirm active projects.',
+      });
+    }
+
+    if (account.offboardingState === AccountOffboardingState.PENDING) {
+      throw new ForbiddenException({
+        code: 'ACCOUNT_OFFBOARDING_LOCKED',
+        message: 'This account is undergoing offboarding. All workspace modifications are locked.',
       });
     }
 
