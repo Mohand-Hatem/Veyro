@@ -13,6 +13,7 @@ import { Link, useRouter } from "@/i18n/navigation";
 import { api } from "@/lib/api";
 import { registerSchema } from "@/lib/auth-schemas";
 import { safeNext } from "@/lib/safe-next";
+import { useRedirectIfSignedIn } from "@/lib/use-signed-in-redirect";
 
 type Values = { name: string; email: string; password: string };
 
@@ -23,6 +24,7 @@ export function RegisterForm() {
   const params = useSearchParams();
   const nextParam = params.get("next");
   const carry = nextParam ? { next: safeNext(nextParam) } : {};
+  useRedirectIfSignedIn(safeNext(nextParam));
   const { register, handleSubmit, setError, control, formState: { errors, isSubmitting } } = useForm<Values>({ resolver: zodResolver(registerSchema(te)), defaultValues: { password: "", email: params.get("email") ?? "" } }); // the landing page hands over the address typed in its hero field
   const password = useWatch({ control, name: "password" });
 

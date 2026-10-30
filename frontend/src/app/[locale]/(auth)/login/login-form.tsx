@@ -13,6 +13,7 @@ import { Link, useRouter } from "@/i18n/navigation";
 import { api } from "@/lib/api";
 import { loginSchema } from "@/lib/auth-schemas";
 import { safeNext } from "@/lib/safe-next";
+import { useRedirectIfSignedIn } from "@/lib/use-signed-in-redirect";
 
 type Values = { email: string; password: string };
 
@@ -25,6 +26,7 @@ export function LoginForm() {
     params.get("signedout") === "1" ? { kind: "ok", text: t("signedOut") } : params.get("deleted") === "1" ? { kind: "ok", text: t("accountDeleted") } : params.get("oauth") === "failed" ? { kind: "error", text: t("oauthFailed") } : null,
   );
   const router = useRouter();
+  useRedirectIfSignedIn(next);
   const { register, handleSubmit, setError, setValue, formState: { errors, isSubmitting } } = useForm<Values>({ resolver: zodResolver(loginSchema(te)) });
 
   const onSubmit = handleSubmit(async (values) => {
