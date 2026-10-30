@@ -15,6 +15,10 @@ updates:
     directory: /backend
     schedule:
       interval: weekly
+    ignore:
+      # The project runs on Node 22 (long-term support). Odd-numbered majors are never long-term support, and a jump to the next LTS is a deliberate decision.
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
