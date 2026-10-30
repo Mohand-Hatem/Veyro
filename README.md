@@ -10,6 +10,7 @@
 [![Next.js](https://img.shields.io/badge/Frontend-Next.js%2016%20App%20Router-black?logo=next.js&logoColor=white)](https://nextjs.org/)
 [![Prisma](https://img.shields.io/badge/ORM-Prisma%207-2d3748?logo=prisma&logoColor=white)](https://www.prisma.io/)
 [![PostgreSQL](https://img.shields.io/badge/Database-Neon%20PostgreSQL-00e599?logo=postgresql&logoColor=black)](https://neon.tech/)
+[![CI](https://github.com/Mohand-Hatem/Veyro/actions/workflows/ci.yml/badge.svg)](https://github.com/Mohand-Hatem/Veyro/actions/workflows/ci.yml)
 [![TypeScript](https://img.shields.io/badge/Language-TypeScript%205-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
@@ -135,7 +136,7 @@ erDiagram
 | **Phase 3** | **NestJS Backend Implementation** | 7 Modular Monolith modules, Prisma 7, Neon DB migration, Guards, Interceptors, Filters | ✅ **Completed (100%)** |
 | **Phase 4** | **Frontend Development & Design Gate** | `design.md` baseline, Next.js 16 App Router app in `frontend/` (English and Arabic, light and dark), every screen checked against its reference with parity scripts | ✅ **Completed** |
 | **Phase 5** | **Integration, Security & Quality** | Security hardening, a tenant-isolation and role matrix, query and reliability fixes, real email (Resend), Google and GitHub sign-in, Stripe (test mode), a real AI assistant (Gemini and help-document search), profile pictures (Cloudinary and sharp) and notifications, with automated tests for each | ✅ **Completed** |
-| **Phase 6** | **Deployment, CI/CD & Portfolio** | Docker containerization, Vercel & Neon staging/prod environments, Monitoring | ⚪ *Planned* |
+| **Phase 6** | **Deployment, CI/CD & Portfolio** | Vercel (frontend and backend) with Neon, scheduled jobs, CI and a browser end-to-end suite, logging and monitoring, portfolio documentation | 🚧 *In progress* (6.1 backend ready for Vercel: done) |
 
 ---
 
@@ -212,18 +213,37 @@ The app runs at `http://localhost:3000` (English at `/en`, Arabic at `/ar`). It 
 
 ---
 
+### Run the API in Docker (optional)
+No Neon account is needed to try the backend. From the repository root:
+```bash
+docker compose up --build      # Postgres with pgvector, then the migrations, then the API on http://localhost:5000
+docker compose down -v         # stop it and delete the local data
+```
+`backend/Dockerfile` builds the API in four stages (build, production-only dependencies, a `migrate` target, and a small runtime image that runs as a non-root user, holds no secrets and carries its own health check). The database password and JWT secret in `docker-compose.yml` are throwaway values for this laptop-only stack. To fill it with the demo data: `cd backend && DATABASE_URL_Branch= DATABASE_URL=postgresql://veyro:veyro-local-only@localhost:5433/veyro npm run demo:seed`. The frontend runs as usual and reaches this API through `API_ORIGIN=http://localhost:5000`. The image is about 940 MB because Prisma and TypeScript arrive as transitive dependencies; trimming it is a known, deferred optimization.
+
+## ☁️ Deployment Notes (Vercel, portfolio demo)
+
+The demo runs as two Vercel projects from this repository: `frontend/` (Next.js) and `backend/` (NestJS, deployed with Vercel's zero-configuration support: the entry point is `src/main.ts` and `npm run build` runs `prisma generate` before `nest build`). The browser only talks to the frontend; Next.js forwards `/api/v1` to the backend (`API_ORIGIN`), so the session cookies stay first-party.
+
+- **Serverless, stated honestly:** the API runs as one function per instance. Sign-in state for Google and GitHub lives in a cookie, usage limits for the assistant live in the database, and the pg adapter talks to Neon's pooled connection, so nothing important is kept in memory. The one exception is the request rate limiter (login, sign-up, password reset, contact): it counts per instance, so on serverless it is best-effort. Moving its counters to a shared store is the upgrade if this ever carries real traffic.
+- **Client IPs:** set `TRUST_PROXY` to the number of proxies in front of the API so the limiter and the contact form read the real address.
+- **Email without a domain:** Resend's test sender only delivers to the owner of the Resend account, so sign-up codes and invitations to other people do not arrive. The demo says so on purpose: production refuses the test sender unless `RESEND_ALLOW_TEST_SENDER=true`, and the startup log then reports demo mode. Reviewers sign in with Google, GitHub or the demo accounts.
+- **Demo data:** `cd backend && npm run demo:seed` creates one account, one workspace, three people, two projects and twelve tasks through the real API (so the audit trail and notifications are genuine). `-- --reset` puts the demo back as it was. Against production it needs both `--production --yes`. The demo password is public by design (`DEMO_PASSWORD` changes it).
+
+---
+
 ## ✅ Tests and Checks
 
 | Where | Command | What it covers |
 | :--- | :--- | :--- |
-| `backend/` | `npm test` | 31 test files, 359 tests of the business rules, role rules, tenant isolation (a route-by-route matrix that fails when a new route is not classified), plan limits, security, email, OAuth, Stripe (signed webhooks), the AI gateway, help search and tools, avatars and notifications, plus journey tests across the whole product. They run against the database in `DATABASE_URL_Branch` (or `DATABASE_URL`) and create and remove their own data. A suite can be cancelled when the database connection drops while it sets up; run it again. |
+| `backend/` | `npm test` | 32 test files, 372 tests of the business rules, role rules, tenant isolation (a route-by-route matrix that fails when a new route is not classified), plan limits, security, email, OAuth, Stripe (signed webhooks), the AI gateway, help search and tools, avatars and notifications, plus journey tests across the whole product. They run against the database in `DATABASE_URL_Branch` (or `DATABASE_URL`) and create and remove their own data. A suite can be cancelled when the database connection drops while it sets up; run it again. |
 | `backend/` | `npm run ai:eval` | The assistant's question set (22 cases: help answers, refusals, workspace data, prompt injection, task drafts) against the real model on the development branch; it refuses to run on production. |
 | `backend/` | `npx tsc --noEmit` | Type check |
-| `frontend/` | `npm test` | 127 unit tests (vitest): API client, validation, helpers, initials and crop math, notification helpers, message coverage in both languages |
+| `frontend/` | `npm test` | 132 unit tests (vitest): API client, validation, helpers, initials and crop math, notification helpers, message coverage in both languages |
 | `frontend/` | `npm run lint`, `npx tsc --noEmit`, `npm run build` | Lint, types and the production build |
 | `frontend/` | `node scripts/parity/run.mjs scripts/parity/<screen>.js` | Parity check of one screen against its reference page: computed styles, layout and text at 1440 and 390 px wide, light and dark, English and Arabic. The reference pages live in `screens/`, which is kept locally and is not part of this repository. Each script's header lists what it needs (Playwright with Chrome, the running servers and its test data). |
 
-Automated CI/CD and a browser end-to-end suite are not set up yet; both are planned for Phase 6. The browser flows were checked by hand with Playwright, including the real upload, payment and notification flows.
+**CI** (`.github/workflows/ci.yml`) runs on every pull request and every push to `main`: frontend lint, types, unit tests and build; backend types and build; the full backend suite against a throwaway Postgres with pgvector (no keys of any kind); a Docker job that builds the stack, waits for every service to be healthy and calls `/health`; and `npm audit` for high and critical findings. Dependabot opens weekly update pull requests. Deployment and the browser end-to-end suite are still to come in Phase 6. The browser flows were checked by hand with Playwright, including the real upload, payment and notification flows.
 
 ---
 
@@ -238,7 +258,7 @@ Automated CI/CD and a browser end-to-end suite are not set up yet; both are plan
 
 **Needs your own accounts to run live:** email (Resend; the test sender is for testing only), Google and GitHub sign-in, Stripe (test mode), Gemini and Cloudinary. Their keys go in the gitignored `backend/.env`, never in the repository.
 
-**Not built yet (planned for Phase 6 or later):** CI/CD and deployment, scheduled jobs (the 30-day removed-photo purge and notification cleanup), a browser end-to-end suite, email or push notifications, @mentions, and deleting a person's user record.
+**Not built yet (planned for Phase 6 or later):** CI/CD and deployment, scheduled jobs (the 30-day removed-photo purge and notification cleanup), a browser end-to-end suite, email or push notifications, @mentions, and the Delete my account screen (the backend endpoint exists: it anonymizes the person).
 
 ---
 

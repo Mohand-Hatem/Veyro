@@ -1,0 +1,133 @@
+# Continuous integration (step 6.3 in the README roadmap): every pull request and every push to main runs the same gates on a clean machine.
+# Nothing here holds a secret: the test database is a throwaway container and the JWT secret is generated per run. Production keys never reach CI.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    name: Frontend (lint, types, tests, build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      # next.config.ts forwards /api/v1 to this address at build time; the build never calls it.
+      API_ORIGIN: http://localhost:5000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  backend:
+    name: Backend (types, build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      # `prisma generate` reads prisma.config.ts, which wants a database URL even though generating never connects to it.
+      DATABASE_URL: postgresql://build:build@localhost:5432/build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx tsc --noEmit
+      - run: npm run build
+
+  backend-tests:
+    name: Backend tests (real app, real database)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        # pgvector is needed by the help-document search; the migration creates the extension.
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-only-throwaway # a container that lives for this job and is not reachable from outside the runner
+          POSTGRES_DB: veyro_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d veyro_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:ci-only-throwaway@localhost:5432/veyro_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - name: Generate a JWT secret for this run
+        run: echo "JWT_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+      - run: npx prisma generate
+      - run: npx prisma migrate deploy
+      # No email, payment, assistant or storage keys exist here: the suites run with those services switched off, as they do locally.
+      - run: npm test
+
+  docker:
+    name: Docker (image builds, stack starts)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the stack and wait until every service is healthy
+        run: docker compose up -d --build --wait --wait-timeout 300
+      - name: Health check through the published port
+        run: curl --fail --silent --show-error http://localhost:5000/api/v1/health
+      - name: Show the logs if anything failed
+        if: failure()
+        run: docker compose logs --no-color
+      - name: Stop the stack
+        if: always()
+        run: docker compose down -v
+
+  audit:
+    name: Dependency audit (high and critical)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Backend
+        working-directory: backend
+        run: npm audit --omit=dev --audit-level=high
+      - name: Frontend
+        working-directory: frontend
+        run: npm audit --omit=dev --audit-level=high
