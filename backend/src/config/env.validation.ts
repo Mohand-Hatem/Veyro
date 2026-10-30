@@ -1,3 +1,5 @@
+import { Logger } from '@nestjs/common';
+
 const MIN_JWT_SECRET_LENGTH = 32;
 
 /** Refuses to boot with a missing or guessable JWT secret (runs once, from ConfigModule.forRoot({ validate })). */
@@ -22,7 +24,11 @@ export function validateEnv(config: Record<string, unknown>): Record<string, unk
       throw new Error('RESEND_API_KEY and EMAIL_FROM must be set in production (email delivery).');
     }
     if (String(config.EMAIL_FROM).includes('@resend.dev')) {
-      throw new Error('EMAIL_FROM still uses the Resend test sender (@resend.dev), which is for testing only. Verify a domain and use it.');
+      // The test sender only reaches the owner of the Resend account. A portfolio demo without a domain may run on it, but only by saying so.
+      if (config.RESEND_ALLOW_TEST_SENDER !== 'true') {
+        throw new Error('EMAIL_FROM still uses the Resend test sender (@resend.dev), which only delivers to the Resend account owner. Verify a domain and use it, or set RESEND_ALLOW_TEST_SENDER=true for a demo.');
+      }
+      new Logger('Config').warn('Demo mode: emails use the Resend test sender, so only the Resend account owner receives them (sign-up codes and invitations to other people will not arrive).');
     }
   }
 

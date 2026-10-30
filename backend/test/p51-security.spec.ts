@@ -41,6 +41,13 @@ describe('5.5: email settings at boot', () => {
     const stripe = { STRIPE_SECRET_KEY: 'sk_live_x', STRIPE_WEBHOOK_SECRET: 'whsec_x', STRIPE_PRICE_ID_PRO: 'p', STRIPE_PRICE_ID_ENTERPRISE: 'e', STRIPE_PRICE_ID_EPIC: 'x', GEMINI_API_KEY: 'k', CLOUDINARY_CLOUD_NAME: 'c', CLOUDINARY_API_KEY: 'k', CLOUDINARY_API_SECRET: 's' };
     assert.doesNotThrow(() => validateEnv({ ...base, ...stripe, NODE_ENV: 'production', RESEND_API_KEY: 're_x', EMAIL_FROM: 'Veyro <noreply@veyro.app>' }));
   });
+  it('lets a portfolio demo use the Resend test sender in production only when it says so', () => {
+    const demo = { ...base, NODE_ENV: 'production', RESEND_API_KEY: 're_x', EMAIL_FROM: 'Veyro <onboarding@resend.dev>', STRIPE_SECRET_KEY: 'sk_test_x', STRIPE_ALLOW_TEST_KEYS: 'true', STRIPE_WEBHOOK_SECRET: 'whsec_x', STRIPE_PRICE_ID_PRO: 'p', STRIPE_PRICE_ID_ENTERPRISE: 'e', STRIPE_PRICE_ID_EPIC: 'x', GEMINI_API_KEY: 'k', CLOUDINARY_CLOUD_NAME: 'c', CLOUDINARY_API_KEY: 'k', CLOUDINARY_API_SECRET: 's' };
+    assert.throws(() => validateEnv(demo), /RESEND_ALLOW_TEST_SENDER/, 'refused by default');
+    assert.throws(() => validateEnv({ ...demo, RESEND_ALLOW_TEST_SENDER: 'yes' }), /test sender/, 'only the exact value true counts');
+    assert.doesNotThrow(() => validateEnv({ ...demo, RESEND_ALLOW_TEST_SENDER: 'true' }));
+    assert.throws(() => validateEnv({ ...demo, RESEND_ALLOW_TEST_SENDER: 'true', RESEND_API_KEY: '' }), /RESEND_API_KEY/, 'the switch does not excuse a missing key');
+  });
 });
 
 describe('5.1: auth over HTTP (real app, real guards)', () => {
@@ -94,6 +101,7 @@ describe('5.1: auth over HTTP (real app, real guards)', () => {
     for (let i = 0; i < 6; i++) await post('/auth/login', { email: 'nobody@veyro-test.io', password: 'Wrong-password1!' });
     const blocked = await post('/auth/login', { email: 'nobody@veyro-test.io', password: 'Wrong-password1!' });
     assert.strictEqual(blocked.status, 429);
+    assert.strictEqual(((await blocked.json()) as any).error.code, 'RATE_LIMIT_EXCEEDED', 'a refused request carries a catalog code, not INTERNAL_SERVER_ERROR');
   });
 
   it('limits password-reset requests to 5 a minute, and keeps counters per route', async () => {

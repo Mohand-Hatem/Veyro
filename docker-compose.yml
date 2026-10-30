@@ -1,0 +1,55 @@
+# Veyro API with its own database, for running or reviewing the backend without a Neon account (step 6.2).
+#   docker compose up --build        start Postgres (with pgvector), apply the migrations, start the API on http://localhost:5000
+#   docker compose down -v           stop it and delete the local data
+# The frontend runs as usual (cd frontend && npm run dev) and reaches this API through API_ORIGIN=http://localhost:5000.
+# Nothing here is secret: the database password and the JWT secret below are throwaway values for this laptop-only stack.
+# Services you have not configured (email, payments, assistant, photos) degrade the same way they do in development.
+name: veyro
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: veyro
+      POSTGRES_PASSWORD: veyro-local-only
+      POSTGRES_DB: veyro
+    ports:
+      - "5433:5432" # 5433 on the host so it never clashes with a Postgres you already run on 5432
+    volumes:
+      - veyro-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U veyro -d veyro"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  migrate:
+    build:
+      context: ./backend
+      target: migrate
+    environment:
+      DATABASE_URL: postgresql://veyro:veyro-local-only@db:5432/veyro
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build:
+      context: ./backend
+    environment:
+      # The image is built for production; this local stack runs it in development mode so it does not demand live payment and email keys.
+      NODE_ENV: development
+      PORT: "5000"
+      DATABASE_URL: postgresql://veyro:veyro-local-only@db:5432/veyro
+      JWT_SECRET: ${JWT_SECRET:-compose-local-only-jwt-secret-0123456789abcdef}
+      APP_URL: http://localhost:3000
+      DEV_OUTBOX: "true" # prints sign-up codes and reset links in the log instead of sending email
+    ports:
+      - "5000:5000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  veyro-pgdata:
