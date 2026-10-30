@@ -9,5 +9,6 @@ import { StorageModule } from '../storage/storage.module';
   imports: [StorageModule],
   controllers: [UsersController],
   providers: [UsersService, AvatarService, UserDeletionService],
+  exports: [AvatarService],
 })
 export class UsersModule {}

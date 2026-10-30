@@ -313,7 +313,7 @@ describe('5.8a: Gemini client (fetch stubbed)', () => {
 });
 
 describe('5.8a: production configuration', () => {
-  const base = { JWT_SECRET: 'x'.repeat(40), NODE_ENV: 'production', RESEND_API_KEY: 're_x', EMAIL_FROM: 'Veyro <noreply@veyro.dev>', STRIPE_SECRET_KEY: 'sk_live_x', STRIPE_WEBHOOK_SECRET: 'whsec_x', STRIPE_PRICE_ID_PRO: 'p', STRIPE_PRICE_ID_ENTERPRISE: 'e', STRIPE_PRICE_ID_EPIC: 'x' };
+  const base = { JWT_SECRET: 'x'.repeat(40), NODE_ENV: 'production', RESEND_API_KEY: 're_x', EMAIL_FROM: 'Veyro <noreply@veyro.dev>', STRIPE_SECRET_KEY: 'sk_live_x', STRIPE_WEBHOOK_SECRET: 'whsec_x', STRIPE_PRICE_ID_PRO: 'p', STRIPE_PRICE_ID_ENTERPRISE: 'e', STRIPE_PRICE_ID_EPIC: 'x', CRON_SECRET: 'c'.repeat(16) };
   it('refuses to start in production without GEMINI_API_KEY, and starts with it', () => {
     assert.throws(() => validateEnv(base), /GEMINI_API_KEY/);
     assert.doesNotThrow(() => validateEnv({ ...base, GEMINI_API_KEY: 'k', CLOUDINARY_CLOUD_NAME: 'c', CLOUDINARY_API_KEY: 'k', CLOUDINARY_API_SECRET: 's' }));

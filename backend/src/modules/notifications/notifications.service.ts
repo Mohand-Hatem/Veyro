@@ -15,6 +15,9 @@ export type NotifyInput = {
 };
 
 const PAGE_DEFAULT = 20;
+export const NOTIFICATION_RETENTION_DAYS = 90;
+const PURGE_BATCH = 500;
+const PURGE_MAX_BATCHES = 20; // 10,000 rows per run; a bigger backlog is finished by the next day's run
 const CURSOR = /^(\d{4}-\d\d-\d\dT[\d:.]+Z)\|([a-z0-9]+)$/;
 
 /**
@@ -98,5 +101,17 @@ export class NotificationsService {
   async markAllRead(userId: string) {
     await this.prisma.notification.updateMany({ where: { recipientId: userId, readAt: null }, data: { readAt: new Date() } });
     return { unreadCount: 0 };
+  }
+
+  /** Retention: deletes notifications older than `days`, read or not, in bounded batches. Safe to run twice (the second run finds nothing). */
+  async purgeOlderThan(days = NOTIFICATION_RETENTION_DAYS, now = new Date()) {
+    const cutoff = new Date(now.getTime() - days * 86_400_000);
+    let deleted = 0;
+    for (let i = 0; i < PURGE_MAX_BATCHES; i++) {
+      const due = await this.prisma.notification.findMany({ where: { createdAt: { lt: cutoff } }, select: { id: true }, take: PURGE_BATCH });
+      if (due.length === 0) break;
+      deleted += (await this.prisma.notification.deleteMany({ where: { id: { in: due.map((n) => n.id) } } })).count;
+    }
+    return { deleted };
   }
 }

@@ -351,7 +351,7 @@ describe('5.9a: profile photo (real app, Cloudinary faked)', () => {
 });
 
 describe('5.9a: production configuration', () => {
-  const base = { JWT_SECRET: 'x'.repeat(40), NODE_ENV: 'production', RESEND_API_KEY: 're_x', EMAIL_FROM: 'Veyro <noreply@veyro.dev>', STRIPE_SECRET_KEY: 'sk_live_x', STRIPE_WEBHOOK_SECRET: 'whsec_x', STRIPE_PRICE_ID_PRO: 'p', STRIPE_PRICE_ID_ENTERPRISE: 'e', STRIPE_PRICE_ID_EPIC: 'x', GEMINI_API_KEY: 'k' };
+  const base = { JWT_SECRET: 'x'.repeat(40), NODE_ENV: 'production', RESEND_API_KEY: 're_x', EMAIL_FROM: 'Veyro <noreply@veyro.dev>', STRIPE_SECRET_KEY: 'sk_live_x', STRIPE_WEBHOOK_SECRET: 'whsec_x', STRIPE_PRICE_ID_PRO: 'p', STRIPE_PRICE_ID_ENTERPRISE: 'e', STRIPE_PRICE_ID_EPIC: 'x', GEMINI_API_KEY: 'k', CRON_SECRET: 'c'.repeat(16) };
   it('refuses to start in production without each Cloudinary setting, and starts with all three', () => {
     for (const missing of ['CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET']) {
       const cfg: Record<string, string> = { ...base, CLOUDINARY_CLOUD_NAME: 'c', CLOUDINARY_API_KEY: 'k', CLOUDINARY_API_SECRET: 's' };

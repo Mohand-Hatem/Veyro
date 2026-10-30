@@ -38,15 +38,16 @@ describe('5.5: email settings at boot', () => {
   });
   it('refuse the Resend test sender in production', () => {
     assert.throws(() => validateEnv({ ...base, NODE_ENV: 'production', RESEND_API_KEY: 're_x', EMAIL_FROM: 'Veyro <onboarding@resend.dev>' }), /test sender/);
-    const stripe = { STRIPE_SECRET_KEY: 'sk_live_x', STRIPE_WEBHOOK_SECRET: 'whsec_x', STRIPE_PRICE_ID_PRO: 'p', STRIPE_PRICE_ID_ENTERPRISE: 'e', STRIPE_PRICE_ID_EPIC: 'x', GEMINI_API_KEY: 'k', CLOUDINARY_CLOUD_NAME: 'c', CLOUDINARY_API_KEY: 'k', CLOUDINARY_API_SECRET: 's' };
+    const stripe = { STRIPE_SECRET_KEY: 'sk_live_x', STRIPE_WEBHOOK_SECRET: 'whsec_x', STRIPE_PRICE_ID_PRO: 'p', STRIPE_PRICE_ID_ENTERPRISE: 'e', STRIPE_PRICE_ID_EPIC: 'x', GEMINI_API_KEY: 'k', CLOUDINARY_CLOUD_NAME: 'c', CLOUDINARY_API_KEY: 'k', CLOUDINARY_API_SECRET: 's', CRON_SECRET: 'c'.repeat(16) };
     assert.doesNotThrow(() => validateEnv({ ...base, ...stripe, NODE_ENV: 'production', RESEND_API_KEY: 're_x', EMAIL_FROM: 'Veyro <noreply@veyro.app>' }));
   });
   it('lets a portfolio demo use the Resend test sender in production only when it says so', () => {
-    const demo = { ...base, NODE_ENV: 'production', RESEND_API_KEY: 're_x', EMAIL_FROM: 'Veyro <onboarding@resend.dev>', STRIPE_SECRET_KEY: 'sk_test_x', STRIPE_ALLOW_TEST_KEYS: 'true', STRIPE_WEBHOOK_SECRET: 'whsec_x', STRIPE_PRICE_ID_PRO: 'p', STRIPE_PRICE_ID_ENTERPRISE: 'e', STRIPE_PRICE_ID_EPIC: 'x', GEMINI_API_KEY: 'k', CLOUDINARY_CLOUD_NAME: 'c', CLOUDINARY_API_KEY: 'k', CLOUDINARY_API_SECRET: 's' };
+    const demo = { ...base, NODE_ENV: 'production', RESEND_API_KEY: 're_x', EMAIL_FROM: 'Veyro <onboarding@resend.dev>', STRIPE_SECRET_KEY: 'sk_test_x', STRIPE_ALLOW_TEST_KEYS: 'true', STRIPE_WEBHOOK_SECRET: 'whsec_x', STRIPE_PRICE_ID_PRO: 'p', STRIPE_PRICE_ID_ENTERPRISE: 'e', STRIPE_PRICE_ID_EPIC: 'x', GEMINI_API_KEY: 'k', CLOUDINARY_CLOUD_NAME: 'c', CLOUDINARY_API_KEY: 'k', CLOUDINARY_API_SECRET: 's', CRON_SECRET: 'c'.repeat(16) };
     assert.throws(() => validateEnv(demo), /RESEND_ALLOW_TEST_SENDER/, 'refused by default');
     assert.throws(() => validateEnv({ ...demo, RESEND_ALLOW_TEST_SENDER: 'yes' }), /test sender/, 'only the exact value true counts');
     assert.doesNotThrow(() => validateEnv({ ...demo, RESEND_ALLOW_TEST_SENDER: 'true' }));
     assert.throws(() => validateEnv({ ...demo, RESEND_ALLOW_TEST_SENDER: 'true', RESEND_API_KEY: '' }), /RESEND_API_KEY/, 'the switch does not excuse a missing key');
+    assert.throws(() => validateEnv({ ...demo, RESEND_ALLOW_TEST_SENDER: 'true', CRON_SECRET: 'short' }), /CRON_SECRET/, 'the daily cleanup needs its secret in production');
   });
 });
 

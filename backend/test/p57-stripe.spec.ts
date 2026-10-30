@@ -364,7 +364,7 @@ describe('5.7: Stripe payments (real app, Stripe faked)', () => {
 });
 
 describe('5.7: payment settings at boot', () => {
-  const base = { JWT_SECRET: 'x'.repeat(40), RESEND_API_KEY: 're_x', EMAIL_FROM: 'Veyro <noreply@veyro.app>', GEMINI_API_KEY: 'k', CLOUDINARY_CLOUD_NAME: 'c', CLOUDINARY_API_KEY: 'k', CLOUDINARY_API_SECRET: 's' };
+  const base = { JWT_SECRET: 'x'.repeat(40), RESEND_API_KEY: 're_x', EMAIL_FROM: 'Veyro <noreply@veyro.app>', GEMINI_API_KEY: 'k', CLOUDINARY_CLOUD_NAME: 'c', CLOUDINARY_API_KEY: 'k', CLOUDINARY_API_SECRET: 's', CRON_SECRET: 'c'.repeat(16) };
   const live = { STRIPE_SECRET_KEY: 'sk_live_x', STRIPE_WEBHOOK_SECRET: 'whsec_x', STRIPE_PRICE_ID_PRO: 'p', STRIPE_PRICE_ID_ENTERPRISE: 'e', STRIPE_PRICE_ID_EPIC: 'x' };
   it('are optional in development and complete in production', async () => {
     const { validateEnv } = await import('../src/config/env.validation');

@@ -4,6 +4,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { validateEnv } from './config/env.validation';
 import { EmailModule } from './modules/email/email.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { JobsModule } from './modules/jobs/jobs.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { HealthModule } from './modules/health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -30,6 +31,7 @@ import { LoggingMiddleware } from './common/middleware/logging.middleware';
     PrismaModule,
     EmailModule,
     NotificationsModule,
+    JobsModule,
     HealthModule,
     AuthModule,
     TenancyModule,

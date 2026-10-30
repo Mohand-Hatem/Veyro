@@ -54,5 +54,10 @@ export function validateEnv(config: Record<string, unknown>): Record<string, unk
       if (!config[key]) throw new Error(`${key} must be set in production (profile photos).`);
     }
   }
+
+  // The daily cleanup (removed photos, old notifications, deleted accounts) refuses every call without this secret, so a forgotten value would mean nothing is ever cleaned.
+  if (config.NODE_ENV === 'production' && String(config.CRON_SECRET ?? '').length < 16) {
+    throw new Error('CRON_SECRET must be set in production (at least 16 characters): it protects the daily cleanup endpoint.');
+  }
   return config;
 }
