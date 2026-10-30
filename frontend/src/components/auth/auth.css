@@ -170,3 +170,14 @@
 .au-demo li button:hover { border-color: var(--brand); }
 .au-demo li small { color: var(--muted); font-weight: 500; font-size: 0.8125rem; }
 .au-demo .au-demo-pw code { color: var(--ink); font-weight: 700; direction: ltr; unicode-bidi: isolate; }
+/* The sign-in version is a closed one-line menu (48px) that opens in place. */
+.au-demo-menu { padding: 0; gap: 0; }
+.au-demo-head { width: 100%; min-height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 14px; border: 0; border-radius: 12px; background: transparent; color: var(--ink); font: inherit; font-size: 1rem; font-weight: 700; cursor: pointer; }
+.au-demo-head svg { flex: none; color: var(--muted); transition: transform 200ms ease; }
+.au-demo-menu[data-open="true"] .au-demo-head svg { transform: rotate(180deg); }
+.au-demo-head:focus-visible { border-radius: 12px; outline-offset: -2px; }
+.au-demo-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 220ms ease; }
+.au-demo-menu[data-open="true"] .au-demo-body { grid-template-rows: 1fr; }
+.au-demo-inner { min-height: 0; overflow: hidden; }
+.au-demo-content { display: grid; gap: 8px; padding: 0 14px 14px; }
+@media (prefers-reduced-motion: reduce) { .au-demo-head svg, .au-demo-body { transition: none; } }
