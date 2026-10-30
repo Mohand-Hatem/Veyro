@@ -34,6 +34,8 @@ model User {
   theme           UserTheme  @default(SYSTEM)
   isEmailVerified Boolean    @default(false)
   emailVerifiedAt DateTime?
+  /// Set when the person deleted their account (step G2): the row stays as an anonymized "Deleted user" so task history and the audit trail keep their links.
+  deletedAt       DateTime?
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 

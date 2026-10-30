@@ -282,6 +282,11 @@
   .ap-user { display: none; }
   .ap-toast { bottom: 92px; }
 }
+/* The phone bell (design.md 5.44) takes 54px of the title row; Arabic titles such as "الملف الشخصي" wrapped to three lines at 390px. */
+@media (max-width: 430px) {
+  :lang(ar) .ap-top { gap: 8px; }
+  :lang(ar) .ap-top h1 { font-size: 1.25rem; }
+}
 .app:not([data-role="owner"]) [data-owner-only] { display: none !important; }
 .app[data-role="admin"] [data-member-only], .app[data-role="owner"] [data-member-only] { display: none !important; }
 .ap-wsbox { position: relative; }

@@ -17,6 +17,7 @@ import "@/components/projects/projects.css";
 import "@/components/settings/settings.css";
 import "@/components/ui/au-shared.css";
 import "./audit.css";
+import { usePersonName } from "@/lib/person";
 
 const ICON: Record<Cat, ReactNode> = {
   people: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8" /></svg>,
@@ -180,6 +181,7 @@ export function Audit() {
 /** One record of a trail: when, who and what happened (the sentence is passed in). Shared by the workspace and the account trail. */
 export function AuditRow({ log: l, cat, icon, children }: { log: AuditLog; cat: string; icon: ReactNode; children: ReactNode }) {
   const t = useTranslations("Audit");
+  const pn = usePersonName();
   const locale = useLocale();
   const { date } = useFormat();
   const tag = locale === "ar" ? "ar-EG-u-nu-latn" : "en-US";
@@ -191,7 +193,7 @@ export function AuditRow({ log: l, cat, icon, children }: { log: AuditLog; cat: 
     <div className="au-tr au-row" role="row">
       <span className="au-when" role="cell"><b>{date(l.createdAt, true)}</b><small>{new Date(l.createdAt).toLocaleTimeString(tag, { hour: "2-digit", minute: "2-digit" })} · {tb(ago.key, { n: ago.n })}</small></span>
       <span className="au-who" role="cell">
-        {l.actor ? <><Avatar className={`st-av ${avatarClass(l.actor.id)}`} name={l.actor.name} url={l.actor.avatarUrl} /><span className="au-wn">{l.actor.name}</span></> : <><span className="st-av au-sys">⚙</span><span className="au-wn">{t("system")}</span></>}
+        {l.actor ? <><Avatar className={`st-av ${avatarClass(l.actor.id)}`} name={l.actor.name} url={l.actor.avatarUrl} /><span className="au-wn">{pn(l.actor.name)}</span></> : <><span className="st-av au-sys">⚙</span><span className="au-wn">{t("system")}</span></>}
       </span>
       <span className="au-what" role="cell">
         <span className={`au-ic au-ic-${cat}`} aria-hidden="true">{icon}</span>
@@ -212,15 +214,16 @@ export function AuditRow({ log: l, cat, icon, children }: { log: AuditLog; cat: 
 /** One readable sentence per action ("Sarah created project Auth Revamp"); unknown actions fall back to the raw action name. */
 function Sentence({ log: l }: { log: AuditLog }) {
   const t = useTranslations("Audit");
+  const pn = usePersonName();
   const ts = useTranslations("Settings");
   const tb = useTranslations("Board");
   const tw = useTranslations("Work");
   const m = (l.metadata ?? {}) as Record<string, unknown>;
   const str = (k: string) => (typeof m[k] === "string" ? (m[k] as string) : "");
   // Names are rich-text tags (<A>{a}</A> ...) so a sentence stays one translatable string and the names come out bold.
-  const actor = l.actor ? l.actor.name : t("system");
+  const actor = l.actor ? pn(l.actor.name) : t("system");
   const a = { A: bold, a: actor };
-  const sub = { S: bold, s: l.subjectUser ? l.subjectUser.name : "—" };
+  const sub = { S: bold, s: l.subjectUser ? pn(l.subjectUser.name) : "—" };
   const proj = { P: l.project ? bold : plain, p: l.project ? l.project.name : t("aProject") };
   const wsRole = (r: string) => (r === "ADMIN" ? ts("admin") : r === "MEMBER" ? ts("member") : r);
   const projRole = (r: string) => (r === "ADMIN" ? tb("prADMIN") : r === "MEMBER" ? tb("prMEMBER") : r);

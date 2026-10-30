@@ -80,6 +80,7 @@
     "oauthFailed": "We could not sign you in with that account. Try again, or use your email and password. The account needs a verified email address.",
     "digit": "Digit {n}",
     "signedOut": "You have been signed out.",
+    "accountDeleted": "Your account was deleted. Your team keeps its work.",
     "resentLink": "A new link is on its way."
   },
   "AuthErrors": {
@@ -1161,7 +1162,34 @@
     "tierFREE": "Free",
     "tierPRO": "Pro",
     "tierENTERPRISE": "Enterprise",
-    "tierEPIC": "Epic"
+    "tierEPIC": "Epic",
+    "dzT": "Delete my account",
+    "dzD": "Permanently remove your sign-in. Your team keeps the tasks and comments you wrote.",
+    "dzBtn": "Delete my account",
+    "duS": "This removes your sign-in for good. Your team keeps its work.",
+    "duL1": "You leave every workspace and project. Tasks assigned to you become unassigned.",
+    "duL2": "Your tasks, comments and the audit trail stay, under the name “Deleted user”.",
+    "duL3": "Your sessions, notifications, assistant chats and profile photo are deleted.",
+    "duL4": "This cannot be undone. You can sign up again with the same email.",
+    "duPw": "Your password",
+    "duHint": "Signed up with Google or GitHub? Set a password with <link>Forgot password</link> first.",
+    "duEPw": "That password is not correct.",
+    "duEFail": "We could not delete your account. Nothing was changed. Try again.",
+    "duCancel": "Cancel",
+    "duClose": "Close",
+    "duBusy": "Deleting…",
+    "duOwnS": "You own an account, so it has to be deleted first.",
+    "duOwnT": "You own “{name}”",
+    "duOwnD": "An account always needs an owner. Delete the account from Billing first, then come back here.",
+    "duBilling": "Go to Billing",
+    "duSide": "What deleting your account does",
+    "duSvg": "A person waving goodbye at the office door; their desk, with the team folders and a nameplate that reads Deleted user, stays behind",
+    "duSvgKeeps": "Your team keeps its work",
+    "duSvgUndo": "Cannot be undone",
+    "duSvgName": "Deleted user",
+    "duCap1": "Your <b>password</b> confirms it is you.",
+    "duCap2": "Your team keeps <b>its tasks and history</b>.",
+    "duCap3": "Your name becomes <b>Deleted user</b>."
   },
   "States": {
     "nfCrumb": "Not found",
@@ -1713,5 +1741,8 @@
     "roleAdmin": "<b>{actor}</b> made you an admin of <b>{workspace}</b>",
     "roleMember": "<b>{actor}</b> made you a member of <b>{workspace}</b>",
     "accepted": "<b>{actor}</b> accepted your invitation to <b>{workspace}</b>"
+  },
+  "People": {
+    "deleted": "Deleted user"
   }
 }

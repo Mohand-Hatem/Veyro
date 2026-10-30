@@ -13,11 +13,11 @@ import "@/components/settings/invite.css";
 import "./billing.css";
 
 const CAPTION_MS = 5200;
-const CLOSE = <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M6 6l12 12M18 6 6 18" /></svg>;
-const bold = { b: (c: ReactNode) => <b>{c}</b> };
+export const CLOSE = <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M6 6l12 12M18 6 6 18" /></svg>;
+export const bold = { b: (c: ReactNode) => <b>{c}</b> };
 
 // Native <dialog> kept in sync with an `open` flag; the body is mounted only while open so every opening starts clean.
-function Modal({ id, titleId, subId, open, busy, onClose, children, small }: { id: string; titleId: string; subId: string; open: boolean; busy: boolean; onClose: () => void; children: ReactNode; small?: boolean }) {
+export function Modal({ id, titleId, subId, open, busy, onClose, children, small }: { id: string; titleId: string; subId: string; open: boolean; busy: boolean; onClose: () => void; children: ReactNode; small?: boolean }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const el = ref.current;
@@ -33,7 +33,7 @@ function Modal({ id, titleId, subId, open, busy, onClose, children, small }: { i
 }
 
 // The three side captions rotate on a timer; clicking the pager picks one and restarts the timer.
-function useCaptions() {
+export function useCaptions() {
   const [cur, setCur] = useState(0);
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -43,7 +43,7 @@ function useCaptions() {
   return [cur, setCur] as const;
 }
 
-function Side({ className, label, captions, cur, onPick, children }: { className: string; label: string; captions: ReactNode[]; cur: number; onPick: (i: number) => void; children: ReactNode }) {
+export function Side({ className, label, captions, cur, onPick, children }: { className: string; label: string; captions: ReactNode[]; cur: number; onPick: (i: number) => void; children: ReactNode }) {
   const t = useTranslations("Billing");
   return (
     <aside className={`pm-side il-scene gv-side ${className}`} aria-label={label}>

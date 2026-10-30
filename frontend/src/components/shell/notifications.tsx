@@ -8,6 +8,7 @@ import { avatarClass } from "@/lib/dashboard";
 import { ago, badgeText, noticeHref, useMarkAllRead, useMarkRead, useNotifications, useUnreadCount, type Notice } from "@/lib/notifications";
 import "@/components/dashboard/illustration.css";
 import "./notifications.css";
+import { usePersonName } from "@/lib/person";
 
 const bold = { b: (c: ReactNode) => <b>{c}</b> };
 
@@ -65,10 +66,11 @@ function Popover({ unread, onClose }: { unread: number; onClose: () => void }) {
 
 function Row({ n, onClose }: { n: Notice; onClose: () => void }) {
   const t = useTranslations("Notifications");
+  const pn = usePersonName();
   const tag = useLocale() === "ar" ? "ar-EG-u-nu-latn" : "en-US";
   const markRead = useMarkRead();
   const d = n.data;
-  const actor = n.actor?.name ?? d.actorName ?? "";
+  const actor = pn(n.actor?.name ?? d.actorName ?? "");
   const text =
     n.type === "TASK_ASSIGNED" ? t.rich("assigned", { actor, task: d.taskTitle, ...bold })
     : n.type === "TASK_COMMENTED" ? t.rich("commented", { actor, task: d.taskTitle, ...bold })

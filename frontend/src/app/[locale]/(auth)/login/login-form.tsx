@@ -21,7 +21,7 @@ export function LoginForm() {
   const next = safeNext(params.get("next"));
   const carry = params.get("next") ? { next } : undefined;
   const { te, banner, setBanner, fail } = useAuthErrors(
-    params.get("signedout") === "1" ? { kind: "ok", text: t("signedOut") } : params.get("oauth") === "failed" ? { kind: "error", text: t("oauthFailed") } : null,
+    params.get("signedout") === "1" ? { kind: "ok", text: t("signedOut") } : params.get("deleted") === "1" ? { kind: "ok", text: t("accountDeleted") } : params.get("oauth") === "failed" ? { kind: "error", text: t("oauthFailed") } : null,
   );
   const router = useRouter();
   const { register, handleSubmit, setError, formState: { errors, isSubmitting } } = useForm<Values>({ resolver: zodResolver(loginSchema(te)) });

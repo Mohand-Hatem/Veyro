@@ -101,7 +101,7 @@ const ROWS: Row[] = [
 const USER_SCOPED = new Set([
   'POST /onboarding/atomic', 'GET /workspaces', 'GET /invitations/preview', 'POST /invitations/accept',
   'GET /auth/me', 'POST /auth/logout', 'POST /auth/change-password',
-  'GET /users/me/profile', 'PATCH /users/me', 'GET /users/me/ai-subscription',
+  'GET /users/me/profile', 'PATCH /users/me', 'DELETE /users/me', 'GET /users/me/ai-subscription',
   // Profile photo (5.9a): no id in the path; the storage id is built from the caller's own id on the server (p62 proves it).
   'PUT /users/me/avatar', 'PUT /users/me/avatar/preset', 'DELETE /users/me/avatar',
   // Notifications (5.9c): the caller's own rows; no user id in any path, mark-read matches the recipient too (p63 proves it).

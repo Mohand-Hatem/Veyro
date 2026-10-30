@@ -19,6 +19,7 @@ import "@/components/dashboard/dashboard.css";
 import "@/components/projects/projects.css";
 import "@/components/ui/badges.css";
 import "./settings.css";
+import { usePersonName } from "@/lib/person";
 
 const CAPTION_MS = 5200;
 const TRASH = <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6" /></svg>;
@@ -294,6 +295,7 @@ function MembersCard() {
 
 function InvitationsCard() {
   const t = useTranslations("Settings");
+  const pn = usePersonName();
   const { workspace, notify } = useShell();
   const list = useInvitations(workspace?.id, true);
   const resend = useResendInvitation(workspace?.id);
@@ -338,7 +340,7 @@ function InvitationsCard() {
               const d = daysUntil(i.expiresAt);
               return (
                 <li className="st-inv" key={i.id}>
-                  <span className="st-iw"><b>{i.email}</b><small>{t("invitedBy")} {i.inviter.name}</small></span>
+                  <span className="st-iw"><b>{i.email}</b><small>{t("invitedBy")} {pn(i.inviter.name)}</small></span>
                   <span className="st-ir"><span className={`st-badge b-${i.role.toLowerCase()}`}>{t(i.role === "ADMIN" ? "admin" : "member")}</span>{i.projects.map((p) => <span className="ap-key" key={p.id} title={p.name}>{p.key}</span>)}</span>
                   <span className="st-ie">{i.isExpired ? <><span className="st-badge b-exp">{t("expired")}</span> <small>{t("expiredAgo", { n: Math.abs(d) })}</small></> : <small>{t("expiresIn", { n: d })}</small>}</span>
                   <span className="st-ia">

@@ -19,6 +19,7 @@ import "@/components/projects/project-dialogs.css";
 import "@/components/board/board.css";
 import "@/components/board/board-dialogs.css";
 import "./task.css";
+import { usePersonName } from "@/lib/person";
 
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 const CAPTION_MS = 6000;
@@ -84,6 +85,7 @@ type Draft = Partial<Pick<TaskPatch, "title" | "description" | "priority" | "cat
 // Every field saves on its own as soon as it is committed; the server is the authority, a refusal puts the field back.
 function TaskView({ task, projectKey }: { task: TaskDetail; projectKey: string }) {
   const t = useTranslations("Task");
+  const pn = usePersonName();
   const tb = useTranslations("Board");
   const tw = useTranslations("Work");
   const { workspace, notify } = useShell();
@@ -224,7 +226,7 @@ function TaskView({ task, projectKey }: { task: TaskDetail; projectKey: string }
                 <textarea id="tp-desc" rows={6} maxLength={5000} disabled={!edit} placeholder={tb("tkDescPh")} value={draft.description ?? task.description ?? ""} onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))} onBlur={(e) => commitText("description", e.target.value)} />
               </div>
               <dl className="td-meta" id="tp-meta">
-                <div><dt>{t("author")}</dt><dd>{task.author.name}</dd></div>
+                <div><dt>{t("author")}</dt><dd>{pn(task.author.name)}</dd></div>
                 <div><dt>{t("created")}</dt><dd>{dateStr(task.createdAt)}</dd></div>
                 {task.completedAt && <div><dt>{t("completedAt")}</dt><dd>{dateStr(task.completedAt)}</dd></div>}
               </dl>
@@ -238,8 +240,8 @@ function TaskView({ task, projectKey }: { task: TaskDetail; projectKey: string }
                   const ago = agoParts(c.createdAt);
                   return (
                     <li className={`td-c${sys ? " is-sys" : ""}`} key={c.id}>
-                      {sys ? <span className="td-sysic">{UNDO}</span> : <Avatar className={`bd-av ${avatarClass(c.author.id)}`} title={c.author.name} name={c.author.name} url={c.author.avatarUrl} />}
-                      <div><b>{c.author.name}</b><small>{tb(ago.key, { n: ago.n })}</small><p>{c.content}</p></div>
+                      {sys ? <span className="td-sysic">{UNDO}</span> : <Avatar className={`bd-av ${avatarClass(c.author.id)}`} title={pn(c.author.name)} name={c.author.name} url={c.author.avatarUrl} />}
+                      <div><b>{pn(c.author.name)}</b><small>{tb(ago.key, { n: ago.n })}</small><p>{c.content}</p></div>
                     </li>
                   );
                 }) : <li className="td-c-none">{t("noComments")}</li>}

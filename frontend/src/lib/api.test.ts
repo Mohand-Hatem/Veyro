@@ -62,6 +62,13 @@ describe("api()", () => {
     await expect(api("/projects")).rejects.toMatchObject({ status: 401 });
   });
 
+  it("does not refresh or retry when the password the person typed is wrong", async () => {
+    const f = vi.fn().mockResolvedValue(fail(401, "INVALID_CURRENT_PASSWORD"));
+    vi.stubGlobal("fetch", f);
+    await expect(api("/users/me", { method: "DELETE", body: "{}" })).rejects.toMatchObject({ status: 401, code: "INVALID_CURRENT_PASSWORD" });
+    expect(f).toHaveBeenCalledTimes(1);
+  });
+
   it("does not try to refresh when login credentials are wrong", async () => {
     const fetchMock = vi.fn().mockResolvedValue(fail(401, "INVALID_CREDENTIALS"));
     vi.stubGlobal("fetch", fetchMock);

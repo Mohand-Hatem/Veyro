@@ -17,6 +17,8 @@ import "@/components/projects/create-project.css";
 import "@/components/ui/badges.css";
 import "@/components/billing/billing.css";
 import { PhotoDialog } from "./photo-dialog";
+import { DeleteAccountDialog } from "./delete-account-dialog";
+import "./delete-account.css";
 import "./profile.css";
 
 const CAMERA = <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>;
@@ -67,6 +69,7 @@ function ProfileView({ p, head, notify }: { p: ProfileData; head: ReactNode; not
   const removePhoto = useRemoveAvatar();
   const [photoOpen, setPhotoOpen] = useState(false);
   const [photoBad, setPhotoBad] = useState<string | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const tag = locale === "ar" ? "ar-EG-u-nu-latn" : "en-US";
   const roleLabel = ts({ owner: "roleOwner", admin: "roleAdmin", member: "roleMember" }[highestRole(p)] as "roleOwner");
   const tier = (k: ProfileData["aiSubscription"]["tier"]) => t(`tier${k}`);
@@ -297,9 +300,15 @@ function ProfileView({ p, head, notify }: { p: ProfileData; head: ReactNode; not
                 </div>
               </div>
             </section>
+
+            <section className="ap-card pf-danger" aria-labelledby="pf-dz-h">
+              <div><h2 id="pf-dz-h">{t("dzT")}</h2><p>{t("dzD")}</p></div>
+              <button type="button" className="pm-btn st-danger" id="pf-dz-btn" onClick={() => setDeleteOpen(true)}>{t("dzBtn")}</button>
+            </section>
           </div>
         </div>
       </div>
+      <DeleteAccountDialog open={deleteOpen} profile={p} onClose={() => setDeleteOpen(false)} />
       <PhotoDialog open={photoOpen} profile={p} onClose={() => setPhotoOpen(false)} notify={notify} />
     </div>
   );

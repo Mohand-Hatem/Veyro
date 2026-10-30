@@ -80,6 +80,17 @@ export function useRemoveAvatar() {
 export const useChangePassword = () =>
   useMutation({ mutationFn: (b: { currentPassword: string; newPassword: string }) => api<{ success: boolean; otherSessionsRevoked: number }>("/auth/change-password", { method: "POST", body: JSON.stringify(b) }) });
 
+/** Deletes the signed-in person's own account (docs/03 rule 5). The server anonymizes the user and clears the sign-in cookies. */
+export const useDeleteAccount = () =>
+  useMutation({ mutationFn: (password: string) => api<{ success: boolean }>("/users/me", { method: "DELETE", body: JSON.stringify({ password }) }) });
+
+/** What the dialog says for each refusal: a wrong password is shown on the field, everything else in one alert (nothing was changed). */
+export const deleteAccountError = (code: string): "password" | "alert" => (code === "INVALID_CURRENT_PASSWORD" ? "password" : "alert");
+
+/** The account the person owns, if any. Owners cannot delete themselves (docs/03 rule 4), so the dialog explains instead of asking for a password. */
+export const ownedAccountName = (p: Pick<Profile, "stats" | "workspaces">) =>
+  p.stats.ownedAccounts > 0 ? p.workspaces.find((w) => w.isAccountOwner)?.account.name ?? "" : null;
+
 export const nameOk = (name: string) => name.trim().length >= 2 && name.trim().length <= 100;
 
 /** Four bars: 8+ characters, both cases, a digit or symbol, 12+ characters (the reference meter). */

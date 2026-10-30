@@ -45,6 +45,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
       if (typeof res === 'string') {
         message = res;
+        errorCode = this.getDefaultErrorCode(status); // e.g. the throttler answers with a plain string: still a catalog code, not INTERNAL_SERVER_ERROR
       } else if (typeof res === 'object' && res !== null) {
         const resObj = res as Record<string, any>;
         message = resObj.message || exception.message;

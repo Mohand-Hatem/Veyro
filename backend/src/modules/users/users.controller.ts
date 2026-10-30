@@ -1,11 +1,13 @@
-import { Body, Controller, Delete, Get, Patch, Put, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Patch, Put, Req, Res, UseGuards } from '@nestjs/common';
+import type { Request, Response } from 'express';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { UsersService } from './users.service';
 import { AvatarService } from './avatar.service';
+import { UserDeletionService } from './user-deletion.service';
 import { readAvatarBody } from './avatar-body';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { SetAvatarPresetDto } from './dto/set-avatar-preset.dto';
+import { DeleteAccountDto } from './dto/delete-account.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 /** The signed-in person's own profile (CS-09). There is deliberately no `:id`: nobody reads or edits another user here. */
@@ -14,6 +16,7 @@ export class UsersController {
   constructor(
     private readonly usersService: UsersService,
     private readonly avatars: AvatarService,
+    private readonly deletion: UserDeletionService,
   ) {}
 
   @Get('profile')
@@ -49,5 +52,17 @@ export class UsersController {
   @Delete('avatar')
   removeAvatar(@CurrentUser('id') userId: string) {
     return this.avatars.remove(userId);
+  }
+
+  /** Deletes the signed-in person's own account (step G2): confirmed with the password, anonymizes the user and signs them out everywhere. 10 tries an hour: each one costs a password check. */
+  @Delete()
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 10, ttl: 3_600_000 } })
+  async deleteAccount(@CurrentUser('id') userId: string, @Body() dto: DeleteAccountDto, @Res({ passthrough: true }) response: Response) {
+    const result = await this.deletion.deleteAccount(userId, dto.password);
+    response.clearCookie('access_token');
+    response.clearCookie('refresh_token', { path: '/api/v1/auth/refresh' });
+    return result;
   }
 }

@@ -2,7 +2,7 @@
 // Reference: screens/groups/06-account-governance/profile.html (role + scenario). Next: /{lang}/account/profile.
 // Run with the Playwright MCP (filename = this file) or from the shell: node scripts/parity/run.mjs scripts/parity/profile.js
 // The static server must be on :4173, the frontend on :3000 and the backend on :5000. Motion is switched off (reduced-motion) so geometry is stable.
-// The seed is the reference's own three people (mohand/sarah/leo @acme.io) and footprint (backend/tmp-seed61.ts); it refuses to run if they exist.
+// The seed is the reference's own three people (mohand/sarah/leo @acme.io) and footprint (cd backend && npm run parity:seed-profile -- create, then cleanup after); it refuses to run if they exist.
 // Known, deliberate text difference: the Preferences note (the reference promises the choice follows you to every device; the app does not do that yet).
 // The saved preferences of the signed-in user are set through PATCH /users/me to match the combo, because the reference shows the device's own.
 async (page) => {

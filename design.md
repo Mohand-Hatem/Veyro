@@ -700,8 +700,21 @@ Reference: `screens/groups/07-avatar-notifications/notifications.html` (board, w
 - **Row:** the actor's avatar (photo, illustrated avatar or initials, 36px), one sentence with the names in bold, a project-key chip when there is one and the time ("2 min. ago", "yesterday", then a short date). Unread rows have a soft brand tint and a dot at the end; clicking a row opens the task, the project board or the members page, marks it read and closes the popover. The five sentences: "{name} assigned you {task}", "{name} commented on {task}", "{name} added you to {project}", "{name} made you an admin (or a member) of {workspace}" and "{name} accepted your invitation to {workspace}", in English and Arabic.
 - **States:** items, all read, empty (the illustrated sleeping bell on the peach ground, "You're all caught up"), loading (three skeleton rows) and error (a message and Retry).
 - **Behaviour:** the unread count is polled once a minute while the tab is visible; the list loads when the popover opens. No live connection and no separate page.
+- **Arabic page titles on phones:** the phone bell takes 54px of the title row, so at 430px and below an Arabic page title is set at 1.25rem (not 1.5rem) with an 8px gap in the top bar. Without it "الملف الشخصي" wrapped to three lines at 390px. A longer Arabic title may still wrap to two lines.
 - **Not built, on purpose:** mentions, due-soon reminders, email or push notifications, settings per event type.
 - **Data contracts:** `GET /notifications?cursor&limit`, `GET /notifications/unread-count`, `POST /notifications/:id/read` and `POST /notifications/read-all` (step 5.9, Phase C). **Status:** `[Confirmed Existing Functionality — 5.9c]`.
+
+### 5.45. Delete My Account (Profile page, step G2b; approved 2026-10-29)
+
+Reference: `screens/groups/06-account-governance/delete-user.html` (board, with `review/` screenshots). It is the person's own user, not the Account that Billing deletes (`SCR-SET-04`).
+
+- **Danger card:** the last card in the Profile page's right column, below Preferences (last on phones). The rose-tinted card of Billing, with a short line ("Permanently remove your sign-in. Your team keeps the tasks and comments you wrote.") and a red "Delete my account" button.
+- **Dialog:** the two-column illustrated dialog of the Account deletion (`gv-dlg`): a list of four consequences, one password field, a hint for people who signed up with Google or GitHub (a link to Forgot password), and Cancel plus a red "Delete my account" button that stays off until a password is typed. No typed phrase: the password is the confirmation.
+- **Scene:** a person waves goodbye at the office door while their desk stays behind with the team's folders and a nameplate that reads "Deleted user". Chips: "Your team keeps its work" and "Cannot be undone". Three captions rotate. Hidden at 880px and below, as in the other dialogs.
+- **States:** opened (button off), password typed, deleting (spinner, dialog cannot be dismissed), wrong password (inline error under the field, focus returns to it), **you own an account** (no password field: a rose block naming the account, "Close" and "Go to Billing"; known from the profile, so nobody types a password just to be refused), server refused (one alert, nothing changed).
+- **Afterwards:** the app clears its cache and opens the sign-in page with the green banner "Your account was deleted. Your team keeps its work." (`/login?deleted=1`, the same banner as signed-out).
+- **Deleted people elsewhere:** wherever their name remains (task author, comments, audit trail, notifications, "invited by", deleted tasks) the app shows "Deleted user" or "مستخدم محذوف" by language, and their avatar shows the initials of that text.
+- **Data contract:** `DELETE /users/me` with `{ password }` (docs/06, docs/03 rule 5). **Status:** `[Confirmed Existing Functionality — G2a]`.
 
 ---
 

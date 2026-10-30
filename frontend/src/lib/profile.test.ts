@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { highestRole, nameOk, ownedPlan, passwordOk, passwordScore, themeToNext, type ProfileWorkspace } from "./profile";
+import { deleteAccountError, highestRole, nameOk, ownedAccountName, ownedPlan, passwordOk, passwordScore, themeToNext, type ProfileWorkspace } from "./profile";
 
 const ws = (role: "ADMIN" | "MEMBER", owner = false, plan: ProfileWorkspace["account"]["plan"] = null): ProfileWorkspace => ({
   id: "w", name: "W", slug: "w", lifecycleStatus: "ACTIVE", role, isAccountOwner: owner, joinedAt: "2026-01-01", projectCount: 1, account: { id: "a", name: "Acme", plan },
@@ -41,5 +41,17 @@ describe("profile helpers", () => {
   it("maps the saved theme to the theme switcher", () => {
     expect(themeToNext("SYSTEM")).toBe("system");
     expect(themeToNext("DARK")).toBe("dark");
+  });
+});
+
+describe("deleting my account", () => {
+  it("puts a wrong password on the field and every other refusal in one alert", () => {
+    expect(deleteAccountError("INVALID_CURRENT_PASSWORD")).toBe("password");
+    expect(["USER_OWNS_ACCOUNT", "USER_HAS_PAID_PLAN", "UNKNOWN", ""].map(deleteAccountError)).toEqual(["alert", "alert", "alert", "alert"]);
+  });
+  it("names the account a person owns, and nothing for everyone else", () => {
+    const owned = { ...ws("ADMIN", true), account: { id: "a", name: "Acme Corp", plan: null } };
+    expect(ownedAccountName({ stats: { workspaces: 1, projects: 0, openTasks: 0, ownedAccounts: 1 }, workspaces: [ws("ADMIN"), owned] })).toBe("Acme Corp");
+    expect(ownedAccountName({ stats: { workspaces: 1, projects: 0, openTasks: 0, ownedAccounts: 0 }, workspaces: [ws("MEMBER")] })).toBeNull();
   });
 });

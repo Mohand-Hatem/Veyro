@@ -37,10 +37,13 @@ const send = (path: string, init: RequestInit) =>
     headers: { "Content-Type": "application/json", ...init.headers },
   });
 
+// A 401 that names a wrong password (change password, delete my account) is the person's mistake, not an expired session: retrying would only spend a second rate-limit attempt.
+const wrongPassword = async (res: Response) => (await res.clone().json().catch(() => null))?.error?.code === "INVALID_CURRENT_PASSWORD";
+
 /** Calls the backend and returns `data` from the `{ success, data, meta }` envelope, or throws ApiError. */
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   let res = await send(path, init);
-  if (res.status === 401 && !NO_REFRESH.test(path) && (await refreshSession())) {
+  if (res.status === 401 && !NO_REFRESH.test(path) && !(await wrongPassword(res)) && (await refreshSession())) {
     res = await send(path, init);
   }
   if (res.status === 204) return undefined as T; // DELETE answers with no body

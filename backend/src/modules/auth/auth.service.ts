@@ -12,6 +12,7 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
+import { isReservedName } from '../../common/validators/reserved-name';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
@@ -296,7 +297,7 @@ export class AuthService {
         data: {
           email: profile.email,
           passwordHash,
-          name: profile.name,
+          name: isReservedName(profile.name) ? profile.email.split('@')[0] : profile.name, // nobody passes as a deleted user through a provider name
           avatarUrl: profile.avatarUrl,
           // A provider photo is a picture address like any other (decision 3 of step 5.9a keeps copying it at sign-in).
           avatarType: profile.avatarUrl ? 'UPLOAD' : 'INITIALS',

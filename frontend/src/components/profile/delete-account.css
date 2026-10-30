@@ -1,0 +1,18 @@
+/* SCR-ACC-03 delete my account (step G2b). Markup and class names follow screens/groups/06-account-governance/delete-user.html (design.md 5.45). */
+.pf-danger { display: grid; gap: 14px; border: 1.5px solid color-mix(in srgb, var(--rose) 40%, transparent); background: color-mix(in srgb, var(--rose-soft) 45%, var(--card)); }
+.pf-danger h2 { font-size: 1.0625rem; letter-spacing: -0.02em; color: var(--rose); }
+.pf-danger p { color: var(--muted); font-size: 0.875rem; margin-top: 4px; max-width: 52ch; }
+.pf-danger .pm-btn { justify-self: start; }
+
+.du-list { margin: 0; padding: 0 0 0 20px; display: grid; gap: 7px; font-size: 0.875rem; color: var(--ink); list-style: disc; }
+.du-list li::marker { color: var(--rose); }
+[dir="rtl"] .du-list { padding: 0 20px 0 0; }
+.du-hint { color: var(--muted); font-size: 0.8125rem; line-height: 1.45; }
+.du-hint a { color: var(--ink); font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
+.du-block { display: grid; gap: 8px; border-radius: 16px; background: var(--rose-soft); padding: 14px 16px; }
+.du-block b { color: var(--rose); font-size: 0.9375rem; }
+.du-block p { color: var(--ink); font-size: 0.875rem; line-height: 1.5; }
+.gv-side.du-side { --il-sweater: #E0897A; }
+[data-theme="dark"] .gv-side.du-side { --il-sweater: #B25A4C; }
+.du-side .il-caps { min-height: 3.2em; }
+@media (max-width: 880px) { .du-side { display: none; } }

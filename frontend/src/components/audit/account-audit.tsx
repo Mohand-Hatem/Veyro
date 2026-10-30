@@ -15,6 +15,7 @@ import "@/components/ui/au-shared.css";
 import "@/components/billing/billing.css";
 import "./audit.css";
 import "./account-audit.css";
+import { usePersonName } from "@/lib/person";
 
 const SVG = { fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round", viewBox: "0 0 24 24" } as const;
 const ICON: Record<AccountCat, ReactNode> = {
@@ -152,9 +153,10 @@ export function AccountAudit() {
 /** One readable sentence per account event; an action without wording falls back to its name in words. */
 function Sentence({ log: l, accountName }: { log: AuditLog; accountName: string }) {
   const t = useTranslations("AccountAudit");
+  const pn = usePersonName();
   const ta = useTranslations("Audit");
   const m = (l.metadata ?? {}) as Record<string, unknown>;
-  const actor = l.actor ? l.actor.name : ta("system");
+  const actor = l.actor ? pn(l.actor.name) : ta("system");
   const a = { A: bold, a: actor };
   switch (l.action) {
     case "SUBSCRIPTION_UPDATED": {

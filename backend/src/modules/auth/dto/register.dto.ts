@@ -1,5 +1,6 @@
 import { IsEmail, IsNotEmpty, IsString, MinLength, Matches } from 'class-validator';
 import { Transform } from 'class-transformer';
+import { IsNotReservedName } from '../../../common/validators/reserved-name';
 
 export class RegisterDto {
   @IsEmail({}, { message: 'Must provide a valid email address.' })
@@ -18,5 +19,6 @@ export class RegisterDto {
   @IsString()
   @IsNotEmpty({ message: 'Name is required.' })
   @MinLength(2, { message: 'Name must be at least 2 characters long.' })
+  @IsNotReservedName()
   name: string;
 }
