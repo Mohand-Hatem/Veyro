@@ -6,7 +6,7 @@
 #   runtime    production dependencies and the compiled output, as a non-root user (this is the default target and stays last)
 # Build from this folder:  docker build -t veyro-api backend      Migrations:  docker build --target migrate -t veyro-migrate backend
 
-FROM node:22-bookworm-slim AS build
+FROM node:25-bookworm-slim AS build
 WORKDIR /app
 # Dependencies first: this layer is rebuilt only when the lockfile changes.
 COPY package.json package-lock.json ./
@@ -24,7 +24,7 @@ FROM build AS migrate
 ENV NODE_ENV=production
 CMD ["npx", "prisma", "migrate", "deploy"]
 
-FROM node:22-bookworm-slim AS runtime
+FROM node:25-bookworm-slim AS runtime
 ENV NODE_ENV=production \
     PORT=5000
 WORKDIR /app
