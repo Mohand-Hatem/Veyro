@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { AuthHeading } from "@/components/auth/auth-shell";
 import { Field, PasswordInput, TextInput } from "@/components/auth/fields";
 import { FormBanner, SubmitButton, useAuthErrors } from "@/components/auth/form-parts";
+import { DemoAccounts } from "@/components/auth/demo-notice";
 import { OAuthButtons } from "@/components/auth/oauth-buttons";
 import { Link, useRouter } from "@/i18n/navigation";
 import { api } from "@/lib/api";
@@ -24,7 +25,7 @@ export function LoginForm() {
     params.get("signedout") === "1" ? { kind: "ok", text: t("signedOut") } : params.get("deleted") === "1" ? { kind: "ok", text: t("accountDeleted") } : params.get("oauth") === "failed" ? { kind: "error", text: t("oauthFailed") } : null,
   );
   const router = useRouter();
-  const { register, handleSubmit, setError, formState: { errors, isSubmitting } } = useForm<Values>({ resolver: zodResolver(loginSchema(te)) });
+  const { register, handleSubmit, setError, setValue, formState: { errors, isSubmitting } } = useForm<Values>({ resolver: zodResolver(loginSchema(te)) });
 
   const onSubmit = handleSubmit(async (values) => {
     setBanner(null);
@@ -40,6 +41,7 @@ export function LoginForm() {
     <>
       <AuthHeading title={t("loginTitle")} sub={t("loginSub")} />
       <FormBanner banner={banner} />
+      <DemoAccounts onPick={(email, password) => { setValue("email", email); setValue("password", password); }} />
       <OAuthButtons />
       <form className="au-form" onSubmit={onSubmit} noValidate>
         <Field id="email" label={t("fEmail")} error={errors.email?.message}>

@@ -80,6 +80,12 @@
     "oauthFailed": "We could not sign you in with that account. Try again, or use your email and password. The account needs a verified email address.",
     "digit": "Digit {n}",
     "signedOut": "You have been signed out.",
+    "demoTitle": "Try the demo",
+    "demoSub": "Pick a demo account to fill the form. The password is public on purpose.",
+    "demoSubNoPassword": "Pick a demo account to fill the email.",
+    "demoPassword": "Password:",
+    "demoRegisterTitle": "Sign-up is limited in this demo",
+    "demoRegisterBody": "The demo has no email domain, so sign-up codes only reach the project owner and a new account cannot be completed here. Sign in with Google, GitHub or a demo account instead.",
     "accountDeleted": "Your account was deleted. Your team keeps its work.",
     "resentLink": "A new link is on its way."
   },

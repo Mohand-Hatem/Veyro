@@ -7,6 +7,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { AuthHeading } from "@/components/auth/auth-shell";
 import { Field, PasswordInput, PasswordRules, TextInput } from "@/components/auth/fields";
 import { FormBanner, SubmitButton, useAuthErrors } from "@/components/auth/form-parts";
+import { DemoRegisterNote } from "@/components/auth/demo-notice";
 import { OAuthButtons } from "@/components/auth/oauth-buttons";
 import { Link, useRouter } from "@/i18n/navigation";
 import { api } from "@/lib/api";
@@ -39,6 +40,7 @@ export function RegisterForm() {
     <>
       <AuthHeading title={t("registerTitle")} sub={t("registerSub")} />
       <FormBanner banner={banner} />
+      <DemoRegisterNote />
       <OAuthButtons />
       <form className="au-form" onSubmit={onSubmit} noValidate>
         <Field id="name" label={t("fName")} error={errors.name?.message}>

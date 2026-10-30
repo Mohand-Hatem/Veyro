@@ -227,7 +227,8 @@ The demo runs as two Vercel projects from this repository: `frontend/` (Next.js)
 
 - **Serverless, stated honestly:** the API runs as one function per instance. Sign-in state for Google and GitHub lives in a cookie, usage limits for the assistant live in the database, and the pg adapter talks to Neon's pooled connection, so nothing important is kept in memory. The one exception is the request rate limiter (login, sign-up, password reset, contact): it counts per instance, so on serverless it is best-effort. Moving its counters to a shared store is the upgrade if this ever carries real traffic.
 - **Client IPs:** set `TRUST_PROXY` to the number of proxies in front of the API so the limiter and the contact form read the real address.
-- **Email without a domain:** Resend's test sender only delivers to the owner of the Resend account, so sign-up codes and invitations to other people do not arrive. The demo says so on purpose: production refuses the test sender unless `RESEND_ALLOW_TEST_SENDER=true`, and the startup log then reports demo mode. Reviewers sign in with Google, GitHub or the demo accounts.
+- **Email without a domain:** Resend's test sender only delivers to the owner of the Resend account, so sign-up codes and invitations to other people do not arrive. The demo says so on purpose: production refuses the test sender unless `RESEND_ALLOW_TEST_SENDER=true`, and the startup log then reports demo mode. Reviewers sign in with Google, GitHub or the demo accounts. On the frontend project, `NEXT_PUBLIC_DEMO_MODE=true` and `NEXT_PUBLIC_DEMO_PASSWORD` (the same value as the seed's `DEMO_PASSWORD`) make the sign-in page list the three demo accounts, one click fills the form, and the sign-up page explains the limit. Both are unset by default, so nothing changes anywhere else.
+- **Scheduled cleanup:** `backend/vercel.json` makes Vercel Cron call `GET /api/v1/jobs/daily` once a day (on the Hobby plan, some time within the 03:00 UTC hour). It deletes profile photos removed more than 30 days ago, deletes notifications older than 90 days, and purges accounts deleted from Billing. It needs `CRON_SECRET` (Vercel sends it as a bearer token; the endpoint refuses every call without it, and production refuses to start without it). Every job is safe to run twice, because cron delivery is best effort and can miss or repeat a run.
 - **Demo data:** `cd backend && npm run demo:seed` creates one account, one workspace, three people, two projects and twelve tasks through the real API (so the audit trail and notifications are genuine). `-- --reset` puts the demo back as it was. Against production it needs both `--production --yes`. The demo password is public by design (`DEMO_PASSWORD` changes it).
 
 ---
@@ -236,7 +237,7 @@ The demo runs as two Vercel projects from this repository: `frontend/` (Next.js)
 
 | Where | Command | What it covers |
 | :--- | :--- | :--- |
-| `backend/` | `npm test` | 32 test files, 372 tests of the business rules, role rules, tenant isolation (a route-by-route matrix that fails when a new route is not classified), plan limits, security, email, OAuth, Stripe (signed webhooks), the AI gateway, help search and tools, avatars and notifications, plus journey tests across the whole product. They run against the database in `DATABASE_URL_Branch` (or `DATABASE_URL`) and create and remove their own data. A suite can be cancelled when the database connection drops while it sets up; run it again. |
+| `backend/` | `npm test` | 33 test files, 380 tests of the business rules, role rules, tenant isolation (a route-by-route matrix that fails when a new route is not classified), plan limits, security, email, OAuth, Stripe (signed webhooks), the AI gateway, help search and tools, avatars and notifications, plus journey tests across the whole product. They run against the database in `DATABASE_URL_Branch` (or `DATABASE_URL`) and create and remove their own data. A suite can be cancelled when the database connection drops while it sets up; run it again. |
 | `backend/` | `npm run ai:eval` | The assistant's question set (22 cases: help answers, refusals, workspace data, prompt injection, task drafts) against the real model on the development branch; it refuses to run on production. |
 | `backend/` | `npx tsc --noEmit` | Type check |
 | `frontend/` | `npm test` | 132 unit tests (vitest): API client, validation, helpers, initials and crop math, notification helpers, message coverage in both languages |
@@ -258,7 +259,7 @@ The demo runs as two Vercel projects from this repository: `frontend/` (Next.js)
 
 **Needs your own accounts to run live:** email (Resend; the test sender is for testing only), Google and GitHub sign-in, Stripe (test mode), Gemini and Cloudinary. Their keys go in the gitignored `backend/.env`, never in the repository.
 
-**Not built yet (planned for Phase 6 or later):** CI/CD and deployment, scheduled jobs (the 30-day removed-photo purge and notification cleanup), a browser end-to-end suite, email or push notifications, @mentions, and the Delete my account screen (the backend endpoint exists: it anonymizes the person).
+**Not built yet (planned for Phase 6 or later):** the deployment itself and a browser end-to-end suite (Phase 6), email or push notifications, @mentions, and the other periodic purges that `docs/03` describes (soft-deleted tasks after 30 days, expired sessions, stale invitations).
 
 ---
 
