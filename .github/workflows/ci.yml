@@ -26,7 +26,7 @@ jobs:
       # next.config.ts forwards /api/v1 to this address at build time; the build never calls it.
       API_ORIGIN: http://localhost:5000
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -49,7 +49,7 @@ jobs:
       # `prisma generate` reads prisma.config.ts, which wants a database URL even though generating never connects to it.
       DATABASE_URL: postgresql://build:build@localhost:5432/build
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -85,7 +85,7 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres:ci-only-throwaway@localhost:5432/veyro_test
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -104,7 +104,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build the stack and wait until every service is healthy
         run: docker compose up -d --build --wait --wait-timeout 300
       - name: Health check through the published port
@@ -121,7 +121,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
