@@ -94,7 +94,8 @@ describe('5.5: templates', () => {
     assert.ok(!/[\r\n]/.test(inv.subject));
     assert.ok(!inv.html.includes('<img src=x>') && !inv.html.includes('<b>'));
     const contact = contactNotificationEmail({ name: 'N', email: 'e@x.test', topic: 'PROBLEM', message: '<a href="http://evil">click</a>' });
-    assert.ok(!contact.html.includes('<a href'));
+    assert.ok(!contact.html.includes('<a href="http://evil') && contact.html.includes('&lt;a href=&quot;http://evil'), 'a link typed in the message stays text');
+    assert.ok(contact.html.includes('href="mailto:e%40x.test?'), 'the only link is the reply to the validated sender');
     assert.equal(contact.replyTo, 'e@x.test');
   });
 
