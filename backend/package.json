@@ -48,7 +48,8 @@
     "typecheck": "tsc --noEmit"
   },
   "overrides": {
-    "multer": "2.5.0"
+    "multer": "2.5.0",
+    "zod": "4.6.7"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.11",
