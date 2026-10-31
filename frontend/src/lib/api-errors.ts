@@ -13,6 +13,7 @@ const MAP: Record<string, FormError> = {
   INVALID_OTP_REQUEST: { key: "codeBad", field: "code" },
   OTP_MAX_ATTEMPTS_EXCEEDED: { key: "codeMax", field: "code" },
   INVALID_OR_EXPIRED_RESET_TOKEN: { key: "resetInvalid" },
+  RATE_LIMIT_EXCEEDED: { key: "tooMany" },
 };
 
 export function toFormError(err: unknown): FormError {

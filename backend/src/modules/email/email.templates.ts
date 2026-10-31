@@ -57,6 +57,20 @@ export function invitationEmail(args: { inviterName: string; workspaceName: stri
   return { subject: t.subject, html: layout({ locale, heading: t.heading, body: escapeHtml(t.body), button: { label: t.button, url }, footer: t.footer }), text: `${t.heading}\n\n${t.body}\n\n${url}\n\n${t.footer}` };
 }
 
+export type SignupMethod = 'email' | 'google' | 'github';
+const METHOD_LABEL: Record<SignupMethod, string> = { email: 'email and password', google: 'Google', github: 'GitHub' };
+
+/** Goes to the team inbox, always in English: one email per new account, never for a sign-in to an existing one. */
+export function signupNotificationEmail(u: { name: string; email: string; method: SignupMethod }): Built {
+  const text = `A new Veyro account was created\n\nName: ${u.name}\nEmail: ${u.email}\nSigned up with: ${METHOD_LABEL[u.method]}`;
+  return {
+    subject: `[Veyro sign-up] ${oneLine(u.name)} via ${METHOD_LABEL[u.method]}`,
+    html: `<pre style="font-family:Segoe UI,Arial,sans-serif;font-size:14px;white-space:pre-wrap">${escapeHtml(text)}</pre>`,
+    text,
+    replyTo: u.email,
+  };
+}
+
 /** Goes to the team inbox, always in English. The sender's address is the reply-to, never the "from". */
 export function contactNotificationEmail(m: { name: string; email: string; topic: string; message: string }): Built {
   const text = `New message from the Veyro contact form\n\nName: ${m.name}\nEmail: ${m.email}\nTopic: ${m.topic}\n\n${m.message}`;

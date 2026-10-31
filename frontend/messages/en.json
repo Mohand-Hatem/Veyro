@@ -103,6 +103,7 @@
     "codeBad": "The code is incorrect or has expired.",
     "codeMax": "Too many attempts. Request a new code.",
     "resetInvalid": "This reset link is invalid or has expired.",
+    "tooMany": "Too many attempts. Please wait a minute and try again.",
     "generic": "Something went wrong. Please try again.",
     "network": "Could not reach the server. Check your connection and try again."
   },

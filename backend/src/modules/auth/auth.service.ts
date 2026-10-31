@@ -22,7 +22,7 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { EmailService } from '../email/email.service';
-import { passwordResetEmail, verificationEmail } from '../email/email.templates';
+import { passwordResetEmail, verificationEmail, signupNotificationEmail, SignupMethod } from '../email/email.templates';
 
 @Injectable()
 export class AuthService {
@@ -103,6 +103,7 @@ export class AuthService {
     });
 
     this.sendVerificationCode(user, initialRawOtp);
+    this.notifyTeamOfSignup(user, 'email');
 
     const session = user.sessions[0];
     const accessToken = this.signAccessToken({
@@ -276,11 +277,14 @@ export class AuthService {
     });
   }
 
-  async validateOAuthUser(profile: {
-    email: string;
-    name: string;
-    avatarUrl: string | null;
-  }) {
+  async validateOAuthUser(
+    profile: {
+      email: string;
+      name: string;
+      avatarUrl: string | null;
+    },
+    provider: 'google' | 'github',
+  ) {
     if (!profile.email) {
       throw new UnauthorizedException('OAuth provider did not return a verified email address.');
     }
@@ -305,6 +309,7 @@ export class AuthService {
           emailVerifiedAt: new Date(),
         },
       });
+      this.notifyTeamOfSignup(user, provider);
     } else if (!user.isEmailVerified) {
       // Pre-hijacking defence: this address was registered but never confirmed, so whoever chose that password may not be the
       // owner. The provider just proved the address is the signer's, so the old password, sessions and pending codes die here.
@@ -631,6 +636,12 @@ export class AuthService {
       success: true,
       message: 'Password has been reset successfully. Please sign in with your new password.',
     };
+  }
+
+  /** Not awaited, like every email: the account already exists, and a lost alert must never fail a sign-up. */
+  private notifyTeamOfSignup(user: { name: string; email: string }, method: SignupMethod) {
+    const inbox = process.env.CONTACT_INBOX;
+    if (inbox) void this.email.send({ to: inbox, ...signupNotificationEmail({ name: user.name, email: user.email, method }) });
   }
 
   /** Not awaited (see EmailService.send): the code is already stored and "resend" exists if the email never arrives. */

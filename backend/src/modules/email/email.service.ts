@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { waitUntil } from '@vercel/functions';
 
 export interface EmailMessage {
   to: string;
@@ -16,8 +17,16 @@ export class EmailService {
    * Sends one email through Resend's REST API. It never throws, and callers do not await it on the request path: the data is
    * already saved and the person can ask again, and waiting would make "forgot password" slower for real accounts than for
    * unknown ones (a way to learn which emails are registered). Returns whether Resend accepted it.
+   * On Vercel a function can be frozen once the response is sent, so the send is registered with waitUntil, which keeps the
+   * function alive until it settles. Outside Vercel waitUntil does nothing.
    */
-  async send(message: EmailMessage): Promise<boolean> {
+  send(message: EmailMessage): Promise<boolean> {
+    const sending = this.deliver(message);
+    waitUntil(sending);
+    return sending;
+  }
+
+  private async deliver(message: EmailMessage): Promise<boolean> {
     const apiKey = process.env.RESEND_API_KEY;
     const from = process.env.EMAIL_FROM;
     if (!apiKey || !from) {

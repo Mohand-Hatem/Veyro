@@ -67,6 +67,24 @@ describe('5.5: email service', () => {
     globalThis.fetch = (async () => { throw new Error('network down'); }) as typeof fetch;
     assert.equal(await new EmailService().send(msg), false);
   });
+
+  it('on Vercel, keeps the function alive until the email is sent (waitUntil)', async () => {
+    process.env.RESEND_API_KEY = 're_test_key';
+    process.env.EMAIL_FROM = 'Veyro <onboarding@resend.dev>';
+    globalThis.fetch = (async () => new Response('{"id":"x"}', { status: 200 })) as typeof fetch;
+    // The request context Vercel's runtime puts on globalThis; @vercel/functions reads waitUntil from it.
+    const ctx = Symbol.for('@vercel/request-context');
+    const kept: Promise<unknown>[] = [];
+    (globalThis as any)[ctx] = { get: () => ({ waitUntil: (p: Promise<unknown>) => kept.push(p) }) };
+    try {
+      const sending = new EmailService().send(msg);
+      assert.equal(kept.length, 1, 'the send was handed to waitUntil');
+      assert.equal(kept[0], sending);
+      assert.equal(await sending, true);
+    } finally {
+      delete (globalThis as any)[ctx];
+    }
+  });
 });
 
 describe('5.5: templates', () => {
@@ -206,6 +224,34 @@ describe('5.5: emails sent by the real app (the emailed secret must really work)
       await call('POST', '/contact', { name: 'Bot', email: `bot.${run}@veyro-test.io`, topic: 'OTHER', message: 'Buy now please', website: 'http://spam.test' });
       await new Promise((r) => setTimeout(r, 400));
       assert.equal(mail.sent.length, before, 'honeypot hits send nothing');
+    } finally {
+      delete process.env.CONTACT_INBOX;
+    }
+  });
+
+  it('every new account alerts the team inbox once (email, Google, GitHub); signing in again does not', async () => {
+    const inbox = 'signups@example.test';
+    process.env.CONTACT_INBOX = inbox;
+    try {
+      const email = `p55.alert.${run}@veyro-test.io`;
+      const reg = await call('POST', '/auth/register', { email, password: 'Passw0rd!long', name: 'Alert <b>Me</b>' });
+      assert.equal(reg.status, 201);
+      userIds.push(reg.json.data.user.id);
+      const [byEmail] = await waitFor(inbox);
+      assert.match(byEmail.subject, /^\[Veyro sign-up\] Alert <b>Me<\/b> via email and password$/);
+      assert.equal(byEmail.replyTo, email);
+      assert.ok(byEmail.html.includes('Alert &lt;b&gt;Me&lt;/b&gt;') && !byEmail.html.includes('<b>Me'), 'the name is escaped in HTML');
+
+      const auth = app.get(AuthService);
+      const g = await auth.validateOAuthUser({ email: `p55.google.${run}@veyro-test.io`, name: 'Goo Gle', avatarUrl: null }, 'google');
+      const h = await auth.validateOAuthUser({ email: `p55.github.${run}@veyro-test.io`, name: 'Git Hub', avatarUrl: null }, 'github');
+      userIds.push(g.user.id, h.user.id);
+      const alerts = await waitFor(inbox, 3);
+      assert.deepEqual(alerts.map((m) => m.subject.split(' via ')[1]), ['email and password', 'Google', 'GitHub']);
+
+      await auth.validateOAuthUser({ email: `p55.github.${run}@veyro-test.io`, name: 'Git Hub', avatarUrl: null }, 'github');
+      await new Promise((r) => setTimeout(r, 400));
+      assert.equal(emailsOf(inbox).length, 3, 'a returning sign-in sends nothing');
     } finally {
       delete process.env.CONTACT_INBOX;
     }

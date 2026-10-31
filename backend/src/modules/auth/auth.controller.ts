@@ -159,7 +159,7 @@ export class AuthController {
   @Get('google/callback')
   @UseGuards(OAuthConfigured('google'), OAuthCallback('google'))
   async googleAuthCallback(@Req() req: Request, @Res() res: Response) {
-    return this.finishOAuth(req, res);
+    return this.finishOAuth(req, res, 'google');
   }
 
   @Public()
@@ -173,14 +173,14 @@ export class AuthController {
   @Get('github/callback')
   @UseGuards(OAuthConfigured('github'), OAuthCallback('github'))
   async githubAuthCallback(@Req() req: Request, @Res() res: Response) {
-    return this.finishOAuth(req, res);
+    return this.finishOAuth(req, res, 'github');
   }
 
-  private async finishOAuth(req: Request, res: Response) {
+  private async finishOAuth(req: Request, res: Response, provider: 'google' | 'github') {
     const appUrl = process.env.APP_URL || 'http://localhost:3000';
     const profile = req.user as { email: string; name: string; avatarUrl: string | null } | false | undefined;
     if (!profile) return res.redirect(`${appUrl}/login?oauth=failed`);
-    const result = await this.authService.validateOAuthUser(profile);
+    const result = await this.authService.validateOAuthUser(profile, provider);
     this.setAuthCookies(res, result.accessToken, result.refreshToken);
     return res.redirect(`${appUrl}/${result.user.locale === 'AR' ? 'ar' : 'en'}/dashboard`);
   }

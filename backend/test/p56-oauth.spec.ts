@@ -114,7 +114,7 @@ describe('5.6: signing in with a provider (real app, real database)', () => {
   });
 
   it('a first-time sign-in creates a verified account with a password nobody knows', async () => {
-    const r = await auth.validateOAuthUser({ email: emailOf('fresh'), name: 'Fresh Person', avatarUrl: null });
+    const r = await auth.validateOAuthUser({ email: emailOf('fresh'), name: 'Fresh Person', avatarUrl: null }, 'google');
     userIds.push(r.user.id);
     assert.equal(r.user.isEmailVerified, true);
     assert.equal(r.user.locale, 'EN');
@@ -124,7 +124,7 @@ describe('5.6: signing in with a provider (real app, real database)', () => {
   it('signing in to an existing verified account keeps its password and sessions', async () => {
     const u = await mkUser('verified', true);
     const session = await prisma.userSession.create({ data: { userId: u.id, hashedToken: `h-${run}-v`, familyId: `f-${run}-v`, expiresAt: new Date(Date.now() + 86400000) } });
-    await auth.validateOAuthUser({ email: u.email, name: 'x', avatarUrl: null });
+    await auth.validateOAuthUser({ email: u.email, name: 'x', avatarUrl: null }, 'google');
     assert.equal((await prisma.userSession.findUniqueOrThrow({ where: { id: session.id } })).isRevoked, false);
     assert.ok((await auth.login({ email: u.email, password: 'Original-Passw0rd!' })).accessToken, 'the password still works');
   });
@@ -133,7 +133,7 @@ describe('5.6: signing in with a provider (real app, real database)', () => {
     const u = await mkUser('squatted', false);
     const session = await prisma.userSession.create({ data: { userId: u.id, hashedToken: `h-${run}-s`, familyId: `f-${run}-s`, expiresAt: new Date(Date.now() + 86400000) } });
     await prisma.userOtpVerification.create({ data: { userId: u.id, email: u.email, codeHash: 'x', expiresAt: new Date(Date.now() + 600000), resendAvailableAt: new Date() } });
-    await auth.validateOAuthUser({ email: u.email, name: 'Rightful Owner', avatarUrl: null });
+    await auth.validateOAuthUser({ email: u.email, name: 'Rightful Owner', avatarUrl: null }, 'google');
     const after = await prisma.user.findUniqueOrThrow({ where: { id: u.id } });
     assert.equal(after.isEmailVerified, true);
     assert.equal((await prisma.userSession.findUniqueOrThrow({ where: { id: session.id } })).isRevoked, true, 'old sessions are revoked');
