@@ -1,6 +1,12 @@
 import { createHash } from 'node:crypto';
 import { BadGatewayException, Injectable, ServiceUnavailableException } from '@nestjs/common';
 
+export type AttachmentResource = 'image' | 'raw';
+/** Pictures Cloudinary stores as images; everything else allowed on a task is stored as-is ("raw"). */
+export const ATTACHMENT_IMAGE_FORMATS = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+export const ATTACHMENT_RAW_FORMATS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv'];
+export const ATTACHMENT_MAX_BYTES = 10 * 1024 * 1024; // the Cloudinary Free plan limit for images and raw files
+
 const notConfigured = () =>
   new ServiceUnavailableException({ code: 'STORAGE_NOT_CONFIGURED', message: 'Photo upload is not set up yet.' });
 const unavailable = (message = 'The photo service did not answer. Try again.') =>
@@ -99,10 +105,64 @@ export class CloudinaryService {
     await this.destroy(this.hiddenPublicId(userId), 'private');
   }
 
-  private async destroy(publicId: string, type: 'upload' | 'private'): Promise<void> {
+  private async destroy(publicId: string, type: 'upload' | 'private', resourceType: AttachmentResource = 'image'): Promise<void> {
     const { cloudName } = this.config();
-    const res = await this.signedPost(`https://api.cloudinary.com/v1_1/${cloudName}/image/destroy`, { public_id: publicId, type, invalidate: 'true' });
-    if (!res.ok) throw unavailable('The photo could not be deleted.');
+    const res = await this.signedPost(`https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/destroy`, { public_id: publicId, type, invalidate: 'true' });
+    if (!res.ok) throw unavailable('The file could not be deleted.');
+  }
+
+  // Task attachments: private files. The browser uploads straight to Cloudinary with a signature for one exact public id;
+  // the API then reads the file back from Cloudinary before trusting anything the browser said about it.
+
+  /** Every file of a task lives under one prefix, so a confirmation can only ever claim a file signed for that task. */
+  attachmentPrefix(taskId: string): string {
+    return `${this.folder()}/tasks/${taskId}/`;
+  }
+
+  /** The signed form fields for one upload of one file to one public id (valid for Cloudinary's one-hour signature window). */
+  signAttachmentUpload(publicId: string, resourceType: AttachmentResource): { url: string; fields: Record<string, string> } {
+    const { cloudName, apiKey, apiSecret } = this.config();
+    const signed: Record<string, string> = {
+      public_id: publicId,
+      timestamp: String(Math.floor(Date.now() / 1000)),
+      type: 'private',
+      ...(resourceType === 'image' ? { allowed_formats: ATTACHMENT_IMAGE_FORMATS.join(',') } : {}),
+    };
+    return { url: `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`, fields: { ...signed, api_key: apiKey, signature: signParams(signed, apiSecret) } };
+  }
+
+  /** What Cloudinary actually stored under that id (null when nothing was uploaded there). */
+  async attachmentInfo(publicId: string, resourceType: AttachmentResource): Promise<{ bytes: number; format: string } | null> {
+    const { cloudName, apiKey, apiSecret } = this.config();
+    const res = await this.send(`https://api.cloudinary.com/v1_1/${cloudName}/resources/${resourceType}/private/${publicId.split('/').map(encodeURIComponent).join('/')}`, {
+      headers: { authorization: `Basic ${Buffer.from(`${apiKey}:${apiSecret}`).toString('base64')}` },
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) throw unavailable('The file service did not answer. Try again.');
+    const body = (await res.json()) as { bytes?: number; format?: string };
+    if (!Number.isInteger(body.bytes)) throw unavailable('The file service sent an unexpected answer.');
+    // Raw files have no separate format: their extension is the end of the public id.
+    return { bytes: body.bytes as number, format: (body.format || publicId.split('.').pop() || '').toLowerCase() };
+  }
+
+  /** A signed link to the private file that stops working after `seconds` (Cloudinary's private download endpoint). */
+  attachmentUrl(publicId: string, resourceType: AttachmentResource, format: string, opts: { download: boolean; seconds: number }): string {
+    const { cloudName, apiKey, apiSecret } = this.config();
+    const now = Math.floor(Date.now() / 1000);
+    const params: Record<string, string> = {
+      expires_at: String(now + opts.seconds),
+      public_id: publicId,
+      timestamp: String(now),
+      type: 'private',
+      ...(resourceType === 'image' ? { format } : {}), // a raw file's format is already in its id
+      ...(opts.download ? { attachment: 'true' } : {}),
+    };
+    const query = new URLSearchParams({ ...params, signature: signParams(params, apiSecret), api_key: apiKey });
+    return `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/download?${query}`;
+  }
+
+  async destroyAttachment(publicId: string, resourceType: AttachmentResource): Promise<void> {
+    await this.destroy(publicId, 'private', resourceType);
   }
 
   private signedPost(url: string, params: Record<string, string>): Promise<Response> {

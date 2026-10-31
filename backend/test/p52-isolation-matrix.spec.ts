@@ -77,6 +77,10 @@ const ROWS: Row[] = [
   { key: 'POST /tasks/:id/restore', res: 'dtask', cls: 'projAdmin' },
   { key: 'GET /tasks/:id/comments', res: 'task', cls: 'projRead' },
   { key: 'POST /tasks/:id/comments', res: 'task', cls: 'projRead', body: { content: 'hello' } },
+  // Files: the task's creator (an admin here) and project admins add and remove; the assigned member gets 403.
+  { key: 'POST /tasks/:id/attachments/sign', res: 'task', cls: 'projAdmin', body: { fileName: 'brief.pdf' } },
+  { key: 'POST /tasks/:id/attachments', res: 'task', cls: 'projAdmin', body: { publicId: 'Veyro/tasks/x/y.pdf', fileName: 'brief.pdf' } },
+  { key: 'DELETE /tasks/:id/attachments/:attachmentId', res: 'task', cls: 'projAdmin' },
   // account (AccountOwnerGuard: only the owner, anyone else 403)
   { key: 'GET /accounts/:id/subscription', res: 'account', cls: 'account' },
   { key: 'GET /accounts/:id/billing-events', res: 'account', cls: 'account' },
@@ -216,7 +220,7 @@ describe('5.2: tenant isolation and role matrix (real app, real guards)', () => 
     const [, tpl] = row.key.split(' ');
     const path = tpl
       .replace(':workspaceId', ids.ws).replace(':projectId', ids.project)
-      .replace(':id', ids[row.res]).replace(/:(memberId|userId|invitationId)/, 'zzzzzzzzzzzzzzzzzzzzzzzzz');
+      .replace(':id', ids[row.res]).replace(/:(memberId|userId|invitationId|attachmentId)/, 'zzzzzzzzzzzzzzzzzzzzzzzzz');
     const q = row.query?.replace(':ws', ids.ws).replace(':id', ids.account);
     return q ? `${path}?${q}` : path;
   };

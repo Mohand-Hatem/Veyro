@@ -154,7 +154,8 @@ describe('CS-04: board contract (counts, viewer rights, restore window)', () => 
     });
 
     it('computes viewer rights on live tasks (admin / assigned member / bystander, terminal / open)', async () => {
-      const mk = (userId: string, isAdmin: boolean, isAuthor: boolean, isAssignee: boolean, extra: object) => ({ userId, isProjectAdmin: isAdmin, isTaskAuthor: isAuthor, isAssignee, canEdit: isAdmin, canAssign: isAdmin, canReopen: false, canDelete: isAdmin, canRestore: false, allowedStatuses: [], ...extra });
+      // canUpload is false throughout: no file storage is configured in this suite (p66 covers attachments).
+      const mk = (userId: string, isAdmin: boolean, isAuthor: boolean, isAssignee: boolean, extra: object) => ({ userId, isProjectAdmin: isAdmin, isTaskAuthor: isAuthor, isAssignee, canEdit: isAdmin, canAssign: isAdmin, canReopen: false, canDelete: isAdmin, canRestore: false, allowedStatuses: [], canUpload: false, canOpenFiles: isAdmin || isAuthor || isAssignee, ...extra });
       // memberA authored T.todo but is a plain member: no edit, no delete, no moves (not assigned).
       const author = await call('membera', 'GET', `/tasks/${T.todo}`);
       assert.deepEqual(author.json.data.viewer, mk(fx.users.memberA, false, true, false, {}));

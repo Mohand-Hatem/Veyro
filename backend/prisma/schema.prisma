@@ -48,6 +48,7 @@ model User {
   authoredTasks            Task[]                   @relation("TaskAuthor")
   assignedTasks            Task[]                   @relation("TaskAssignee")
   tasksAssignedBy          Task[]                   @relation("TaskAssignedBy")
+  taskAttachments          TaskAttachment[]
   taskComments             TaskComment[]
   aiSubscription           UserAiSubscription?
   aiUsageRecords           AiDailyUsage[]
@@ -362,11 +363,12 @@ model Task {
   updatedAt    DateTime      @updatedAt
 
   // Relationships
-  project    Project       @relation(fields: [projectId], references: [id], onDelete: Restrict)
-  author     User          @relation("TaskAuthor", fields: [authorId], references: [id], onDelete: Restrict)
-  assignee   User?         @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
-  assignedBy User?         @relation("TaskAssignedBy", fields: [assignedById], references: [id], onDelete: SetNull)
-  comments   TaskComment[]
+  project     Project          @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  author      User             @relation("TaskAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  assignee    User?            @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  assignedBy  User?            @relation("TaskAssignedBy", fields: [assignedById], references: [id], onDelete: SetNull)
+  comments    TaskComment[]
+  attachments TaskAttachment[]
 
   @@index([projectId, status])
   @@index([projectId, deletedAt])
@@ -374,6 +376,29 @@ model Task {
   @@index([assigneeId])
   @@index([authorId])
   @@map("tasks")
+}
+
+/// A file on a task, stored privately on Cloudinary. Uploaded by the task's creator or a project admin; opened by them and the
+/// assignee through short-lived signed links. The row is written only after the file was checked on Cloudinary.
+model TaskAttachment {
+  id           String   @id @default(cuid(2))
+  taskId       String
+  uploaderId   String?
+  /// Cloudinary public id (`<folder>/tasks/<taskId>/<random>`; raw files keep their extension in it).
+  publicId     String   @unique
+  /// "image" or "raw" (Cloudinary resource type).
+  resourceType String
+  /// File extension as Cloudinary reports it (jpg, pdf, docx, ...).
+  format       String
+  fileName     String
+  bytes        Int
+  createdAt    DateTime @default(now())
+
+  task     Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  uploader User? @relation(fields: [uploaderId], references: [id], onDelete: SetNull)
+
+  @@index([taskId])
+  @@map("task_attachments")
 }
 
 model TaskComment {

@@ -5,8 +5,10 @@ import { AccountPurgeService } from './account-purge.service';
 import { TenancyController } from './tenancy.controller';
 import { TenantGuard } from './guards/tenant.guard';
 import { AccountOwnerGuard } from './guards/account-owner.guard';
+import { StorageModule } from '../storage/storage.module';
 
 @Module({
+  imports: [StorageModule],
   controllers: [TenancyController],
   providers: [TenancyService, WorkspaceManagementService, AccountPurgeService, TenantGuard, AccountOwnerGuard],
   exports: [TenancyService, AccountPurgeService, TenantGuard, AccountOwnerGuard],

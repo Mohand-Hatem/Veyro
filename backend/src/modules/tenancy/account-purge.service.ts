@@ -1,6 +1,7 @@
 import { Injectable, Logger, ConflictException, NotFoundException } from '@nestjs/common';
 import { AccountOffboardingState, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CloudinaryService, type AttachmentResource } from '../storage/cloudinary.service';
 
 const BATCH = 500;
 
@@ -18,7 +19,10 @@ const BATCH = 500;
 export class AccountPurgeService {
   private readonly logger = new Logger(AccountPurgeService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: CloudinaryService,
+  ) {}
 
   async purgeAccount(accountId: string) {
     const account = await this.prisma.account.findUnique({ where: { id: accountId } });
@@ -36,10 +40,15 @@ export class AccountPurgeService {
       const tasks = await this.prisma.task.findMany({ where: { projectId: { in: projectIds } }, select: { id: true }, take: BATCH });
       if (tasks.length === 0) break;
       const ids = tasks.map((t) => t.id);
+      const files = await this.prisma.taskAttachment.findMany({ where: { taskId: { in: ids } }, select: { publicId: true, resourceType: true } });
       await this.prisma.$transaction(async (tx) => {
         counts.comments += (await tx.taskComment.deleteMany({ where: { taskId: { in: ids } } })).count;
-        counts.tasks += (await tx.task.deleteMany({ where: { id: { in: ids } } })).count;
+        counts.tasks += (await tx.task.deleteMany({ where: { id: { in: ids } } })).count; // attachment rows cascade
       });
+      // The files themselves live on Cloudinary. Best effort after the commit: a failure is logged, never blocks the purge.
+      for (const f of files) {
+        await this.storage.destroyAttachment(f.publicId, f.resourceType as AttachmentResource).catch((e: Error) => this.logger.warn(`Attachment ${f.publicId} not deleted: ${e.message}`));
+      }
     }
 
     // 2. Everything else is small (plan caps bound projects, workspaces and members) and goes in one transaction.
