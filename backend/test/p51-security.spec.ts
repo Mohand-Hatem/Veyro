@@ -94,6 +94,16 @@ describe('5.1: auth over HTTP (real app, real guards)', () => {
     }
   });
 
+  it('returns one request id in the header and the body, and replaces an unsafe one', async () => {
+    const own = await fetch(`${base}/health`, { headers: { 'x-request-id': 'trace-abc_123' } });
+    assert.strictEqual(own.headers.get('x-request-id'), 'trace-abc_123');
+    assert.strictEqual(((await own.json()) as any).meta.requestId, 'trace-abc_123');
+    const forged = await fetch(`${base}/health`, { headers: { 'x-request-id': 'bad id"} {"level":"fake' } });
+    const id = forged.headers.get('x-request-id') ?? '';
+    assert.match(id, /^req_\d+_[a-z0-9]+$/);
+    assert.strictEqual(((await forged.json()) as any).meta.requestId, id);
+  });
+
   it('limits login to 10 attempts a minute per client (the 11th is refused with 429)', async () => {
     // One login already happened in the test above, so 9 more are allowed.
     const statuses: number[] = [];

@@ -67,10 +67,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
       errorCode = 'SERVICE_UNAVAILABLE';
       message = 'The service is temporarily unavailable. Please try again in a moment.';
       response.setHeader('Retry-After', '5');
-      this.logger.warn(`Database unavailable on ${request.method} ${request.url}: ${(exception as { code?: string }).code ?? (exception as Error).message}`);
+      this.logger.warn(`[${requestId}] Database unavailable on ${request.method} ${request.path}: ${(exception as { code?: string }).code ?? (exception as Error).message}`);
     } else {
       this.logger.error(
-        `Unhandled exception on ${request.method} ${request.url}`,
+        `[${requestId}] Unhandled exception on ${request.method} ${request.path}`,
         exception instanceof Error ? exception.stack : String(exception),
       );
     }

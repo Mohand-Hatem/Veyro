@@ -1,0 +1,26 @@
+name: Health
+
+# Checks the live API once an hour. A failed run makes GitHub email whoever last edited this schedule.
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  live-api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: API answers and reaches the database
+        run: |
+          # Three tries, 20 s apart: a database waking from scale-to-zero can miss the first one.
+          for i in 1 2 3; do
+            body=$(curl -fsS --max-time 30 https://veyro-workspace-api.vercel.app/api/v1/health) \
+              && echo "$body" | grep -q '"database":"connected"' \
+              && { echo "healthy: $body"; exit 0; }
+            echo "try $i failed: ${body:-no response}"
+            sleep 20
+          done
+          exit 1

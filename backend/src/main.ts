@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, Logger } from '@nestjs/common';
+import { ValidationPipe, Logger, ConsoleLogger } from '@nestjs/common';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
@@ -9,7 +9,8 @@ import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   // rawBody: Stripe signs the exact bytes it sends, so the webhook needs them untouched next to the parsed JSON.
-  const app = await NestFactory.create(AppModule, { rawBody: true });
+  // Production logs are one JSON object per line, so the Vercel log viewer can filter on fields; local logs stay readable.
+  const app = await NestFactory.create(AppModule, { rawBody: true, logger: new ConsoleLogger({ json: process.env.NODE_ENV === 'production' }) });
 
   // Rate limits and the contact form key on req.ip. Behind N proxies (Next.js rewrite, load balancer) set TRUST_PROXY=N so
   // the real client IP is read from X-Forwarded-For; left unset, the header is ignored and cannot be spoofed.
