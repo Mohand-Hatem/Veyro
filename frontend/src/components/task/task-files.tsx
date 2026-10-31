@@ -146,7 +146,7 @@ function FileCard({ file, canRemove, files }: { file: Attachment; canRemove: boo
         : <span className={`tf-thumb tf-tile t-${TILE[file.format] ?? "txt"}`} aria-hidden="true">{file.format.toUpperCase()}</span>}
       <div className="tf-info">
         <b dir="auto" title={file.fileName}>{file.fileName}</b>
-        <small>{formatBytes(file.bytes, locale)}{file.uploader ? ` · ${pn(file.uploader.name)}` : ""} · {date(file.createdAt, true)}</small>
+        <small><bdi className="tf-keep">{formatBytes(file.bytes, locale)}</bdi>{file.uploader && <> · <bdi>{pn(file.uploader.name)}</bdi></>} · <bdi className="tf-keep">{date(file.createdAt, true)}</bdi></small>
         {failed && <small className="tf-up-err">{failed}</small>}
       </div>
       {asking ? (

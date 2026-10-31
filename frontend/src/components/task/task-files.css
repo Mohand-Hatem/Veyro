@@ -13,7 +13,9 @@
 .tf-tile.t-txt { background: #52525B; }
 .tf-info { display: grid; gap: 2px; min-width: 0; }
 .tf-info b { font-size: 0.875rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tf-info small { color: var(--muted); font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tf-info small { color: var(--muted); font-size: 0.75rem; }
+.tf-info small { overflow-wrap: anywhere; }
+.tf-info small .tf-keep { white-space: nowrap; }
 .tf-acts { display: inline-flex; gap: 4px; }
 .tf-act { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 9999px; border: 0; background: transparent; color: var(--ink); cursor: pointer; transition: background 150ms ease, color 150ms ease; }
 .tf-act:hover { background: var(--card, #FFFFFF); color: var(--brand); }
