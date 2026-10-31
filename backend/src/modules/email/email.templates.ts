@@ -23,7 +23,7 @@ const isolate = (s: string) => String.fromCharCode(0x2068) + s + String.fromChar
 /** Email clients cannot show SVG, so the logo and scenes are PNGs served by the web app (frontend/public/email). */
 const appUrl = () => (process.env.APP_URL || 'http://localhost:3000').replace(/\/+$/, '');
 
-type Scene = 'verify' | 'reset' | 'invite';
+type Scene = 'verify' | 'reset' | 'invite' | 'welcome';
 
 interface Layout {
   locale: EmailLocale;
@@ -53,12 +53,12 @@ function layout({ locale, title, preheader, heading, body, scene, code, button, 
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${CANVAS}" style="background:${CANVAS}"><tr><td align="center" style="padding:32px 12px 40px">
 <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="width:100%;max-width:560px">
 <tr><td style="padding:0 4px 18px;text-align:${align}"><a href="${escapeHtml(app)}" style="text-decoration:none;color:${INK}"><img src="${app}/email/logo.png" width="32" height="32" alt="" style="vertical-align:middle;border:0"><span style="vertical-align:middle;font-size:20px;font-weight:800;letter-spacing:-0.02em;padding:0 8px">Veyro</span></a></td></tr>
-<tr><td class="v-pad" bgcolor="#FFFFFF" style="background:#FFFFFF;border:2px solid ${INK};border-radius:20px;padding:32px;text-align:${align}">
+<tr><td class="v-pad" bgcolor="#FFFFFF" style="background:#FFFFFF;border-radius:20px;padding:32px;text-align:${align}">
 ${scene ? `<img src="${app}/email/${scene}.png" width="496" alt="" style="display:block;width:100%;max-width:496px;height:auto;border:0;margin:0 0 28px">` : ''}
 <h1 class="v-h" style="margin:0;font-size:28px;line-height:1.2;font-weight:800;letter-spacing:${rtl ? '0' : '-0.02em'};color:${INK}">${escapeHtml(heading)}</h1>
 <div style="margin-top:12px;font-size:16px;line-height:1.6;color:${INK}">${body}</div>
-${code ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:24px"><tr><td dir="ltr" class="v-code" bgcolor="${SOFT}" style="background:${SOFT};border:2px solid ${INK};border-radius:14px;padding:14px 22px 14px 32px;font-size:36px;font-weight:800;letter-spacing:12px;font-variant-numeric:tabular-nums;color:${INK};font-family:'Plus Jakarta Sans','Segoe UI',Helvetica,Arial,sans-serif">${escapeHtml(code)}</td></tr></table>` : ''}
-${button ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:28px"><tr><td bgcolor="${BRAND}" style="background:${BRAND};border:2px solid ${INK};border-radius:999px"><a href="${escapeHtml(button.url)}" style="display:inline-block;padding:13px 26px;font-size:16px;font-weight:700;color:#FFFFFF;text-decoration:none">${escapeHtml(button.label)}</a></td></tr></table>
+${code ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:24px"><tr><td dir="ltr" class="v-code" bgcolor="${SOFT}" style="background:${SOFT};border-radius:14px;padding:14px 22px 14px 32px;font-size:36px;font-weight:800;letter-spacing:12px;font-variant-numeric:tabular-nums;color:${INK};font-family:'Plus Jakarta Sans','Segoe UI',Helvetica,Arial,sans-serif">${escapeHtml(code)}</td></tr></table>` : ''}
+${button ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:28px"><tr><td bgcolor="${BRAND}" style="background:${BRAND};border-radius:999px"><a href="${escapeHtml(button.url)}" style="display:inline-block;padding:14px 28px;font-size:16px;font-weight:700;color:#FFFFFF;text-decoration:none">${escapeHtml(button.label)}</a></td></tr></table>
 ${button.fallback ? `<p style="margin:20px 0 0;font-size:13px;line-height:1.5;color:${MUTED}">${escapeHtml(button.fallback)}<br><a href="${escapeHtml(button.url)}" dir="ltr" style="color:${BRAND};word-break:break-all">${escapeHtml(button.url)}</a></p>` : ''}` : ''}
 <p style="margin:28px 0 0;padding:14px 16px;background:${SOFT};border-radius:12px;font-size:13px;line-height:1.55;color:${MUTED}">${escapeHtml(footer)}</p>
 </td></tr>
@@ -71,8 +71,8 @@ function teamLayout(args: { title: string; heading: string; rows: [string, strin
   const rows = args.rows
     .map(([k, v]) => `<tr><td style="padding:5px 16px 5px 0;font-size:13px;line-height:22px;color:${MUTED};white-space:nowrap;vertical-align:baseline">${escapeHtml(k)}</td><td style="padding:5px 0;font-size:15px;line-height:22px;color:${INK};word-break:break-word;vertical-align:baseline">${escapeHtml(v)}</td></tr>`)
     .join('');
-  const body = `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" bgcolor="${SOFT}" style="background:${SOFT};border-radius:14px"><tr><td style="padding:12px 16px"><table role="presentation" cellpadding="0" cellspacing="0">${rows}</table></td></tr></table>${
-    args.message ? `<div style="margin-top:16px;padding:16px 18px;border:2px solid ${INK};border-radius:14px;font-size:15px;line-height:1.6;white-space:pre-wrap;word-break:break-word">${escapeHtml(args.message)}</div>` : ''
+  const body = `<table role="presentation" cellpadding="0" cellspacing="0" width="100%"><tr><td style="padding:4px 0 0"><table role="presentation" cellpadding="0" cellspacing="0">${rows}</table></td></tr></table>${
+    args.message ? `<div style="margin-top:16px;padding:16px 18px;background:${SOFT};border-radius:14px;font-size:15px;line-height:1.6;white-space:pre-wrap;word-break:break-word">${escapeHtml(args.message)}</div>` : ''
   }`;
   const reply = args.reply ? { label: args.reply.label, url: `mailto:${encodeURIComponent(args.reply.email)}?subject=${encodeURIComponent(args.reply.subject)}` } : undefined;
   return layout({ locale: 'en', title: args.title, preheader: args.heading, heading: args.heading, body, button: reply, footer: 'Sent to the Veyro team inbox. Replying writes to the person named above.' });
@@ -106,13 +106,52 @@ export function invitationEmail(args: { inviterName: string; workspaceName: stri
 export type SignupMethod = 'email' | 'google' | 'github';
 const METHOD_LABEL: Record<SignupMethod, string> = { email: 'email and password', google: 'Google', github: 'GitHub' };
 
-/** Goes to the team inbox, always in English: one email per new account, never for a sign-in to an existing one. */
-export function signupNotificationEmail(u: { name: string; email: string; method: SignupMethod }): Built {
-  const subject = `[Veyro sign-up] ${oneLine(u.name)} via ${METHOD_LABEL[u.method]}`;
-  const text = `A new Veyro account was created\n\nName: ${u.name}\nEmail: ${u.email}\nSigned up with: ${METHOD_LABEL[u.method]}`;
+/** What a new account finds inside, in the landing page's own words (no claims the product does not make there). */
+const INSIDE: [icon: string, title: string, line: string][] = [
+  ['icon-board', 'A Kanban board that enforces process', 'Every task has an owner, a status and a story.'],
+  ['icon-roles', 'Everyone sees exactly what they should', 'Roles with least privilege, enforced on the server.'],
+  ['icon-ai', 'AI that asks before it acts', 'It shows the exact change first. You confirm it, or nothing happens.'],
+];
+
+/** Same rule as the app's default avatar: the first letters of the first two words. */
+const initialsOf = (name: string) => name.trim().split(/\s+/).slice(0, 2).map((w) => [...w][0] ?? '').join('').toUpperCase() || '?';
+
+/**
+ * Goes to the team inbox, always in English: one email per new account, never for a sign-in to an existing one.
+ * Written as a welcome card: who joined, how, and what Veyro gives them.
+ */
+export function signupNotificationEmail(u: { name: string; email: string; method: SignupMethod }, at = new Date()): Built {
+  const name = oneLine(u.name);
+  const first = name.split(' ')[0] || name;
+  const joined = `${new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' }).format(at)} UTC`;
+  const method = METHOD_LABEL[u.method];
+  const subject = `[Veyro sign-up] ${name} via ${method}`;
+  const app = appUrl();
+  const mail = `mailto:${encodeURIComponent(u.email)}?subject=${encodeURIComponent('Welcome to Veyro')}`;
+  const member = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${SOFT}" style="margin-top:22px;background:${SOFT};border-radius:16px"><tr><td style="padding:18px 20px">
+<table role="presentation" cellpadding="0" cellspacing="0"><tr>
+<td width="52" style="vertical-align:middle"><div style="width:52px;height:52px;border-radius:26px;background:${BRAND};color:#FFFFFF;font-size:18px;font-weight:800;line-height:52px;text-align:center">${escapeHtml(initialsOf(name))}</div></td>
+<td style="padding-left:14px;vertical-align:middle"><div style="font-size:17px;font-weight:800;color:${INK}">${escapeHtml(name)}</div><a href="${escapeHtml(mail)}" style="font-size:14px;color:${BRAND};word-break:break-all">${escapeHtml(u.email)}</a></td>
+</tr></table>
+<p style="margin:14px 0 0;font-size:14px;line-height:1.6;color:${MUTED}">Signed up with <strong style="color:${INK}">${escapeHtml(method)}</strong> · <span style="white-space:nowrap">Joined <strong style="color:${INK}">${escapeHtml(joined)}</strong></span></p>
+</td></tr></table>`;
+  const inside = `<h2 style="margin:30px 0 6px;font-size:18px;font-weight:800;letter-spacing:-0.01em;color:${INK}">Inside Veyro</h2>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${INSIDE.map(
+    ([icon, title, line]) => `<tr><td width="40" style="padding:12px 0;vertical-align:top"><img src="${app}/email/${icon}.png" width="40" height="40" alt="" style="display:block;border:0"></td><td style="padding:12px 0 12px 14px;vertical-align:top"><div style="font-size:15px;font-weight:700;color:${INK}">${escapeHtml(title)}</div><div style="margin-top:2px;font-size:14px;line-height:1.5;color:${MUTED}">${escapeHtml(line)}</div></td></tr>`,
+  ).join('')}</table>`;
+  const text = `Welcome to Veyro, ${first}\n\nA new account was created.\n\nName: ${u.name}\nEmail: ${u.email}\nSigned up with: ${method}\nJoined: ${joined}\n\nInside Veyro:\n${INSIDE.map(([, t, l]) => `- ${t}: ${l}`).join('\n')}\n\n${app}`;
   return {
     subject,
-    html: teamLayout({ title: subject, heading: 'A new account was created', rows: [['Name', u.name], ['Email', u.email], ['Signed up with', METHOD_LABEL[u.method]]], reply: { label: `Email ${oneLine(u.name)}`, email: u.email, subject: 'Welcome to Veyro' } }),
+    html: layout({
+      locale: 'en',
+      title: subject,
+      preheader: `${name} just created a Veyro account with ${method}.`,
+      heading: `Welcome to Veyro, ${first}`,
+      body: `${escapeHtml(name)} just created an account. Here is who joined, and what is waiting for them.${member}${inside}`,
+      scene: 'welcome',
+      button: { label: 'Open Veyro', url: `${app}/en/dashboard` },
+      footer: `You get this because a new Veyro account was created. Reply to write to ${name}.`,
+    }),
     text,
     replyTo: u.email,
   };

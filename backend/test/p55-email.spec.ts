@@ -242,6 +242,8 @@ describe('5.5: emails sent by the real app (the emailed secret must really work)
       assert.match(byEmail.subject, /^\[Veyro sign-up\] Alert <b>Me<\/b> via email and password$/);
       assert.equal(byEmail.replyTo, email);
       assert.ok(byEmail.html.includes('Alert &lt;b&gt;Me&lt;/b&gt;') && !byEmail.html.includes('<b>Me'), 'the name is escaped in HTML');
+      assert.match(byEmail.html, /Welcome to Veyro, Alert</, 'written as a welcome card');
+      assert.match(byEmail.text, /Signed up with: email and password\nJoined: /);
 
       const auth = app.get(AuthService);
       const g = await auth.validateOAuthUser({ email: `p55.google.${run}@veyro-test.io`, name: 'Goo Gle', avatarUrl: null }, 'google');
