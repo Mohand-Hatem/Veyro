@@ -2,7 +2,6 @@ import 'dotenv/config';
 import { describe, it, before, after } from 'node:test';
 import * as assert from 'node:assert/strict';
 import * as crypto from 'crypto';
-import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { NotificationsService } from '../src/modules/notifications/notifications.service';
 import { AuthService } from '../src/modules/auth/auth.service';
@@ -10,7 +9,7 @@ import { EmailService } from '../src/modules/email/email.service';
 import { TasksService } from '../src/modules/tasks/tasks.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { TaskStatus, TaskPriority, ProjectLifecycleStatus } from '@prisma/client';
+import { TaskPriority, ProjectLifecycleStatus } from '@prisma/client';
 
 describe('Veyro Backend Business Flows (OTP, Password Recovery, Task Soft Delete & Restore)', () => {
   let prisma: PrismaService;

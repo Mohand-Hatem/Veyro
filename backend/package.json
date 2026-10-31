@@ -45,7 +45,8 @@
     "test:cs03": "ts-node --transpile-only -r ./test/helpers/no-real-email.js test/cs03-audit-enrichment.spec.ts",
     "test:cs02": "ts-node --transpile-only -r ./test/helpers/no-real-email.js test/cs02-workspace-admin.spec.ts",
     "test:cs01": "ts-node --transpile-only -r ./test/helpers/no-real-email.js test/cs01-audit.spec.ts && ts-node --transpile-only -r ./test/helpers/no-real-email.js test/cs01-completed-at.spec.ts && ts-node --transpile-only -r ./test/helpers/no-real-email.js test/cs01-project-key.spec.ts && ts-node --transpile-only -r ./test/helpers/no-real-email.js test/cs01-dashboard.spec.ts && ts-node --transpile-only -r ./test/helpers/no-real-email.js test/cs01-invitation-projects.spec.ts && ts-node --transpile-only -r ./test/helpers/no-real-email.js test/cs01-http-smoke.spec.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src test scripts"
   },
   "overrides": {
     "multer": "2.5.0",
@@ -88,12 +89,14 @@
     "@types/passport-github2": "^1.2.9",
     "@types/passport-google-oauth20": "^2.0.17",
     "@types/passport-jwt": "^4.0.1",
+    "eslint": "^9.39.5",
     "prisma": "^7.10.0",
     "source-map-support": "^0.5.21",
     "ts-loader": "^9.5.2",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.71.2"
   },
   "allowScripts": {
     "prisma@7.10.0": true,

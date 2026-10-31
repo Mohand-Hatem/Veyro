@@ -10,7 +10,6 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
-  ForbiddenException,
 } from '@nestjs/common';
 import { TenancyService } from './tenancy.service';
 import { WorkspaceManagementService } from './workspace-management.service';
@@ -26,7 +25,6 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../auth/interfaces/jwt-payload.interface';
 import { TenantGuard } from './guards/tenant.guard';
 import { AccountOwnerGuard } from './guards/account-owner.guard';
-import { WorkspaceRole } from '@prisma/client';
 
 @Controller()
 export class TenancyController {
