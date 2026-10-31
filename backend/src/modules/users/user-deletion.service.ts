@@ -60,7 +60,7 @@ export class UserDeletionService {
       await tx.workspaceInvitationProject.deleteMany({ where: { invitation: { email: user.email } } });
       await tx.workspaceInvitation.deleteMany({ where: { email: user.email } });
       // Leave every workspace and project; the work they were given goes back to unassigned.
-      await tx.task.updateMany({ where: { assigneeId: userId }, data: { assigneeId: null } });
+      await tx.task.updateMany({ where: { assigneeId: userId }, data: { assigneeId: null, assignedById: null } });
       await tx.projectMember.deleteMany({ where: mine });
       await tx.workspaceMember.deleteMany({ where: mine });
       await tx.user.update({

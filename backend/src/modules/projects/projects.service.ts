@@ -610,6 +610,7 @@ export class ProjectsService {
         },
         data: {
           assigneeId: null,
+          assignedById: null,
         },
       });
 

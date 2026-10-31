@@ -18,6 +18,7 @@ import "@/components/dashboard/illustration.css";
 import "@/components/dashboard/dashboard.css";
 import "@/components/projects/projects.css";
 import { CreateTaskDialog, ReopenDialog } from "./task-dialogs";
+import { StatusNoteDialog } from "@/components/task/status-move";
 import { MembersDialog } from "./members-dialog";
 import { DeletedTasks } from "./deleted-tasks";
 import "@/components/ui/au-shared.css";
@@ -108,6 +109,7 @@ function BoardView({ project }: { project: BoardProject }) {
   const [members, setMembers] = useState(false);
   const [inTrash, setInTrash] = useState(false);
   const [reopening, setReopening] = useState<BoardTask | null>(null);
+  const [noting, setNoting] = useState<{ task: BoardTask; to: Status } | null>(null);
   const opener = useRef<HTMLElement | null>(null);
   const inflight = useRef(new Set<string>()); // a card is moved once at a time: a second drop waits for the first answer
 
@@ -140,13 +142,20 @@ function BoardView({ project }: { project: BoardProject }) {
     if (!viewer.isAdmin && task.assigneeId !== viewer.userId) { notify(t("notAssigned")); return; }
     if (!viewer.isAdmin && to === "CANCELLED") { notify(t("adminCancel")); return; }
     if (!ALLOWED[task.status].includes(to)) { notify(t("invalidMove")); return; }
-    if (inflight.current.has(task.id)) return;
+    if (!viewer.isAdmin) { setNoting({ task, to }); return; } // a member says what was done first (the server requires it)
+    await commitMove(task, to);
+  }
+
+  async function commitMove(task: BoardTask, to: Status, note?: string) {
+    if (inflight.current.has(task.id)) return false;
     inflight.current.add(task.id);
     try {
-      await move.mutateAsync({ id: task.id, from: task.status, to });
+      await move.mutateAsync({ id: task.id, from: task.status, to, note });
       notify(`${t("movedToast")} ${tw(`s${to}`)}`);
+      return true;
     } catch (err) {
       notify(t(boardErrorKey(err)));
+      return false;
     } finally {
       inflight.current.delete(task.id);
     }
@@ -362,6 +371,12 @@ function BoardView({ project }: { project: BoardProject }) {
       <CreateTaskDialog open={creating} project={project} onClose={() => setCreating(false)} onCreated={() => setTab("TODO")} />
       <MembersDialog open={members} project={project} blocked={blocked} onClose={() => setMembers(false)} />
       <ReopenDialog task={reopening} projectId={project.id} onClose={() => setReopening(null)} />
+      <StatusNoteDialog
+        move={noting && { title: noting.task.title, to: noting.to }}
+        busy={move.isPending}
+        onSave={async (note) => { if (noting && (await commitMove(noting.task, noting.to, note))) setNoting(null); }}
+        onClose={() => setNoting(null)}
+      />
 
       {menu && (
         <div className="bd-pop" role="menu" ref={popRef} onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); closeMenu(true); } }}>

@@ -171,16 +171,44 @@ describe('CS-05: project roles and task permissions', () => {
     });
 
     it('moves only tasks assigned to them, forward and back, never to Cancelled', async () => {
-      assert.strictEqual((await call('memberb', 'PATCH', `/tasks/${other}`, { status: 'IN_PROGRESS' })).status, 403);
-      assert.strictEqual((await call('memberb', 'PATCH', `/tasks/${assigned}`, { status: 'IN_PROGRESS' })).status, 200);
-      assert.strictEqual((await call('memberb', 'PATCH', `/tasks/${assigned}`, { status: 'TODO' })).status, 200);
-      assert.strictEqual((await call('memberb', 'PATCH', `/tasks/${assigned}`, { status: 'CANCELLED' })).status, 403, 'only admins cancel');
-      assert.strictEqual((await call('memberb', 'PATCH', `/tasks/${assigned}`, { status: 'DONE' })).status, 400, 'workflow still applies');
-      await call('memberb', 'PATCH', `/tasks/${assigned}`, { status: 'IN_PROGRESS' });
-      await call('memberb', 'PATCH', `/tasks/${assigned}`, { status: 'IN_REVIEW' });
-      const fin = await call('memberb', 'PATCH', `/tasks/${assigned}`, { status: 'DONE' });
+      const move = (task: string, status: string) => call('memberb', 'PATCH', `/tasks/${task}`, { status, note: `Moved to ${status}` });
+      assert.strictEqual((await move(other, 'IN_PROGRESS')).status, 403);
+      assert.strictEqual((await move(assigned, 'IN_PROGRESS')).status, 200);
+      assert.strictEqual((await move(assigned, 'TODO')).status, 200);
+      assert.strictEqual((await move(assigned, 'CANCELLED')).status, 403, 'only admins cancel');
+      assert.strictEqual((await move(assigned, 'DONE')).status, 400, 'workflow still applies');
+      await move(assigned, 'IN_PROGRESS');
+      await move(assigned, 'IN_REVIEW');
+      const fin = await move(assigned, 'DONE');
       assert.strictEqual(fin.status, 200);
       assert.ok(fin.json.data.completedAt, 'completedAt is stamped');
+    });
+
+    it('must say what was done when moving a task, and the note becomes a comment everyone sees', async () => {
+      const task = (await mkTask('Note rule', { assigneeId: fx.users.memberB })).id;
+      for (const note of [undefined, '', '   ']) {
+        const r = await call('memberb', 'PATCH', `/tasks/${task}`, { status: 'IN_PROGRESS', ...(note === undefined ? {} : { note }) });
+        assert.strictEqual(r.status, 400, JSON.stringify(note));
+        assert.strictEqual(r.json.error.code, 'STATUS_NOTE_REQUIRED');
+      }
+      assert.strictEqual((await prisma.task.findUniqueOrThrow({ where: { id: task } })).status, TaskStatus.TODO, 'nothing moved without a note');
+
+      assert.strictEqual((await call('memberb', 'PATCH', `/tasks/${task}`, { status: 'IN_PROGRESS', note: '  Started on the hero section  ' })).status, 200);
+      const comments = await prisma.taskComment.findMany({ where: { taskId: task } });
+      assert.deepStrictEqual(comments.map((c) => [c.authorId, c.content]), [[fx.users.memberB, 'Started on the hero section']]);
+      assert.ok(await prisma.notification.count({ where: { taskId: task, recipientId: fx.users.owner, type: 'TASK_COMMENTED' } }), 'the creator hears about it');
+
+      assert.strictEqual((await call('memberb', 'PATCH', `/tasks/${task}`, { status: 'IN_REVIEW', note: 'x'.repeat(501) })).status, 400, 'notes stay short');
+      assert.strictEqual((await call('admin2', 'PATCH', `/tasks/${task}`, { status: 'IN_REVIEW' })).status, 200, 'an admin may move without a note');
+      assert.strictEqual(await prisma.taskComment.count({ where: { taskId: task } }), 1, 'and no empty comment is posted');
+
+      // "Assigned by" follows whoever last set the assignee, and goes away with the assignee.
+      assert.strictEqual((await call('admin2', 'PATCH', `/tasks/${task}`, { assigneeId: fx.users.memberA })).status, 200);
+      assert.strictEqual((await call('owner', 'GET', `/tasks/${task}`)).json.data.assignedBy.id, fx.users.admin2);
+      assert.strictEqual((await call('owner', 'PATCH', `/tasks/${task}`, { title: 'Note rule renamed' })).status, 200);
+      assert.strictEqual((await call('owner', 'GET', `/tasks/${task}`)).json.data.assignedBy.id, fx.users.admin2, 'editing other fields keeps it');
+      assert.strictEqual((await call('owner', 'PATCH', `/tasks/${task}`, { assigneeId: null })).status, 200);
+      assert.strictEqual((await call('owner', 'GET', `/tasks/${task}`)).json.data.assignedBy, null);
     });
 
     it('can comment on any project task but cannot delete, restore or reopen', async () => {

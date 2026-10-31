@@ -13,6 +13,8 @@ export type TaskDetail = Omit<BoardTask, "_count" | "assignee"> & {
   purgeAt: string | null;
   author: User;
   assignee: User | null;
+  /** Who set the current assignee (null for unassigned tasks and for tasks assigned before this was recorded). */
+  assignedBy: Pick<User, "id" | "name" | "avatarUrl"> | null;
   project: { id: string; name: string; lifecycleStatus: "ACTIVE" | "ARCHIVED"; isBillingReadOnly: boolean; workspaceId: string };
   comments: { id: string; content: string; createdAt: string; author: User }[];
   viewer: {
@@ -30,7 +32,11 @@ export type TaskDetail = Omit<BoardTask, "_count" | "assignee"> & {
 
 export const useTask = (id: string) => useQuery({ queryKey: ["task", id], queryFn: () => api<TaskDetail>(`/tasks/${id}`) });
 
-export type TaskPatch = { title?: string; description?: string; priority?: Priority; category?: string | null; assigneeId?: string | null; dueDate?: string | null; status?: Status };
+/** `note` goes with a status change: required from members, optional for admins, posted as a comment by the server. */
+export type TaskPatch = { title?: string; description?: string; priority?: Priority; category?: string | null; assigneeId?: string | null; dueDate?: string | null; status?: Status; note?: string };
+
+/** The longest status note the server accepts. */
+export const NOTE_MAX = 500;
 
 /** PATCH /tasks/:id. Resolves after the task is refetched, so the page already shows the server's answer when the "Saved" note appears. */
 export function usePatchTask(id: string, projectId: string, workspaceId?: string) {

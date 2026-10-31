@@ -35,6 +35,7 @@ const { AccountPurgeService } = require('../src/modules/tenancy/account-purge.se
 /* eslint-enable @typescript-eslint/no-require-imports */
 
 const PASSWORD = process.env.DEMO_PASSWORD || 'VeyroDemo2026!';
+const MOVE_NOTE: Record<string, string> = { IN_PROGRESS: 'Picked this up and started.', IN_REVIEW: 'Ready for a review.', DONE: 'Reviewed and finished.' };
 const ACCOUNT_SLUG = 'veyro-demo';
 const WORKSPACE_SLUG = 'acme-studio';
 const PEOPLE = {
@@ -142,8 +143,8 @@ async function main() {
       }, 201);
       const id = created.data.id as string;
       for (const status of t.path ?? []) {
-        // People move their own work; whoever may not (a member on an unassigned task) never needs to here.
-        await call(t.assignee ?? 'owner', 'PATCH', `/tasks/${id}`, { status }, 200);
+        // People move their own work, with the short note a member must give (it shows as a comment).
+        await call(t.assignee ?? 'owner', 'PATCH', `/tasks/${id}`, { status, note: MOVE_NOTE[status] }, 200);
       }
       for (const [who, content] of t.comments ?? []) await call(who, 'POST', `/tasks/${id}/comments`, { content }, 201);
     }

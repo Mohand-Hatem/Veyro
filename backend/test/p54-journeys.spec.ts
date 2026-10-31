@@ -176,12 +176,12 @@ describe('5.4: end-to-end journeys (real app, real database)', () => {
     it('the assignee works the task within their rights', async () => {
       const mine = await mark.call('GET', `/workspaces/${workspaceId}/my-tasks`);
       assert.ok(JSON.stringify(mine.data).includes(taskId), 'the task shows up under My tasks');
-      assert.equal((await mark.call('PATCH', `/tasks/${taskId}`, { status: 'IN_PROGRESS' })).status, 200);
+      assert.equal((await mark.call('PATCH', `/tasks/${taskId}`, { status: 'IN_PROGRESS', note: 'Starting the draft' })).status, 200);
       assert.equal((await mark.call('POST', `/tasks/${taskId}/comments`, { content: 'Draft is ready' })).status, 201);
-      assert.equal((await mark.call('PATCH', `/tasks/${taskId}`, { status: 'CANCELLED' })).status, 403, 'members never cancel');
+      assert.equal((await mark.call('PATCH', `/tasks/${taskId}`, { status: 'CANCELLED', note: 'Not needed' })).status, 403, 'members never cancel');
       assert.equal((await mark.call('PATCH', `/tasks/${taskId}`, { title: 'Renamed by member' })).status, 403, 'members do not edit details');
-      assert.equal((await mark.call('PATCH', `/tasks/${taskId}`, { status: 'IN_REVIEW' })).status, 200);
-      assert.equal((await mark.call('PATCH', `/tasks/${taskId}`, { status: 'DONE' })).status, 200);
+      assert.equal((await mark.call('PATCH', `/tasks/${taskId}`, { status: 'IN_REVIEW', note: 'Ready for a look' })).status, 200);
+      assert.equal((await mark.call('PATCH', `/tasks/${taskId}`, { status: 'DONE', note: 'Approved and shipped' })).status, 200);
     });
 
     it('the owner sees the result everywhere, reopens the task with a reason and the record shows it', async () => {
@@ -189,7 +189,7 @@ describe('5.4: end-to-end journeys (real app, real database)', () => {
       assert.equal(detail.data.status, 'DONE');
       assert.ok(detail.data.completedAt, 'finishing a task stamps completedAt');
       const comments = await olivia.call('GET', `/tasks/${taskId}/comments`);
-      assert.equal(comments.data.length, 1);
+      assert.deepEqual(comments.data.map((x) => x.content), ['Starting the draft', 'Draft is ready', 'Ready for a look', 'Approved and shipped'], 'status notes are comments, in order');
       const noReason = await olivia.call('POST', `/tasks/${taskId}/reopen`, { targetStatus: 'IN_PROGRESS', reason: 'x' });
       assert.equal(noReason.status, 400, 'a reason is mandatory');
       const reopen = await olivia.call('POST', `/tasks/${taskId}/reopen`, { targetStatus: 'IN_PROGRESS', reason: 'Notes need a legal review' });

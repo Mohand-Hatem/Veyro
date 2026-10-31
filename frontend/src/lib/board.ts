@@ -114,7 +114,7 @@ export function restoreMove(qc: QueryClient, projectId: string, prev: ReturnType
 export function useMoveTask(projectId: string | undefined, workspaceId: string | undefined) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, to }: { id: string; from: Status; to: Status }) => api<unknown>(`/tasks/${id}`, { method: "PATCH", body: JSON.stringify({ status: to }) }),
+    mutationFn: ({ id, to, note }: { id: string; from: Status; to: Status; note?: string }) => api<unknown>(`/tasks/${id}`, { method: "PATCH", body: JSON.stringify({ status: to, ...(note ? { note } : {}) }) }),
     onMutate: async ({ id, from, to }) => {
       // A refetch landing mid-flight would overwrite the optimistic card with the old column.
       await Promise.all([qc.cancelQueries({ queryKey: ["tasks", projectId] }), qc.cancelQueries({ queryKey: ["project", projectId] })]);
@@ -248,3 +248,5 @@ export function agoParts(iso: string, now = Date.now()): { key: "agoNow" | "agoM
 
 /** Whole days left until a purge date (never negative). */
 export const daysLeft = (iso: string, now = Date.now()) => Math.max(0, Math.ceil((new Date(iso).getTime() - now) / 86400000));
+/** Whole days until a due date: negative once it has passed. */
+export const daysUntil = (iso: string, now = Date.now()) => Math.ceil((new Date(iso).getTime() - now) / 86400000);

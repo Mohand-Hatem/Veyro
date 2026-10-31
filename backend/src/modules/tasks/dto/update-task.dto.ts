@@ -38,4 +38,10 @@ export class UpdateTaskDto {
   @IsEnum(TaskStatus)
   @IsOptional()
   status?: TaskStatus;
+
+  /** What was done, sent with a status change. Required from members, optional for admins; it is posted as a comment. */
+  @IsString()
+  @IsOptional()
+  @MaxLength(500)
+  note?: string;
 }

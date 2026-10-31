@@ -10,8 +10,9 @@ import { ReopenDialog } from "@/components/board/task-dialogs";
 import { ApiError } from "@/lib/api";
 import { avatarClass, initials } from "@/lib/dashboard";
 import { Avatar } from "@/components/ui/avatar";
-import { CATEGORIES, agoParts, boardErrorKey, daysLeft, isTerminal, useBoardProject, useRestoreTask, type Priority, type Status } from "@/lib/board";
+import { CATEGORIES, agoParts, boardErrorKey, daysLeft, daysUntil, isTerminal, useBoardProject, useRestoreTask, type Priority, type Status } from "@/lib/board";
 import { useAddComment, useDeleteTask, usePatchTask, useTask, type TaskDetail, type TaskPatch } from "@/lib/task";
+import { StatusNoteForm, StatusStepper } from "./status-move";
 import "@/components/dashboard/illustration.css";
 import "@/components/dashboard/dashboard.css";
 import "@/components/projects/projects.css";
@@ -28,6 +29,18 @@ const STOP_X = [90, 170, 250, 330];
 const PRIO_STROKE: Record<Priority, string> = { URGENT: "#B4381E", HIGH: "#B7791F", MEDIUM: "#2563EB", LOW: "#71717A" };
 const PILL: Record<Status, string> = { TODO: "todo", IN_PROGRESS: "doing", IN_REVIEW: "review", DONE: "done", CANCELLED: "archived" };
 const UNDO = <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7" /><path d="M3 4v5h5" /></svg>;
+const CAL = <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3" /><path d="M3.5 10h17M8 3v4M16 3v4" /></svg>;
+
+/** One person on the task with what they are to it (created it, assigned it, does it). */
+function Person({ role, user, empty }: { role: string; user: { id: string; name: string; avatarUrl: string | null } | null; empty: string }) {
+  const pn = usePersonName();
+  return (
+    <li className={`tp-person${user ? "" : " is-empty"}`}>
+      {user ? <Avatar className={`bd-av ${avatarClass(user.id)}`} title={pn(user.name)} name={user.name} url={user.avatarUrl} /> : <span className="bd-av tp-av-none" aria-hidden="true" />}
+      <span><small>{role}</small><b>{user ? pn(user.name) : empty}</b></span>
+    </li>
+  );
+}
 
 function Crumbs({ projectKey, label }: { projectKey: string; label: string }) {
   const tw = useTranslations("Work");
@@ -102,6 +115,7 @@ function TaskView({ task, projectKey }: { task: TaskDetail; projectKey: string }
   const [comment, setComment] = useState("");
   const [reopening, setReopening] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [picked, setPicked] = useState<Status | null>(null);
   const [cur, setCur] = useState(0);
   const noteTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -119,28 +133,35 @@ function TaskView({ task, projectKey }: { task: TaskDetail; projectKey: string }
     return () => clearInterval(id);
   }, [cur]);
 
-  /** Saves one field. While the request runs the field keeps what was typed; afterwards it shows what the server says. */
-  async function save(body: TaskPatch) {
-    setDraft((d) => ({ ...d, ...body }));
+  /** Forgets typed values, so the fields show the task again. The keys are removed, never set to undefined: `shown` spreads draft over task. */
+  const forget = (keys: string[]) =>
+    setDraft((d) => {
+      const next = { ...d };
+      for (const k of keys) delete next[k as keyof Draft];
+      return next;
+    });
+
+  /** Saves one field (or a status with its note). While the request runs the field keeps what was typed; afterwards it shows what the server says. */
+  async function save(body: TaskPatch): Promise<boolean> {
+    const shownChange: TaskPatch = { ...body };
+    delete shownChange.note; // the note is not a field of the task; it becomes a comment
+    setDraft((d) => ({ ...d, ...shownChange }));
     try {
       await patch.mutateAsync(body);
       setSavedNote(true);
       clearTimeout(noteTimer.current);
       noteTimer.current = setTimeout(() => setSavedNote(false), 1800);
+      return true;
     } catch (err) {
       notify(tb(boardErrorKey(err)));
+      return false;
     } finally {
-      setDraft((d) => {
-        const next = { ...d };
-        for (const k of Object.keys(body)) delete next[k as keyof Draft];
-        return next;
-      });
+      forget(Object.keys(shownChange));
     }
   }
   const commitText = (key: "title" | "description", value: string) => {
     const current = key === "title" ? task.title : (task.description ?? "");
-    if (key === "title" && !value.trim()) { setDraft((d) => ({ ...d, title: undefined })); return; }
-    if (value === current) { setDraft((d) => ({ ...d, [key]: undefined })); return; }
+    if ((key === "title" && !value.trim()) || value === current) return forget([key]);
     void save({ [key]: key === "title" ? value.trim() : value });
   };
 
@@ -166,7 +187,6 @@ function TaskView({ task, projectKey }: { task: TaskDetail; projectKey: string }
 
   const members = project?.members.map((m) => m.user) ?? [];
   const assignees = task.assignee && !members.some((m) => m.id === task.assignee!.id) ? [task.assignee, ...members] : members;
-  const statusOptions: Status[] = [task.status, ...v.allowedStatuses];
   const left = deleted && task.purgeAt ? daysLeft(task.purgeAt) : 0;
   const idx = ORDER.indexOf(task.status);
   const cx = task.status === "CANCELLED";
@@ -176,6 +196,16 @@ function TaskView({ task, projectKey }: { task: TaskDetail; projectKey: string }
   const bold = { b: (c: ReactNode) => <b>{c}</b> };
   const captions: ReactNode[] = [t.rich(capKey as "nTODO", bold), t.rich("cap2", bold), t.rich("cap3", bold)];
   const dateStr = (s: string) => date(s, true);
+  // The brief's time line: when it was finished, or when it is due and how far away that is.
+  const dueLine = (() => {
+    if (task.completedAt) return { late: false, text: t("completedOn", { date: dateStr(task.completedAt) }) };
+    if (!shown.dueDate) return { late: false, text: t("noDue") };
+    const on = t("dueOn", { date: dateStr(shown.dueDate) });
+    if (isTerminal(task.status)) return { late: false, text: on };
+    const days = daysUntil(shown.dueDate);
+    return days < 0 ? { late: true, text: `${on} · ${t("overdue", { n: -days })}` } : { late: false, text: `${on} · ${t("daysLeft", { n: days })}` };
+  })();
+  const lockedHint = !v.isProjectAdmin && !v.isAssignee ? t("stepNotYours") : t("stepRule");
 
   return (
     <div className="st-page bd-page tp-page">
@@ -192,9 +222,25 @@ function TaskView({ task, projectKey }: { task: TaskDetail; projectKey: string }
                 <button type="button" className="pm-btn pm-ghost st-sm" id="tp-reopen" hidden={!(v.canReopen && !blocked)} onClick={() => setReopening(true)}>{UNDO}<span>{t("reopen")}</span></button>
                 <button type="button" className="pm-btn st-sm st-link-danger" id="tp-del" hidden={!v.canDelete || blocked} onClick={() => setDeleting(true)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" /></svg><span>{t("delete")}</span></button>
               </div>
-              <div className="tp-tags"><span className="ap-key" id="tp-key">{projectKey}</span><span className={`ap-st st-${PILL[task.status]}`} id="tp-pill">{tw(`s${task.status}`)}</span></div>
+              <div className="tp-tags"><span className="ap-key" id="tp-key">{projectKey}</span><span className={`ap-st st-${PILL[task.status]}`} id="tp-pill">{tw(`s${task.status}`)}</span><span className={`pr pr-${shown.priority}`}>{tw(`p${shown.priority}`)}</span></div>
               <label className="ap-sr" htmlFor="tp-title">{tb("tkName")}</label>
-              <input id="tp-title" className="td-title" maxLength={200} autoComplete="off" disabled={!edit} value={draft.title ?? task.title} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} onBlur={(e) => commitText("title", e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }} />
+              <input id="tp-title" dir="auto" className="td-title" maxLength={200} autoComplete="off" disabled={!edit} value={draft.title ?? task.title} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} onBlur={(e) => commitText("title", e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }} />
+              <div className="tp-brief">
+                <p className={`tp-due${dueLine.late ? " is-late" : ""}`} id="tp-due-line">{CAL}<span>{dueLine.text}</span></p>
+                <ul className="tp-people" aria-label={t("people")}>
+                  <Person role={t("createdBy")} user={task.author} empty="" />
+                  <Person role={t("assignedBy")} user={task.assignee ? task.assignedBy : null} empty={task.assignee ? t("notRecorded") : "—"} />
+                  <Person role={t("assignedTo")} user={task.assignee} empty={t("notAssigned")} />
+                </ul>
+                {edit ? (
+                  <div className="pm-f tp-desc">
+                    <div className="pm-lrow"><label htmlFor="tp-desc">{tb("desc")}</label><span className="pm-count" id="tp-dcount" aria-hidden="true">{(draft.description ?? task.description ?? "").length}/5000</span></div>
+                    <textarea id="tp-desc" dir="auto" rows={4} maxLength={5000} placeholder={tb("tkDescPh")} value={draft.description ?? task.description ?? ""} onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))} onBlur={(e) => commitText("description", e.target.value)} />
+                  </div>
+                ) : (
+                  <div className="tp-desc-read"><small>{tb("desc")}</small><p dir="auto" className={task.description ? undefined : "is-empty"}>{task.description || t("descEmpty")}</p></div>
+                )}
+              </div>
               <div className="td-deleted" id="tp-deleted" hidden={!deleted}>
                 <svg width="44" height="44" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="22" fill="none" stroke="currentColor" strokeWidth="3" opacity=".25" /><circle id="tp-ring" cx="24" cy="24" r="22" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" pathLength={100} strokeDasharray={`${Math.round((left / 30) * 100)} 100`} transform="rotate(-90 24 24)" /><text id="tp-days" x="24" y="29" textAnchor="middle" fontSize="14" fontWeight="800" fill="currentColor">{left}</text></svg>
                 <div><b id="tp-del-t">{t("deletedBanner")} · {tb("removedIn", { n: left })}</b><p id="tp-del-d">{task.purgeAt ? `${t("deletedOn")} ${dateStr(task.purgeAt)}.` : ""}</p></div>
@@ -202,12 +248,19 @@ function TaskView({ task, projectKey }: { task: TaskDetail; projectKey: string }
               </div>
             </section>
 
-            <section className="ap-card tp-fields" aria-label={t("details")}>
+            <section className="ap-card tp-status" aria-labelledby="tp-status-h">
+              <div className="tp-status-top"><h3 id="tp-status-h">{tb("status")}</h3>{cx && <span className="ap-st st-archived">{tw("sCANCELLED")}</span>}</div>
+              <StatusStepper status={shown.status} allowed={lock ? [] : v.allowedStatuses} picked={picked} lockedHint={lockedHint} onPick={setPicked} />
+              {picked && (
+                <StatusNoteForm key={picked} id="tp-move-note" to={picked} required={!v.isProjectAdmin} busy={patch.isPending}
+                  onSave={async (note) => { if (await save({ status: picked, ...(note ? { note } : {}) })) setPicked(null); }}
+                  onCancel={() => setPicked(null)} />
+              )}
               <p className="bd-note" id="tp-note" hidden={v.isProjectAdmin || deleted}>{tb("memberNote")}</p>
+            </section>
+
+            <section className="ap-card tp-fields" aria-label={t("details")}>
               <div className="td-grid">
-                <div className="pm-f"><label htmlFor="tp-status">{tb("status")}</label><span className="ap-select"><select id="tp-status" disabled={lock || !v.allowedStatuses.length} value={shown.status} onChange={(e) => void save({ status: e.target.value as Status })}>
-                  {statusOptions.map((s) => <option key={s} value={s}>{tw(`s${s}`)}</option>)}
-                </select></span></div>
                 <div className="pm-f"><label htmlFor="tp-prio">{tb("priority")}</label><span className="ap-select"><select id="tp-prio" disabled={!edit} value={shown.priority} onChange={(e) => void save({ priority: e.target.value as Priority })}>
                   {(["URGENT", "HIGH", "MEDIUM", "LOW"] as const).map((p) => <option key={p} value={p}>{tw(`p${p}`)}</option>)}
                 </select></span></div>
@@ -221,12 +274,7 @@ function TaskView({ task, projectKey }: { task: TaskDetail; projectKey: string }
                 </select></span></div>
                 <div className="pm-f"><label htmlFor="tp-due">{tb("due")}</label><input id="tp-due" type="date" disabled={!edit} value={shown.dueDate ? new Date(shown.dueDate).toISOString().slice(0, 10) : ""} onChange={(e) => void save({ dueDate: e.target.value || null })} /></div>
               </div>
-              <div className="pm-f">
-                <div className="pm-lrow"><label htmlFor="tp-desc">{tb("desc")}</label><span className="pm-count" id="tp-dcount" aria-hidden="true">{(draft.description ?? task.description ?? "").length}/5000</span></div>
-                <textarea id="tp-desc" rows={6} maxLength={5000} disabled={!edit} placeholder={tb("tkDescPh")} value={draft.description ?? task.description ?? ""} onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))} onBlur={(e) => commitText("description", e.target.value)} />
-              </div>
               <dl className="td-meta" id="tp-meta">
-                <div><dt>{t("author")}</dt><dd>{pn(task.author.name)}</dd></div>
                 <div><dt>{t("created")}</dt><dd>{dateStr(task.createdAt)}</dd></div>
                 {task.completedAt && <div><dt>{t("completedAt")}</dt><dd>{dateStr(task.completedAt)}</dd></div>}
               </dl>
@@ -241,14 +289,14 @@ function TaskView({ task, projectKey }: { task: TaskDetail; projectKey: string }
                   return (
                     <li className={`td-c${sys ? " is-sys" : ""}`} key={c.id}>
                       {sys ? <span className="td-sysic">{UNDO}</span> : <Avatar className={`bd-av ${avatarClass(c.author.id)}`} title={pn(c.author.name)} name={c.author.name} url={c.author.avatarUrl} />}
-                      <div><b>{pn(c.author.name)}</b><small>{tb(ago.key, { n: ago.n })}</small><p>{c.content}</p></div>
+                      <div><b>{pn(c.author.name)}</b><small>{tb(ago.key, { n: ago.n })}</small><p dir="auto">{c.content}</p></div>
                     </li>
                   );
                 }) : <li className="td-c-none">{t("noComments")}</li>}
               </ul>
               <form className="td-cform" id="tp-cform" onSubmit={onComment} hidden={deleted || task.project.isBillingReadOnly}>
                 <label className="ap-sr" htmlFor="tp-cin">{t("write")}</label>
-                <textarea id="tp-cin" rows={2} maxLength={5000} placeholder={t("writePh")} value={comment} onChange={(e) => setComment(e.target.value)} />
+                <textarea id="tp-cin" dir="auto" rows={2} maxLength={5000} placeholder={t("writePh")} value={comment} onChange={(e) => setComment(e.target.value)} />
                 <button type="submit" className="pm-btn pm-go st-sm" id="tp-csend" aria-busy={addComment.isPending}><span className="pm-spin" aria-hidden="true" /><span>{t("send")}</span></button>
               </form>
             </section>

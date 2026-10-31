@@ -196,7 +196,7 @@ export class WorkspaceManagementService {
         select: { id: true, projectId: true },
       });
       if (assigned.length > 0) {
-        await tx.task.updateMany({ where: { id: { in: assigned.map((t) => t.id) } }, data: { assigneeId: null } });
+        await tx.task.updateMany({ where: { id: { in: assigned.map((t) => t.id) } }, data: { assigneeId: null, assignedById: null } });
         await tx.auditLog.createMany({
           data: assigned.map((t) => ({
             actorUserId: actorId, accountId: workspace.accountId, workspaceId, projectId: t.projectId, taskId: t.id,

@@ -13,6 +13,7 @@ import { QueryTasksDto } from './dto/query-tasks.dto';
 import { QueryMyTasksDto, MyTasksView, MyTasksBucket } from './dto/query-my-tasks.dto';
 import { completedAtPatch } from './task-completion';
 import {
+  Prisma,
   TaskStatus,
   ProjectLifecycleStatus,
   NotificationType,
@@ -111,6 +112,7 @@ export class TasksService {
           category: dto.category,
           authorId: userId,
           assigneeId: dto.assigneeId,
+          assignedById: dto.assigneeId ? userId : null,
           dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
           status: TaskStatus.TODO,
         },
@@ -223,6 +225,9 @@ export class TasksService {
         assignee: {
           select: { id: true, name: true, email: true, avatarUrl: true },
         },
+        assignedBy: {
+          select: { id: true, name: true, avatarUrl: true },
+        },
         comments: {
           where: { deletedAt: null },
           include: {
@@ -324,6 +329,13 @@ export class TasksService {
             message: 'Only project administrators can cancel a task.',
           });
         }
+        // A member says what was done when moving their task; the note becomes a comment the whole project sees.
+        if (!dto.note?.trim()) {
+          throw new BadRequestException({
+            code: 'STATUS_NOTE_REQUIRED',
+            message: 'Add a short note about what was done when you change the status.',
+          });
+        }
       }
     }
 
@@ -364,6 +376,10 @@ export class TasksService {
       }
     }
 
+    const statusChanged = !!dto.status && dto.status !== task.status;
+    const reassigned = dto.assigneeId !== undefined && dto.assigneeId !== task.assigneeId;
+    const { note, ...changes } = dto;
+
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.task.update({
         where: { id: taskId },
@@ -373,6 +389,7 @@ export class TasksService {
           priority: dto.priority,
           category: dto.category,
           assigneeId: dto.assigneeId,
+          assignedById: reassigned ? (dto.assigneeId ? userId : null) : undefined,
           dueDate: dto.dueDate !== undefined ? (dto.dueDate ? new Date(dto.dueDate) : null) : undefined,
           status: dto.status,
           ...(dto.status ? completedAtPatch(task.status, dto.status) : {}),
@@ -394,10 +411,10 @@ export class TasksService {
           workspaceId: task.project.workspaceId,
           projectId: task.projectId,
           taskId: task.id,
-          action: dto.status && dto.status !== task.status ? 'TASK_STATUS_CHANGED' : 'TASK_UPDATED',
+          action: statusChanged ? 'TASK_STATUS_CHANGED' : 'TASK_UPDATED',
           metadata: JSON.parse(
             JSON.stringify({
-              changes: dto,
+              changes,
               previousStatus: task.status,
               newStatus: dto.status || task.status,
             }),
@@ -409,6 +426,9 @@ export class TasksService {
       if (updated.assigneeId && updated.assigneeId !== task.assigneeId) {
         await this.notifications.notify(tx, { type: NotificationType.TASK_ASSIGNED, recipientId: updated.assigneeId, actorId: userId, workspaceId: task.project.workspaceId, projectId: task.projectId, taskId: task.id, data: this.noticeData(updated.title, task.project) });
       }
+
+      // The status note is posted as the mover's comment, in the same transaction as the move (an admin's note is optional).
+      if (statusChanged && note?.trim()) await this.writeComment(tx, userId, { ...task, assigneeId: updated.assigneeId }, note);
 
       return updated;
     });
@@ -557,39 +577,39 @@ export class TasksService {
       });
     }
 
-    return this.prisma.$transaction(async (tx) => {
-      const comment = await tx.taskComment.create({
-        data: {
-          taskId,
-          authorId: userId,
-          content: dto.content.trim(),
-        },
-        include: {
-          author: {
-            select: { id: true, name: true, email: true, avatarUrl: true },
-          },
-        },
-      });
+    return this.prisma.$transaction((tx) => this.writeComment(tx, userId, task, dto.content));
+  }
 
-      await tx.auditLog.create({
-        data: {
-          actorUserId: userId,
-          accountId: task.project.workspace.accountId,
-          workspaceId: task.project.workspaceId,
-          projectId: task.projectId,
-          taskId: task.id,
-          action: 'COMMENT_CREATED',
-        },
-      });
-
-      // The person the task is assigned to and the person who created it hear about a comment (never the commenter).
-      for (const recipientId of new Set([task.assigneeId, task.authorId])) {
-        if (!recipientId) continue;
-        await this.notifications.notify(tx, { type: NotificationType.TASK_COMMENTED, recipientId, actorId: userId, workspaceId: task.project.workspaceId, projectId: task.projectId, taskId: task.id, data: this.noticeData(task.title, task.project) });
-      }
-
-      return comment;
+  /** One comment with its audit row and notifications, inside the caller's transaction (plain comments and status notes). */
+  private async writeComment(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    task: { id: string; title: string; projectId: string; assigneeId: string | null; authorId: string; project: { workspaceId: string; key: string; name: string; workspace: { accountId: string; name: string; slug: string } } },
+    content: string,
+  ) {
+    const comment = await tx.taskComment.create({
+      data: { taskId: task.id, authorId: userId, content: content.trim() },
+      include: { author: { select: { id: true, name: true, email: true, avatarUrl: true } } },
     });
+
+    await tx.auditLog.create({
+      data: {
+        actorUserId: userId,
+        accountId: task.project.workspace.accountId,
+        workspaceId: task.project.workspaceId,
+        projectId: task.projectId,
+        taskId: task.id,
+        action: 'COMMENT_CREATED',
+      },
+    });
+
+    // The person the task is assigned to and the person who created it hear about a comment (never the commenter).
+    for (const recipientId of new Set([task.assigneeId, task.authorId])) {
+      if (!recipientId) continue;
+      await this.notifications.notify(tx, { type: NotificationType.TASK_COMMENTED, recipientId, actorId: userId, workspaceId: task.project.workspaceId, projectId: task.projectId, taskId: task.id, data: this.noticeData(task.title, task.project) });
+    }
+
+    return comment;
   }
 
   async listTaskComments(taskId: string) {

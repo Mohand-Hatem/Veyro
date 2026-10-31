@@ -88,3 +88,29 @@
 @media (prefers-reduced-motion: reduce) {
   .tp-cardg, .tp-prog { transition: none; }
 }
+
+/* Task brief (2026-10-31): when it is due, who is on it, what it is about, then the status steps. */
+.tp-brief { display: grid; gap: 16px; padding-top: 4px; }
+.tp-due { display: inline-flex; align-items: center; gap: 8px; margin: 0; font-size: 0.9375rem; font-weight: 700; color: var(--ink); }
+.tp-due svg { color: var(--muted); flex: none; }
+.tp-due.is-late { color: var(--warn); }
+.tp-due.is-late svg { color: var(--warn); }
+.tp-people { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.tp-person { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 10px 12px; border-radius: 16px; background: var(--pill); }
+.tp-person .bd-av { width: 36px; height: 36px; font-size: 0.75rem; flex: none; }
+.tp-person > span { display: grid; min-width: 0; }
+.tp-person small { color: var(--muted); font-size: 0.75rem; font-weight: 600; }
+.tp-person b { font-size: 0.9375rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tp-person.is-empty b { color: var(--muted); font-weight: 600; }
+.tp-av-none { display: inline-block; border-radius: 9999px; border: 2px dashed var(--line); }
+.tp-desc textarea { width: 100%; min-height: 96px; resize: vertical; padding: 12px 16px; line-height: 1.55; }
+.tp-desc-read { display: grid; gap: 4px; }
+.tp-desc-read small { color: var(--muted); font-size: 0.75rem; font-weight: 600; }
+.tp-desc-read p { margin: 0; font-size: 0.9375rem; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.tp-desc-read p.is-empty { color: var(--muted); }
+.tp-status { display: grid; gap: 14px; }
+.tp-status-top { display: flex; align-items: center; gap: 10px; }
+.tp-status-top h3 { margin: 0; font-size: 1.0625rem; letter-spacing: -0.02em; }
+@media (max-width: 720px) {
+  .tp-people { grid-template-columns: minmax(0, 1fr); }
+}
