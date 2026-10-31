@@ -13,6 +13,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { CATEGORIES, agoParts, boardErrorKey, daysLeft, daysUntil, isTerminal, useBoardProject, useRestoreTask, type Priority, type Status } from "@/lib/board";
 import { useAddComment, useDeleteTask, usePatchTask, useTask, type TaskDetail, type TaskPatch } from "@/lib/task";
 import { StatusNoteForm, StatusStepper } from "./status-move";
+import { TaskFiles } from "./task-files";
 import "@/components/dashboard/illustration.css";
 import "@/components/dashboard/dashboard.css";
 import "@/components/projects/projects.css";
@@ -240,6 +241,7 @@ function TaskView({ task, projectKey }: { task: TaskDetail; projectKey: string }
                 ) : (
                   <div className="tp-desc-read"><small>{tb("desc")}</small><p dir="auto" className={task.description ? undefined : "is-empty"}>{task.description || t("descEmpty")}</p></div>
                 )}
+                <TaskFiles task={task} />
               </div>
               <div className="td-deleted" id="tp-deleted" hidden={!deleted}>
                 <svg width="44" height="44" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="22" fill="none" stroke="currentColor" strokeWidth="3" opacity=".25" /><circle id="tp-ring" cx="24" cy="24" r="22" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" pathLength={100} strokeDasharray={`${Math.round((left / 30) * 100)} 100`} transform="rotate(-90 24 24)" /><text id="tp-days" x="24" y="29" textAnchor="middle" fontSize="14" fontWeight="800" fill="currentColor">{left}</text></svg>

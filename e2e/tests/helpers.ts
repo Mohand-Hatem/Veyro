@@ -27,5 +27,10 @@ export async function verificationCode(email: string): Promise<string> {
   throw new Error(`No verification code for ${email} in the API log`);
 }
 
+/** One SQL statement against the stack's database (docker compose service `db`), returning its rows as plain text. */
+export function sql(statement: string): string {
+  return execSync(`docker compose exec -T db psql -U veyro -d veyro -tAc "${statement.replace(/"/g, '\\"')}"`, { cwd: '..' }).toString().trim();
+}
+
 /** A short random suffix, so a test can run twice against the same database. */
 export const unique = () => Date.now().toString(36).slice(-5).toUpperCase();

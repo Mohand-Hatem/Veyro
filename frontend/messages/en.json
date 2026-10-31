@@ -706,7 +706,25 @@
     "noteOptional": "Optional. A note is posted as a comment for the team.",
     "saveMove": "Save",
     "stepNotYours": "Only the assignee or a project admin can move this task.",
-    "stepRule": "Tasks move one step at a time; done and cancelled tasks are reopened from the menu."
+    "stepRule": "Tasks move one step at a time; done and cancelled tasks are reopened from the menu.",
+    "files": "Files",
+    "filesLocked": "{n, plural, one {# file on this task.} other {# files on this task.}} Only the assignee, the creator and admins can open them.",
+    "filesDrop": "Drop files here or",
+    "filesChoose": "choose files",
+    "filesHint": "Pictures, PDF, Office and text files · up to 10 MB each · {n} files per task",
+    "download": "Download",
+    "downloadFile": "Download {name}",
+    "remove": "Remove",
+    "removeFile": "Remove {name}",
+    "removeAsk": "Remove this file?",
+    "removeYes": "Remove",
+    "uploading": "Uploading {name}",
+    "dismiss": "Dismiss",
+    "fileType": "This kind of file cannot be added.",
+    "fileBig": "Files can be up to 10 MB.",
+    "fileLimit": "This task already has the most files it can hold.",
+    "fileOff": "File upload is not set up.",
+    "fileFail": "That did not work. Please try again."
   },
   "Settings": {
     "sub": "Manage your workspace",
@@ -914,7 +932,9 @@
     "WORKSPACE_INVITATION_ACCEPTED": "<A>{a}</A> joined the workspace as {role}",
     "WORKSPACE_INVITATION_REVOKED": "<A>{a}</A> revoked the invitation for <E>{e}</E>",
     "WORKSPACE_INVITATION_RESENT": "<A>{a}</A> resent the invitation for <E>{e}</E>",
-    "OTHER": "<A>{a}</A> {action}"
+    "OTHER": "<A>{a}</A> {action}",
+    "ATTACHMENT_ADDED": "<A>{a}</A> added the file <F>{f}</F> to a task in <P>{p}</P>",
+    "ATTACHMENT_REMOVED": "<A>{a}</A> removed the file <F>{f}</F> from a task in <P>{p}</P>"
   },
   "Billing": {
     "crumb": "Billing",
