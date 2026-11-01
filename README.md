@@ -1,295 +1,145 @@
 <div align="center">
 
-# ⚡ Veyro
+<img src="assets/images/logo.png" alt="" width="72" />
 
-**Production-Grade Multi-Tenant Workspace & Project Management Platform**
+# Veyro
 
-*Engineered as a Modular Monolith with NestJS 11, Prisma 7, Neon Serverless PostgreSQL, and Next.js 16 App Router.*
+**Private workspaces for teams: a Kanban board that enforces its rules, and an AI assistant that asks before it acts.**
 
-[![NestJS](https://img.shields.io/badge/Backend-NestJS%2011-ea2845?logo=nestjs&logoColor=white)](https://nestjs.com/)
-[![Next.js](https://img.shields.io/badge/Frontend-Next.js%2016%20App%20Router-black?logo=next.js&logoColor=white)](https://nextjs.org/)
-[![Prisma](https://img.shields.io/badge/ORM-Prisma%207-2d3748?logo=prisma&logoColor=white)](https://www.prisma.io/)
-[![PostgreSQL](https://img.shields.io/badge/Database-Neon%20PostgreSQL-00e599?logo=postgresql&logoColor=black)](https://neon.tech/)
+A multi-tenant project management app built as a modular monolith with NestJS 11, Prisma 7, PostgreSQL (Neon) and Next.js 16. English and Arabic, light and dark.
+
 [![CI](https://github.com/Mohand-Hatem/Veyro/actions/workflows/ci.yml/badge.svg)](https://github.com/Mohand-Hatem/Veyro/actions/workflows/ci.yml)
-[![TypeScript](https://img.shields.io/badge/Language-TypeScript%205-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Health](https://github.com/Mohand-Hatem/Veyro/actions/workflows/health.yml/badge.svg)](https://github.com/Mohand-Hatem/Veyro/actions/workflows/health.yml)
+
+**[Live demo → veyro-workspace-app.vercel.app](https://veyro-workspace-app.vercel.app)**
 
 </div>
 
----
+![The dashboard of the demo workspace](assets/screenshots/dashboard.png)
 
-## 📌 Overview
+## Try it
 
-**Veyro** is an agile, multi-tenant workspace and project management platform built to provide modern product, agency, and engineering teams with enterprise-grade reliability without cognitive overload or software bloat.
+Open the [live demo](https://veyro-workspace-app.vercel.app/en/login) and choose **Try the demo** on the sign-in page. Three people share one workspace, so you can see the same project from each role:
 
-Instead of navigating bloated legacy enterprise suites or dealing with primitive to-do lists that lack tenant isolation, Veyro provides structured task lifecycles, defense-in-depth multi-tenancy, granular RBAC, immutable audit logging, and a context-aware AI assistant equipped with strict pre-LLM authorization and human-in-the-loop mutation confirmation.
+| Person | Role | What they can do |
+| :--- | :--- | :--- |
+| Layla Hassan | Account owner | Everything, including billing and the account audit trail |
+| Omar Nasser | Workspace admin | Run every project, invite people, change roles |
+| Mona Adel | Member | Move the tasks assigned to her (with a note), comment, see only her projects |
 
----
+Google and GitHub sign-in work too. Signing up with an email address is limited in the demo: without a custom domain, the email provider only delivers to the project owner, and the sign-up page says so.
 
-## 🏗️ Architecture & Core Principles
+The demo is shared with other visitors. Payments run in Stripe test mode, so no real money moves.
 
-Veyro is built following strict software engineering and systems architecture discipline:
+## Screenshots
 
-1. **Modular Monolith Discipline:**  
-   Avoids premature microservices complexity. The backend is structured into clear, encapsulated NestJS domain modules communicating through well-defined internal boundaries and unified data models.
-2. **Contract-First & Backend-First Implementation:**  
-   Every REST API endpoint, DTO, guard, and sequence flow is thoroughly documented and implemented against real PostgreSQL persistence before frontend integration. Zero reliance on synthetic mock data.
-3. **Decoupled User & Tenant Hierarchy:**  
-   Identity is global, while collaboration is scoped:
-   $$\text{User} \longrightarrow \text{Account (Billing/Owner Boundary)} \longrightarrow \text{Workspaces} \longrightarrow \text{Projects} \longrightarrow \text{Tasks}$$
-   A user can exist and utilize personal AI knowledge capabilities without belonging to any workspace.
-4. **Defense-in-Depth Multi-Tenancy:**  
-   Every query and mutation strictly enforces `organizationId` and `workspaceId` boundaries. Private projects return **`404 Not Found`** instead of `403 Forbidden` to prevent resource enumeration attacks (`BR-PRJ-01`).
-5. **Idempotent & Transactional Operations:**  
-   Atomic DB transactions (`prisma.$transaction`) ensure zero orphan records during multi-step processes like atomic onboarding, cascade task unassignment, and payment webhook deduplication.
+<table>
+  <tr>
+    <td width="50%"><img src="assets/screenshots/board.png" alt="Project board with To do, In progress, In review and Done columns" /><br /><sub>The project board: tasks move only through the allowed stages.</sub></td>
+    <td width="50%"><img src="assets/screenshots/task.png" alt="Task page with creator, assigner, assignee and attached files" /><br /><sub>The task brief: who created and assigned it, private files, the next allowed steps.</sub></td>
+  </tr>
+  <tr>
+    <td><img src="assets/screenshots/assistant.png" alt="The Ask Veyro drawer showing a task proposal with Confirm and Reject buttons" /><br /><sub>The assistant drafts a change; nothing is written until a person confirms.</sub></td>
+    <td><img src="assets/screenshots/landing.png" alt="The landing page" /><br /><sub>The public landing page.</sub></td>
+  </tr>
+</table>
 
----
+<p align="center"><img src="assets/screenshots/board-ar-phone.png" alt="The project board in Arabic on a phone" width="260" /><br /><sub>Arabic, right to left, on a phone.</sub></p>
 
-## 🚀 Key Modules & Capabilities (Backend 100% Completed)
+## What it does
 
-### 1. 🔐 Authentication & Session Security (`AuthModule`)
-- **Dual Token Architecture:** Short-lived access JWTs paired with long-lived cryptographically secure refresh tokens stored in `HttpOnly`, `SameSite=Strict` cookies.
-- **Refresh Token Family Rotation (`BR-AUTH-02`):** Immediate revocation of entire token families upon reuse detection to prevent replay and session hijacking attacks.
-- **Social OAuth 2.0:** Google and GitHub sign-in that accepts only a provider-verified email, a one-use `state` check against login CSRF, and a pre-hijacking defence (a provider claiming an unverified local account replaces its password and ends its sessions).
-- **Hardened by default:** the server refuses to start without a strong `JWT_SECRET`, tokens travel only in cookies, and the sign-in, registration, code and reset routes are rate limited per IP.
+- **Accounts and access:** email sign-up with a code, Google and GitHub sign-in, password reset, invitations locked to the invited address, profile photos (cropped and re-encoded on the server) or illustrated avatars.
+- **Workspaces and projects:** an account owns workspaces, workspaces hold private projects, and each project has its own admins and members. A dashboard, a projects list and a "my tasks" view across projects.
+- **Tasks:** a board with five states (To do, In progress, In review, Done, Cancelled) and only the allowed moves between them. Reopening a finished task needs a reason. A member who moves their task must leave a note, which becomes a comment. Comments, due dates, categories, a 30-day restore for deleted tasks, and private file attachments that only the assignee, the creator and admins can open.
+- **AI assistant:** answers questions about Veyro from its help documents (with sources), answers questions about your workspace through read-only tools, and drafts new tasks or changes as proposals you confirm or reject. Daily limits depend on the plan.
+- **Billing:** four plans with project and workspace limits, Stripe Checkout and the customer portal, a 7-day grace period, and choosing which projects stay editable after a downgrade.
+- **Trust:** an audit trail per workspace and per account, in-app notifications for assignments, comments, project additions, role changes and accepted invitations, and account deletion with a 30-day purge.
 
-### 2. 🏢 Tenancy & Workspace Management (`TenancyModule`)
-- **Atomic Onboarding:** Transactional account creation, initial workspace provisioning, and owner role assignment in a single request (`POST /api/v1/onboarding/atomic`).
-- **Cryptographic Workspace Invitations (`DEC-09`):** Target-email-locked invitations using SHA-256 token hashing, expiration validation, and idempotent acceptance.
-
-### 3. 📁 Projects & Access Governance (`ProjectsModule`)
-- **Private Project Privacy (`BR-PRJ-01`):** Projects are private by default; non-assigned workspace members receive anti-enumeration `404 Not Found` responses.
-- **Tier-Based Project Limits (`BR-SUB-02`):** Strictly enforced active project caps across accounts (`Free: 3`, `Pro: 7`, `Enterprise: 15`, `Epic: 25`).
-- **Cascade Task Unassignment (`BR-TSK-03.4`):** Removing a project member automatically unassigns their pending tasks while preserving task history and audit trail.
-
-### 4. ✅ Tasks & State Machine Lifecycle (`TasksModule`)
-- **5-State Finite State Machine (FSM):** Guaranteed valid transitions between `TODO`, `IN_PROGRESS`, `IN_REVIEW`, `DONE`, and `CANCELLED`.
-- **Dedicated Reopening Gate:** Completed tasks cannot be reopened via standard edit endpoints; they require a dedicated request (`POST /api/v1/tasks/:id/reopen`) with a mandatory audit reason (minimum 5 characters) and author attribution.
-- **Assignee Project Validation (`BR-TSK-03.2`):** Tasks can only be assigned to verified members of the parent project.
-
-### 5. 🤖 AI Assistant with Safe Mutations (`AiModule`)
-- **Dual Scoped Modes:** `KNOWLEDGE` mode (global platform RAG) vs `PROJECT` mode (scoped workspace/project insights).
-- **Two-Phase Quota Reservation:** Prevents LLM quota exhaustion races via atomic quota reservation (`PENDING` $\rightarrow$ `FINALIZED` or `COMPENSATED`).
-- **Human-in-the-Loop Mutation Proposals (`AiMutationProposal`, `BR-AI-01`):** AI cannot directly write to projects or tasks; it generates structured mutation proposals that require explicit user confirmation.
-- **Zero-Cost Confirmations (`DEC-23`):** Executing an approved proposal incurs zero additional AI quota.
-- **A real model with grounded answers:** Google Gemini answers from the Veyro help documents (pgvector similarity search, with cited sources) and reads the workspace through read-only tools that only see what the signed-in person may see. The user and workspace come from the server, never from the model, and tool results are treated as data, not instructions. Off-topic or injected requests get a fixed refusal.
-- **Plan-based daily limits:** Free 3, Pro 15, Enterprise 25 and Epic 50 messages a day (the best plan among the accounts a person owns).
-
-### 6. 💳 Billing, Webhooks & Grace Periods (`BillingModule`)
-- **Signed, idempotent webhooks:** every Stripe event is verified (HMAC-SHA256 over the timestamp and raw body, 5-minute tolerance) before anything happens, the current subscription is re-read from Stripe so out-of-order events are safe, and events are deduplicated in `billing_events` by `externalEventId`.
-- **Checkout, customer portal and plan switching:** Stripe Checkout for a new plan, the Stripe customer portal for cards and cancellation, and prorated switches between paid plans. Stripe runs in **test mode only** (a portfolio project: no real payments).
-- **7-Day Payment Grace Period:** Grace period support before account project freezing occurs.
-- **Downgrade Recalibration (`BR-SUB-03`):** When an account downgrades to Free, all projects freeze; the Account Owner can select up to 3 active projects (`POST /api/v1/accounts/:id/select-active-projects`).
-
-### 7. 📜 Audit Logging (`AuditModule`)
-- **Tenant-Scoped Activity Trail:** Paginated, immutable audit logs tracking actions, actor identity, target resources, and before/after metadata snapshots.
-
-### 8. 🔔 Notifications (`NotificationsModule`)
-- **Written with the event:** an assignment, a comment on your task, being added to a project, a role change and an accepted invitation each create a notification inside the same transaction as the event and its audit row, so they exist together or not at all. Nobody is notified about their own action, and only people still in the workspace are.
-- **Private by construction:** the endpoints never take a user id; every query is scoped to the caller, marking someone else's notification is a `404`, and notifications from a workspace you left are hidden. A paged list (keyset cursor), an unread count, mark one and mark all read.
-- **Delivery:** the bell polls the unread count once a minute while the tab is visible. The sentence is built on screen from the type and a copied snapshot of the data, so it follows the page language.
-
-### 9. 🖼️ Profile Pictures (`UsersModule`, `StorageModule`)
-- **Server-side processing:** the browser crops, then sends the picture as the request body. The server decodes it for real, rotates it upright, crops a square, **strips all metadata** (location and camera data never leave the server) and stores only a 256 px WebP (about 10 to 30 KB) in Cloudinary. Inputs are limited to 2 MB and JPEG, PNG or WebP.
-- **Defaults and choices:** every account has initials at once; a person can pick one of five illustrated avatars or upload a photo. Google and GitHub photos are used as they are.
-- **Soft delete:** removing a stored photo hides it (private delivery, so its address stops working) and keeps it for 30 days; a retention purge deletes it for good. The schedule for that job arrives with deployment (Phase 6).
-
-### 10. ✉️ Email (`EmailModule`)
-- Verification codes, password reset, invitations and the contact form send through Resend with plain `fetch` (no SDK). Sending is never awaited and never throws, so it cannot leak whether an address exists. Production refuses the Resend test sender, so a verified domain is needed before deploying.
-
----
-
-## 🗄️ Database Architecture & Data Model
-
-Veyro's persistence layer is engineered with **Prisma 7** and **PostgreSQL 16+** on **Neon Serverless Database**, utilizing the `@prisma/adapter-pg` driver adapter.
+## Architecture
 
 ```mermaid
-erDiagram
-    User ||--o{ AccountMember : "belongs to"
-    User ||--o{ WorkspaceMember : "collaborates in"
-    User ||--o{ RefreshToken : "owns"
-    User ||--o{ AiConversation : "participates in"
-    Account ||--o{ AccountMember : "has"
-    Account ||--o{ Workspace : "contains"
-    Account ||--o{ Subscription : "billed for"
-    Workspace ||--o{ WorkspaceMember : "has members"
-    Workspace ||--o{ Project : "contains"
-    Workspace ||--o{ WorkspaceInvitation : "issues"
-    Project ||--o{ ProjectMember : "assigned members"
-    Project ||--o{ Task : "tracks"
-    Task ||--o{ TaskComment : "has discussion"
-    Task ||--o{ TaskActivityLog : "records changes"
+flowchart LR
+  B[Browser] -->|pages, /api/v1| F[Next.js 16 on Vercel]
+  F -->|rewrite /api/v1, same-site cookies| A[NestJS 11 API on Vercel]
+  A --> D[(Neon PostgreSQL + pgvector)]
+  A --> E[Resend email]
+  A --> S[Stripe test mode]
+  A --> G[Google Gemini]
+  A --> C[Cloudinary]
+  B -->|signed direct upload| C
+  K[Vercel Cron] -->|daily cleanup| A
+  H[GitHub Actions] -->|CI on every push, hourly health check| A
 ```
 
-- **25 Prisma models** (the source of truth is `backend/prisma/schema.prisma`; the diagram above shows the core relationships): `User`, `UserSession`, `UserOtpVerification`, `UserPasswordResetToken`, `Account`, `Workspace`, `WorkspaceMember`, `WorkspaceInvitation`, `WorkspaceInvitationProject`, `Project`, `ProjectMember`, `Task`, `TaskComment`, `AccountSubscription`, `UserAiSubscription`, `BillingEvent`, `AiDailyUsage`, `AiUsageReservation`, `AiConversation`, `AiMessage`, `AiMutationProposal`, `AuditLog`, `ContactMessage`, `KnowledgeChunk` (pgvector embeddings of the help documents) and `Notification`.
-- **Primary Keys:** Collision-resistant CUID2 identifiers (`@default(cuid())`).
-- **Indexes:** Composite indexes optimized for multi-tenant filtering (`[workspaceId, status]`, `[projectId, status]`, `[accountId, createdAt]`).
+The browser only ever talks to the frontend. Next.js forwards `/api/v1` to the API, so the session cookies stay first-party. The API is one NestJS app split into modules (auth, tenancy, projects, tasks, AI, billing, audit, notifications, storage, email, jobs), sharing one database through Prisma.
 
----
+Data is organised as **User → Account → Workspaces → Projects → Tasks**. Identity is global and collaboration is scoped: one person can belong to several workspaces with a different role in each. The schema has 26 models; [`backend/prisma/schema.prisma`](backend/prisma/schema.prisma) is the source of truth.
 
-## 🗺️ Project Phase Roadmap
+## Engineering decisions
 
-| Phase | Description | Deliverables | Status |
-| :---: | :--- | :--- | :---: |
-| **Phase 1** | **Product Discovery & MVP Baseline** | `docs/01-PROJECT-BRIEF.md`, `02-USER-ROLES-AND-FLOWS.md`, `03-BUSINESS-RULES.md` | ✅ **Completed (`v1.5.2`)** |
-| **Phase 2** | **System Design & API Contracts** | ERD (`04-ERD.md`), Physical DB Spec (`05-DB.md`), OpenAPI Contracts (`06-API.md`), Sequence Diagrams | ✅ **Completed (100%)** |
-| **Phase 3** | **NestJS Backend Implementation** | 7 Modular Monolith modules, Prisma 7, Neon DB migration, Guards, Interceptors, Filters | ✅ **Completed (100%)** |
-| **Phase 4** | **Frontend Development & Design Gate** | `design.md` baseline, Next.js 16 App Router app in `frontend/` (English and Arabic, light and dark), every screen checked against its reference with parity scripts | ✅ **Completed** |
-| **Phase 5** | **Integration, Security & Quality** | Security hardening, a tenant-isolation and role matrix, query and reliability fixes, real email (Resend), Google and GitHub sign-in, Stripe (test mode), a real AI assistant (Gemini and help-document search), profile pictures (Cloudinary and sharp) and notifications, with automated tests for each | ✅ **Completed** |
-| **Phase 6** | **Deployment, CI/CD & Portfolio** | Vercel (frontend and backend) with Neon, scheduled jobs, CI and a browser end-to-end suite, logging and monitoring, portfolio documentation | 🚧 *In progress* (6.1 backend ready for Vercel: done) |
+- **A modular monolith, not microservices.** One deployable, clear module boundaries, transactions across modules when a change must be atomic. Splitting would add network failure modes this product does not need.
+- **Tenant isolation everywhere, proven by a test.** Every query is scoped to the caller's workspace and project membership. A private project you are not in returns `404`, not `403`, so its existence does not leak. A test walks every route and fails when a new route is not classified for who may call it.
+- **Rights are decided on the server.** Each response includes what the viewer may do (`viewer.canEdit`, `canUpload`, `allowedStatuses`…), and the UI only reflects it. Hiding a button is never the protection.
+- **Sessions:** short-lived access tokens and rotating refresh tokens in `HttpOnly` cookies (`SameSite=Lax`, `Secure` in production). Refresh tokens belong to a family, and reusing an old one revokes the whole family.
+- **An AI that cannot write.** The model gets read-only tools that see only what the signed-in person may see, the user and workspace come from the server rather than the model, and tool results are treated as data, not instructions. Any change is a stored proposal that the person confirms; rights are checked again at that moment.
+- **Events written together.** A task change, its audit row and its notification are written in one transaction, so they exist together or not at all.
+- **Files never pass through the API.** The server signs an upload, the browser sends the file straight to Cloudinary as a private resource, then the server checks the name, type and size before saving it. Downloads are links that expire after ten minutes.
+- **Payments that tolerate the real world.** Stripe webhooks are verified (signature and timestamp), deduplicated by event id, and re-read the current subscription, so events that arrive late or out of order are safe.
 
----
-
-## 🛠️ Tech Stack
-
-- **Backend:** [NestJS 11](https://nestjs.com/) (TypeScript, Express platform, Class Validator, Passport)
-- **Database & ORM:** [PostgreSQL 16+](https://www.postgresql.org/) via [Neon](https://neon.tech/), [Prisma ORM 7](https://www.prisma.io/) with `@prisma/adapter-pg`
-- **Frontend:** [Next.js 16 App Router](https://nextjs.org/) with React 19, [Tailwind CSS 4](https://tailwindcss.com/), [Radix UI](https://www.radix-ui.com/) through [shadcn/ui](https://ui.shadcn.com/), [TanStack Query](https://tanstack.com/query), [next-intl](https://next-intl.dev/) (English and Arabic, right-to-left), react-hook-form with zod, next-themes
-- **Security:** Bcrypt password hashing, SHA-256 invitation tokens, HttpOnly JWT cookies, rate limiting, strict RBAC guards, signed webhooks, OAuth `state`
-- **Integrations:** Resend (email), Google and GitHub OAuth, Stripe (test mode), Google Gemini (answers and embeddings, searched with pgvector), Cloudinary (profile pictures) with sharp (server-side image processing)
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-- Node.js 20.x or higher
-- npm or pnpm
-- A running PostgreSQL database or Neon Cloud project
-
-### 1. Clone the Repository
-```bash
-git clone https://github.com/Mohand-Hatem/Veyro.git
-cd Veyro
-```
-
-### 2. Configure Environment Variables
-Each app owns its environment file; there is no root `.env`.
-```bash
-cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env.local
-```
-Edit `backend/.env` and set your database connection:
-```env
-DATABASE_URL="postgresql://user:password@ep-sample.neon.tech/veyro?sslmode=require"
-JWT_SECRET="your-super-secure-jwt-secret-min-32-chars"
-```
-`frontend/.env.local` only needs `API_ORIGIN` (where the backend listens) and the OAuth switch; the defaults work locally.
-
-Every external service is optional in development and documented in `backend/.env.example` (Resend, Google and GitHub OAuth, Stripe test keys, Gemini, Cloudinary). Without a key the feature degrades honestly: emails are skipped (or printed with `DEV_OUTBOX=true`), the assistant answers with a fixed stand-in text, photo upload reports that it is not set up, and payments report not configured. Production refuses to start without them. `DATABASE_URL_Branch` (optional) points development and tests at a Neon branch while `DATABASE_URL` stays production.
-
-### 3. Install Dependencies
-```bash
-cd backend && npm install
-cd ../frontend && npm install
-```
-
-### 4. Apply the Database Migrations
-```bash
-cd backend
-# Applies the SQL in backend/prisma/migrations to your PostgreSQL / Neon database
-npx prisma migrate deploy
-```
-
-### 5. Load the Help Documents (only for the assistant)
-```bash
-cd backend
-npm run knowledge:ingest   # embeds backend/knowledge/*.md into pgvector (needs GEMINI_API_KEY)
-```
-
-### 6. Start the Backend
-```bash
-cd backend
-npm run start:dev
-```
-The NestJS API runs at `http://localhost:5000/api/v1`.
-
-### 7. Start the Frontend
-```bash
-cd frontend
-npm run dev
-```
-The app runs at `http://localhost:3000` (English at `/en`, Arabic at `/ar`). It calls the API through `/api/v1`, which Next.js forwards to the backend, so the session cookies stay first-party.
-
----
-
-### Run the API in Docker (optional)
-No Neon account is needed to try the backend. From the repository root:
-```bash
-docker compose up --build      # Postgres with pgvector, then the migrations, then the API on http://localhost:5000
-docker compose down -v         # stop it and delete the local data
-```
-`backend/Dockerfile` builds the API in four stages (build, production-only dependencies, a `migrate` target, and a small runtime image that runs as a non-root user, holds no secrets and carries its own health check). The database password and JWT secret in `docker-compose.yml` are throwaway values for this laptop-only stack. To fill it with the demo data: `cd backend && DATABASE_URL_Branch= DATABASE_URL=postgresql://veyro:veyro-local-only@localhost:5433/veyro npm run demo:seed`. The frontend runs as usual and reaches this API through `API_ORIGIN=http://localhost:5000`. The image is about 940 MB because Prisma and TypeScript arrive as transitive dependencies; trimming it is a known, deferred optimization.
-
-## ☁️ Deployment Notes (Vercel, portfolio demo)
-
-The demo runs as two Vercel projects from this repository: `frontend/` (Next.js) and `backend/` (NestJS, deployed with Vercel's zero-configuration support: the entry point is `src/main.ts` and `npm run build` runs `prisma generate` before `nest build`). The browser only talks to the frontend; Next.js forwards `/api/v1` to the backend (`API_ORIGIN`), so the session cookies stay first-party.
-
-- **Serverless, stated honestly:** the API runs as one function per instance. Sign-in state for Google and GitHub lives in a cookie, usage limits for the assistant live in the database, and the pg adapter talks to Neon's pooled connection, so nothing important is kept in memory. The one exception is the request rate limiter (login, sign-up, password reset, contact): it counts per instance, so on serverless it is best-effort. Moving its counters to a shared store is the upgrade if this ever carries real traffic.
-- **Client IPs:** set `TRUST_PROXY` to the number of proxies in front of the API so the limiter and the contact form read the real address. On Vercel it is `1`.
-- **Logs and monitoring:** in production every request is one JSON line (`requestId`, method, path without the query string, status, ms, userId) and every response carries the same `x-request-id` header as `meta.requestId`, so an error a user reports can be found in the Vercel logs. The `Health` workflow calls `/api/v1/health` every hour and fails, which emails the repository owner, when the API or its database does not answer.
-- **Email without a domain:** Resend's test sender only delivers to the owner of the Resend account, so sign-up codes and invitations to other people do not arrive. The demo says so on purpose: production refuses the test sender unless `RESEND_ALLOW_TEST_SENDER=true`, and the startup log then reports demo mode. Reviewers sign in with Google, GitHub or the demo accounts. On the frontend project, `NEXT_PUBLIC_DEMO_MODE=true` and `NEXT_PUBLIC_DEMO_PASSWORD` (the same value as the seed's `DEMO_PASSWORD`) make the sign-in page list the three demo accounts, one click fills the form, and the sign-up page explains the limit. Both are unset by default, so nothing changes anywhere else.
-- **Scheduled cleanup:** `backend/vercel.json` makes Vercel Cron call `GET /api/v1/jobs/daily` once a day (on the Hobby plan, some time within the 03:00 UTC hour). It deletes profile photos removed more than 30 days ago, deletes notifications older than 90 days, and purges accounts deleted from Billing. It needs `CRON_SECRET` (Vercel sends it as a bearer token; the endpoint refuses every call without it, and production refuses to start without it). Every job is safe to run twice, because cron delivery is best effort and can miss or repeat a run.
-- **Demo data:** `cd backend && npm run demo:seed` creates one account, one workspace, three people, two projects and twelve tasks through the real API (so the audit trail and notifications are genuine). `-- --reset` puts the demo back as it was. Against production it needs both `--production --yes`. The demo password is public by design (`DEMO_PASSWORD` changes it).
-
----
-
-## ✅ Tests and Checks
+## Tests and CI
 
 | Where | Command | What it covers |
 | :--- | :--- | :--- |
-| `backend/` | `npm test` | 34 test files, 394 tests of the business rules, role rules, tenant isolation (a route-by-route matrix that fails when a new route is not classified), plan limits, security, email, OAuth, Stripe (signed webhooks), the AI gateway, help search and tools, avatars, task files and notifications, plus journey tests across the whole product. They run against the database in `DATABASE_URL_Branch` (or `DATABASE_URL`) and create and remove their own data. A suite can be cancelled when the database connection drops while it sets up; run it again. |
-| `backend/` | `npm run ai:eval` | The assistant's question set (22 cases: help answers, refusals, workspace data, prompt injection, task drafts) against the real model on the development branch; it refuses to run on production. |
-| `backend/` | `npx tsc --noEmit` | Type check |
-| `frontend/` | `npm test` | 132 unit tests (vitest): API client, validation, helpers, initials and crop math, notification helpers, message coverage in both languages |
-| `frontend/` | `npm run lint`, `npx tsc --noEmit`, `npm run build` | Lint, types and the production build |
-| `frontend/` | `node scripts/parity/run.mjs scripts/parity/<screen>.js` | Parity check of one screen against its reference page: computed styles, layout and text at 1440 and 390 px wide, light and dark, English and Arabic. The reference pages live in `screens/`, which is kept locally and is not part of this repository. Each script's header lists what it needs (Playwright with Chrome, the running servers and its test data). |
+| `backend/` | `npm test` | 34 test files, 394 tests against a real database: business and role rules, the tenant-isolation route matrix, plan limits, security, OAuth, Stripe webhooks, the AI gateway and tools, files, notifications, and journeys across the product. |
+| `backend/` | `npm run ai:eval` | 22 cases for the assistant against the real model (help answers, refusals, workspace data, prompt injection, task drafts). Refuses to run on production. |
+| `frontend/` | `npm test` | 135 unit tests (vitest), including that every message exists in both languages. |
+| `e2e/` | `npx playwright test` | Browser journeys (sign-up, board moves, roles, the task page, status notes, files) and every screen in English and Arabic at desktop and phone width. |
 
-**CI** (`.github/workflows/ci.yml`) runs on every pull request and every push to `main`: frontend lint, types, unit tests and build; backend types and build; the full backend suite against a throwaway Postgres with pgvector (no keys of any kind); a Docker job that builds the stack, waits for every service to be healthy and calls `/health`; and `npm audit` for high and critical findings. Dependabot opens weekly update pull requests. Deployment and the browser end-to-end suite are still to come in Phase 6. The browser flows were checked by hand with Playwright, including the real upload, payment and notification flows.
+**CI** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs on every push and pull request: frontend lint, types, tests and build; backend lint, types and build; the backend suite against a throwaway Postgres with pgvector; the browser suite against the Docker stack; a Docker job that starts every service and checks `/health`; and `npm audit` for high and critical issues. The **Health** workflow calls the live API every hour and fails, which emails the owner, when the API or its database does not answer.
 
----
+## Run it locally
 
-## 🖥️ What Is Built
+Requirements: Node.js 22 and a PostgreSQL database with pgvector (a free Neon project works), or Docker.
 
-- **Account and access:** sign in (email, Google, GitHub), registration with email code, password reset, onboarding, invitations, profile and preferences, profile photo (upload with a crop step, one of five illustrated avatars, or initials)
-- **Workspace:** dashboard, projects, my tasks, project board with task lifecycle and reopening with a reason, task page with comments, members and settings, audit trail, creating more workspaces within the plan limit
-- **Account governance:** billing and plans, choosing which projects stay editable after a downgrade, account deletion, account audit trail
-- **AI assistant:** a full page and a quick-ask drawer; it answers from the help documents and your workspace data, shows its sources, and proposes a change that is only written after you confirm it
-- **Notifications:** the bell with an unread count and a popover (assignments, comments, project additions, role changes, accepted invitations), in English and Arabic
-- **Help and public site:** how it works guide, contact form, landing page, 404, 403 and error states
+```bash
+git clone https://github.com/Mohand-Hatem/Veyro.git
+cd Veyro
+cp backend/.env.example backend/.env           # set DATABASE_URL and JWT_SECRET (32+ characters)
+cp frontend/.env.example frontend/.env.local   # the defaults work locally
 
-**Needs your own accounts to run live:** email (Resend; the test sender is for testing only), Google and GitHub sign-in, Stripe (test mode), Gemini and Cloudinary. Their keys go in the gitignored `backend/.env`, never in the repository.
+cd backend && npm install && npx prisma migrate deploy && npm run demo:seed
+npm run start:dev                              # API on http://localhost:5000/api/v1
 
-**Not built yet (planned for Phase 6 or later):** the deployment itself and a browser end-to-end suite (Phase 6), email or push notifications, @mentions, and the other periodic purges that `docs/03` describes (soft-deleted tasks after 30 days, expired sessions, stale invitations).
+# in a second terminal
+cd frontend && npm install && npm run dev      # app on http://localhost:3000
+```
 
----
+The seed prints the three demo addresses; their password is `VeyroDemo2026!` unless you set `DEMO_PASSWORD`. Every external service (Resend, Google and GitHub OAuth, Stripe, Gemini, Cloudinary) is optional in development and listed in `backend/.env.example`; without a key the feature says it is not set up instead of failing. `npm run knowledge:ingest` loads the help documents for the assistant (needs `GEMINI_API_KEY`).
 
-## 🧪 Core API Endpoints Overview
+**Without a database account:** `docker compose up --build` starts Postgres with pgvector, applies the migrations and runs the API on port 5000. `docker compose down -v` removes it again.
 
-| Method | Endpoint | Description | Guard / Protection |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/api/v1/auth/register` | Register new user identity | Public |
-| `POST` | `/api/v1/auth/login` | Authenticate and issue JWT cookies | Public |
-| `POST` | `/api/v1/onboarding/atomic` | Atomic creation of Account + Workspace | `JwtAuthGuard` |
-| `POST` | `/api/v1/workspaces/:id/invitations`| Invite member with SHA-256 token | `JwtAuthGuard`, `TenantGuard` |
-| `GET` | `/api/v1/workspaces/:workspaceId/projects` | List accessible workspace projects | `JwtAuthGuard`, `TenantGuard` |
-| `GET` | `/api/v1/projects/:id` | Get project details (404 for private) | `ProjectAccessGuard` (`BR-PRJ-01`) |
-| `POST` | `/api/v1/projects/:projectId/tasks` | Create task within project (project admins) | `ProjectAccessGuard` |
-| `POST` | `/api/v1/tasks/:id/reopen` | Reopen task with mandatory reason | `TaskAccessGuard` (`BR-TSK-03.3`) |
-| `POST` | `/api/v1/ai/conversations` | Start AI session (Knowledge/Project) | `JwtAuthGuard` |
-| `POST` | `/api/v1/billing/webhook` | Stripe webhook: signature verified, current state re-read, deduplicated | Public (HMAC signature required) |
-| `PUT` | `/api/v1/users/me/avatar` | Upload a profile picture (raw body, validated and re-encoded by the server) | `JwtAuthGuard`, rate limited |
-| `GET` | `/api/v1/notifications` | The caller's notifications, newest first, paged | `JwtAuthGuard` (own rows only) |
-| `GET` | `/api/v1/audit-logs` | Retrieve tenant audit trail | `TenantGuard`, `AccountOwnerGuard` |
+## Deployment
 
----
+The demo runs as two Vercel projects from this repository (`frontend/` and `backend/`) with a Neon database. What that means in practice:
 
-## 📄 License
+- **Serverless, honestly:** nothing important lives in memory. Sessions are cookies, AI limits are in the database, and the database connection is pooled. The exception is the request rate limiter (sign-in, sign-up, reset, contact), which counts per function instance, so it is best-effort here; a shared store such as Redis is the upgrade for real traffic.
+- **Work after the response** (emails, alerts) runs inside Vercel's `waitUntil`, because a serverless function can be frozen as soon as it answers.
+- **Logs:** each request is one JSON line with a request id that is also returned in the `x-request-id` header, so a reported error can be found in the logs.
+- **Daily jobs:** Vercel Cron calls a protected endpoint once a day to delete removed photos after 30 days, old notifications after 90 days and accounts deleted from billing. Every job is safe to run twice.
+- **Email demo mode:** without a domain, Resend's test sender only reaches the project owner. Production refuses that sender unless demo mode is switched on explicitly.
+- **Schema changes go first:** an additive migration is applied to production before the code that uses it is pushed, so the running version never meets a column it does not know.
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## Limits and what is not built
 
----
+- The rate limiter is per instance on serverless (see above), and cold starts can make the first request slow.
+- No email or push notifications, and no @mentions yet; notifications are in-app only.
+- Soft-deleted tasks, expired sessions and stale invitations are not purged by a scheduled job yet.
+- Stripe runs in test mode only.
+
+## How it was built
+
+Veyro was built in six gated phases: product rules, system design (data model, API contracts, decision records), the backend, the frontend against an approved design system, integration and security, then deployment. Each step was explained, approved, implemented, tested and reviewed before the next one started.
 
 <div align="center">
-  <sub>Built with engineering excellence by <strong>Mohand Hatem</strong></sub>
+  <sub>Built by <strong>Mohand Hatem</strong></sub>
 </div>
