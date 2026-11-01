@@ -142,6 +142,10 @@ The demo runs as two Vercel projects from this repository (`frontend/` and `back
 
 Veyro was built in six gated phases: product rules, system design (data model, API contracts, decision records), the backend, the frontend against an approved design system, integration and security, then deployment. Each step was explained, approved, implemented, tested and reviewed before the next one started.
 
+## License
+
+[MIT](LICENSE)
+
 <div align="center">
   <sub>Built by <strong>Mohand Hatem</strong></sub>
 </div>

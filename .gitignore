@@ -39,6 +39,7 @@ skills-lock.json
 # MCP configuration & browser-automation output
 .mcp.json
 .playwright-mcp/
+.vscode/
 
 # Generated knowledge-graph output
 graphify-out/
