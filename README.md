@@ -50,10 +50,10 @@ The demo is shared with other visitors. Payments run in Stripe test mode, so no 
 
 - **Accounts and access:** email sign-up with a code, Google and GitHub sign-in, password reset, invitations locked to the invited address, profile photos (cropped and re-encoded on the server) or illustrated avatars.
 - **Workspaces and projects:** an account owns workspaces, workspaces hold private projects, and each project has its own admins and members. A dashboard, a projects list and a "my tasks" view across projects.
-- **Tasks:** a board with five states (To do, In progress, In review, Done, Cancelled) and only the allowed moves between them. Reopening a finished task needs a reason. A member who moves their task must leave a note, which becomes a comment. Comments, due dates, categories, a 30-day restore for deleted tasks, and private file attachments that only the assignee, the creator and admins can open.
+- **Tasks:** a board with five states (To do, In progress, In review, Done, Cancelled) and only the allowed moves between them. Reopening a finished task needs a reason. A member who moves their task must leave a note, which becomes a comment. Comments with @mentions (only people who can see the task are told), due dates, categories, a 30-day restore for deleted tasks, and private file attachments that only the assignee, the creator and admins can open.
 - **AI assistant:** answers questions about Veyro from its help documents (with sources), answers questions about your workspace through read-only tools, and drafts new tasks or changes as proposals you confirm or reject. Daily limits depend on the plan.
 - **Billing:** four plans with project and workspace limits, Stripe Checkout and the customer portal, a 7-day grace period, and choosing which projects stay editable after a downgrade.
-- **Trust:** an audit trail per workspace and per account, in-app notifications for assignments, comments, project additions, role changes and accepted invitations, and account deletion with a 30-day purge.
+- **Trust:** an audit trail per workspace and per account, in-app notifications for assignments, comments, mentions, project additions, role changes and accepted invitations, a toast after every action (success, error or info, each with its own Veyro face), and account deletion with a 30-day purge.
 
 ## Architecture
 
@@ -92,10 +92,10 @@ The longer reasoning, with the alternatives and when to revisit each choice, is 
 
 | Where | Command | What it covers |
 | :--- | :--- | :--- |
-| `backend/` | `npm test` | 34 test files, 394 tests against a real database: business and role rules, the tenant-isolation route matrix, plan limits, security, OAuth, Stripe webhooks, the AI gateway and tools, files, notifications, and journeys across the product. |
+| `backend/` | `npm test` | 35 test files, 402 tests against a real database: business and role rules, the tenant-isolation route matrix, plan limits, security, OAuth, Stripe webhooks, the AI gateway and tools, files, notifications and mentions, and journeys across the product. |
 | `backend/` | `npm run ai:eval` | 22 cases for the assistant against the real model (help answers, refusals, workspace data, prompt injection, task drafts). Refuses to run on production. |
-| `frontend/` | `npm test` | 135 unit tests (vitest), including that every message exists in both languages. |
-| `e2e/` | `npx playwright test` | Browser journeys (sign-up, board moves, roles, the task page, status notes, files) and every screen in English and Arabic at desktop and phone width. |
+| `frontend/` | `npm test` | 146 unit tests (vitest), including that every message exists in both languages. |
+| `e2e/` | `npx playwright test` | Browser journeys (sign-up, board moves, roles, the task page, status notes, files, mentions) and every screen in English and Arabic at desktop and phone width. |
 
 **CI** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs on every push and pull request: frontend lint, types, tests and build; backend lint, types and build; the backend suite against a throwaway Postgres with pgvector; the browser suite against the Docker stack; a Docker job that starts every service and checks `/health`; and `npm audit` for high and critical issues. The **Health** workflow calls the live API every hour and fails, which emails the owner, when the API or its database does not answer.
 
@@ -134,7 +134,7 @@ The demo runs as two Vercel projects from this repository (`frontend/` and `back
 ## Limits and what is not built
 
 - The rate limiter is per instance on serverless (see above), and cold starts can make the first request slow.
-- No email or push notifications, and no @mentions yet; notifications are in-app only.
+- No email or push notifications; notifications are in-app only.
 - Soft-deleted tasks, expired sessions and stale invitations are not purged by a scheduled job yet.
 - Stripe runs in test mode only.
 
