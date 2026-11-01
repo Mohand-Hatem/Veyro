@@ -737,6 +737,8 @@ model KnowledgeChunk {
 enum NotificationType {
   TASK_ASSIGNED
   TASK_COMMENTED
+  /// Someone wrote `<@userId>` in a comment on a task the person can see (CS-16).
+  TASK_MENTIONED
   ADDED_TO_PROJECT
   ROLE_CHANGED
   INVITATION_ACCEPTED

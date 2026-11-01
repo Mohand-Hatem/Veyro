@@ -12,11 +12,13 @@ import { CreateCommentDto } from './dto/create-comment.dto';
 import { QueryTasksDto } from './dto/query-tasks.dto';
 import { QueryMyTasksDto, MyTasksView, MyTasksBucket } from './dto/query-my-tasks.dto';
 import { completedAtPatch } from './task-completion';
+import { mentionIds } from './task-mentions';
 import {
   Prisma,
   TaskStatus,
   ProjectLifecycleStatus,
   NotificationType,
+  WorkspaceRole,
 } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -253,8 +255,11 @@ export class TasksService {
     const deleted = task.deletedAt !== null;
     const terminal = task.status === TaskStatus.DONE || task.status === TaskStatus.CANCELLED;
     const isAssignee = task.assigneeId === viewer.userId;
+    // The people the comments mention, for showing their current names; anyone who can no longer see the task is left out.
+    const mentioned = await this.whoCanSee(this.prisma, task.project.id, [...new Set(task.comments.flatMap((c) => mentionIds(c.content)))]);
     return {
       ...task,
+      mentioned,
       purgeAt: purgeAtOf(task.deletedAt),
       // What this caller may do, so the UI never has to guess (the server stays the authority).
       viewer: {
@@ -603,13 +608,35 @@ export class TasksService {
       },
     });
 
-    // The person the task is assigned to and the person who created it hear about a comment (never the commenter).
+    // People mentioned in it hear about it, but only those who can see this task: a mention must never reveal a private
+    // project. The assignee and the creator hear about every comment (never the commenter, and never twice).
+    const notice = { actorId: userId, workspaceId: task.project.workspaceId, projectId: task.projectId, taskId: task.id, data: this.noticeData(task.title, task.project) };
+    const mentioned = (await this.whoCanSee(tx, task.projectId, mentionIds(content).filter((id) => id !== userId))).map((u) => u.id);
+    for (const recipientId of mentioned) await this.notifications.notify(tx, { ...notice, type: NotificationType.TASK_MENTIONED, recipientId });
     for (const recipientId of new Set([task.assigneeId, task.authorId])) {
-      if (!recipientId) continue;
-      await this.notifications.notify(tx, { type: NotificationType.TASK_COMMENTED, recipientId, actorId: userId, workspaceId: task.project.workspaceId, projectId: task.projectId, taskId: task.id, data: this.noticeData(task.title, task.project) });
+      if (!recipientId || mentioned.includes(recipientId)) continue;
+      await this.notifications.notify(tx, { ...notice, type: NotificationType.TASK_COMMENTED, recipientId });
     }
 
     return comment;
+  }
+
+  /** Of these people, the ones who can see tasks of this project: its members, the workspace admins and the account owner (TaskAccessGuard's rule). */
+  private async whoCanSee(db: Prisma.TransactionClient, projectId: string, userIds: string[]) {
+    if (!userIds.length) return [];
+    const holdsProject = { projects: { some: { id: projectId } } };
+    return db.user.findMany({
+      where: {
+        id: { in: userIds },
+        deletedAt: null,
+        OR: [
+          { projectMemberships: { some: { projectId } } },
+          { workspaceMemberships: { some: { role: WorkspaceRole.ADMIN, workspace: holdsProject } } },
+          { ownedAccounts: { some: { workspaces: { some: holdsProject } } } },
+        ],
+      },
+      select: { id: true, name: true, avatarUrl: true },
+    });
   }
 
   async listTaskComments(taskId: string) {
