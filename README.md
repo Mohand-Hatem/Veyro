@@ -77,6 +77,8 @@ Data is organised as **User → Account → Workspaces → Projects → Tasks**.
 
 ## Engineering decisions
 
+The longer reasoning, with the alternatives and when to revisit each choice, is in the [architecture decision records](docs/adr/).
+
 - **A modular monolith, not microservices.** One deployable, clear module boundaries, transactions across modules when a change must be atomic. Splitting would add network failure modes this product does not need.
 - **Tenant isolation everywhere, proven by a test.** Every query is scoped to the caller's workspace and project membership. A private project you are not in returns `404`, not `403`, so its existence does not leak. A test walks every route and fails when a new route is not classified for who may call it.
 - **Rights are decided on the server.** Each response includes what the viewer may do (`viewer.canEdit`, `canUpload`, `allowedStatuses`…), and the UI only reflects it. Hiding a button is never the protection.
@@ -120,7 +122,7 @@ The seed prints the three demo addresses; their password is `VeyroDemo2026!` unl
 
 ## Deployment
 
-The demo runs as two Vercel projects from this repository (`frontend/` and `backend/`) with a Neon database. What that means in practice:
+The demo runs as two Vercel projects from this repository (`frontend/` and `backend/`) with a Neon database ([why, and when to move to a container host](docs/adr/0003-vercel-serverless.md)). What that means in practice:
 
 - **Serverless, honestly:** nothing important lives in memory. Sessions are cookies, AI limits are in the database, and the database connection is pooled. The exception is the request rate limiter (sign-in, sign-up, reset, contact), which counts per function instance, so it is best-effort here; a shared store such as Redis is the upgrade for real traffic.
 - **Work after the response** (emails, alerts) runs inside Vercel's `waitUntil`, because a serverless function can be frozen as soon as it answers.
