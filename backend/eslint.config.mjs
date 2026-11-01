@@ -11,8 +11,8 @@ export default tseslint.config(
     rules: {
       // Unused arguments are part of a signature (Nest guards, filters); a leading underscore marks them on purpose.
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrors: 'none' }],
-      // shortcut: older controllers still take `@Req() req: any`; a warning keeps the count visible until they move to @CurrentUser.
-      '@typescript-eslint/no-explicit-any': 'warn',
+      // App code has no `any`: guard flags are typed by AccessRequest, provider JSON by narrow interfaces checked at runtime.
+      '@typescript-eslint/no-explicit-any': 'error',
     },
   },
   {

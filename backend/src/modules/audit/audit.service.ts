@@ -56,7 +56,7 @@ export class AuditService {
       });
     }
 
-    const whereClause: any = {};
+    const whereClause: Prisma.AuditLogWhereInput = {};
 
     // Account-level trail (CS-07, SCR-AUD-02): the Account Owner only, and only that account's own events.
     if (query.accountId && !ownedAccountIds.includes(query.accountId)) {

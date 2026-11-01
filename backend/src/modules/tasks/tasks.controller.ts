@@ -25,6 +25,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { ProjectAccessGuard } from '../projects/guards/project-access.guard';
 import { TaskAccessGuard } from './guards/task-access.guard';
 import { TenantGuard } from '../tenancy/guards/tenant.guard';
+import type { AccessRequest } from '../../common/types/access-request';
 import { WorkspaceRole } from '@prisma/client';
 
 @Controller()
@@ -41,7 +42,7 @@ export class TasksController {
     @CurrentUser('id') userId: string,
     @Param('workspaceId') workspaceId: string,
     @Query() query: QueryMyTasksDto,
-    @Req() req: any,
+    @Req() req: AccessRequest,
   ) {
     const isPrivileged = Boolean(req.isAccountOwner) || req.workspaceRole === WorkspaceRole.ADMIN;
     return this.tasksService.listMyTasks(userId, workspaceId, isPrivileged, query);
@@ -54,7 +55,7 @@ export class TasksController {
     @CurrentUser('id') userId: string,
     @Param('projectId') projectId: string,
     @Body() dto: CreateTaskDto,
-    @Req() req: any,
+    @Req() req: AccessRequest,
   ) {
     return this.tasksService.createTask(userId, projectId, dto, Boolean(req.isProjectAdmin));
   }
@@ -65,7 +66,7 @@ export class TasksController {
     @CurrentUser('id') userId: string,
     @Param('projectId') projectId: string,
     @Query() query: QueryTasksDto,
-    @Req() req: any,
+    @Req() req: AccessRequest,
   ) {
     return this.tasksService.listProjectTasks(projectId, query, { userId, isAdmin: Boolean(req.isProjectAdmin) });
   }
@@ -75,7 +76,7 @@ export class TasksController {
   async getTaskDetails(
     @CurrentUser('id') userId: string,
     @Param('id') taskId: string,
-    @Req() req: any,
+    @Req() req: AccessRequest,
   ) {
     const isAdmin = Boolean(req.isProjectAdmin);
     const task = await this.tasksService.getTaskDetails(taskId, { userId, isAdmin, isAuthor: Boolean(req.isTaskAuthor) });
@@ -86,20 +87,20 @@ export class TasksController {
   @Post('tasks/:id/attachments/sign')
   @UseGuards(TaskAccessGuard)
   @HttpCode(HttpStatus.OK)
-  async signAttachment(@CurrentUser('id') userId: string, @Param('id') taskId: string, @Body() dto: SignAttachmentDto, @Req() req: any) {
+  async signAttachment(@CurrentUser('id') userId: string, @Param('id') taskId: string, @Body() dto: SignAttachmentDto, @Req() req: AccessRequest) {
     return this.attachments.sign({ userId, isAdmin: Boolean(req.isProjectAdmin) }, taskId, dto.fileName);
   }
 
   @Post('tasks/:id/attachments')
   @UseGuards(TaskAccessGuard)
   @HttpCode(HttpStatus.CREATED)
-  async confirmAttachment(@CurrentUser('id') userId: string, @Param('id') taskId: string, @Body() dto: ConfirmAttachmentDto, @Req() req: any) {
+  async confirmAttachment(@CurrentUser('id') userId: string, @Param('id') taskId: string, @Body() dto: ConfirmAttachmentDto, @Req() req: AccessRequest) {
     return this.attachments.confirm({ userId, isAdmin: Boolean(req.isProjectAdmin) }, taskId, dto.publicId, dto.fileName);
   }
 
   @Delete('tasks/:id/attachments/:attachmentId')
   @UseGuards(TaskAccessGuard)
-  async removeAttachment(@CurrentUser('id') userId: string, @Param('id') taskId: string, @Param('attachmentId') attachmentId: string, @Req() req: any) {
+  async removeAttachment(@CurrentUser('id') userId: string, @Param('id') taskId: string, @Param('attachmentId') attachmentId: string, @Req() req: AccessRequest) {
     return this.attachments.remove({ userId, isAdmin: Boolean(req.isProjectAdmin) }, taskId, attachmentId);
   }
 
@@ -109,7 +110,7 @@ export class TasksController {
     @CurrentUser('id') userId: string,
     @Param('id') taskId: string,
     @Body() dto: UpdateTaskDto,
-    @Req() req: any,
+    @Req() req: AccessRequest,
   ) {
     return this.tasksService.updateTask(userId, taskId, dto, Boolean(req.isProjectAdmin));
   }
@@ -121,7 +122,7 @@ export class TasksController {
     @CurrentUser('id') userId: string,
     @Param('id') taskId: string,
     @Body() dto: ReopenTaskDto,
-    @Req() req: any,
+    @Req() req: AccessRequest,
   ) {
     return this.tasksService.reopenTask(
       userId,
@@ -154,7 +155,7 @@ export class TasksController {
   async deleteTask(
     @CurrentUser('id') userId: string,
     @Param('id') taskId: string,
-    @Req() req: any,
+    @Req() req: AccessRequest,
   ) {
     return this.tasksService.softDeleteTask(
       userId,
@@ -169,7 +170,7 @@ export class TasksController {
   async restoreTask(
     @CurrentUser('id') userId: string,
     @Param('id') taskId: string,
-    @Req() req: any,
+    @Req() req: AccessRequest,
   ) {
     return this.tasksService.restoreTask(
       userId,

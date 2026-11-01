@@ -31,6 +31,7 @@ import {
   Prisma,
   WorkspaceRole,
   ProjectRole,
+  type Task,
 } from '@prisma/client';
 
 export const TIER_PROJECT_LIMITS: Record<SubscriptionPlanTier, number> = {
@@ -434,8 +435,14 @@ export class AiService {
     try {
       const promptLower = dto.content.toLowerCase();
       let assistantContent = `I have analyzed your request in the context of ${conversation.title}. All active project workflows are running smoothly.`;
-      let citations: any = null;
-      let proposalData: any = null;
+      let citations: object[] | null = null;
+      let proposalData: {
+        targetEntityType: AiProposalTargetType;
+        mutationAction: AiProposalMutationType;
+        targetWorkspaceId: string | null;
+        targetProjectId: string;
+        proposedPayload: TaskDraft['payload'];
+      } | null = null;
 
       // Intelligent Proposal Generation (Safe Human-in-the-Loop Pattern):
       // If user asks to create or schedule a task, the assistant proposes a structured mutation!
@@ -600,10 +607,10 @@ export class AiService {
       });
     }
 
-    const payload = proposal.proposedPayload as any;
+    const payload = (proposal.proposedPayload ?? {}) as Partial<TaskDraft['payload']>; // stored JSON, so every field may be missing
 
     return this.prisma.$transaction(async (tx) => {
-      let createdEntity: any = null;
+      let createdEntity: Task | null = null;
 
       if (proposal.targetEntityType === AiProposalTargetType.TASK && proposal.mutationAction === AiProposalMutationType.CREATE) {
         // Find default project in workspace to attach task

@@ -6,6 +6,19 @@ import {
   IsObject,
 } from 'class-validator';
 
+/** The fields billing reads from an event; each event type carries a different subset, so all are optional. */
+export interface WebhookEventData {
+  accountId?: string;
+  userId?: string;
+  tier?: string;
+  status?: string;
+  dailyQuota?: number;
+  providerCustomerId?: string;
+  providerSubscriptionId?: string;
+  cancelAtPeriodEnd?: boolean;
+  billingCycleEndsAt?: string;
+}
+
 export class WebhookEventDto {
   @IsString()
   @IsNotEmpty()
@@ -25,5 +38,5 @@ export class WebhookEventDto {
 
   @IsObject()
   @IsOptional()
-  data?: Record<string, any>;
+  data?: WebhookEventData;
 }

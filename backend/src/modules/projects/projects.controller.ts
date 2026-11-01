@@ -23,7 +23,8 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { TenantGuard } from '../tenancy/guards/tenant.guard';
 import { ProjectAccessGuard } from './guards/project-access.guard';
 import { ProjectAdminGuard } from './guards/project-admin.guard';
-import { WorkspaceRole } from '@prisma/client';
+import type { AccessRequest } from '../../common/types/access-request';
+import { ProjectRole, WorkspaceRole } from '@prisma/client';
 
 @Controller()
 export class ProjectsController {
@@ -35,7 +36,7 @@ export class ProjectsController {
     @CurrentUser('id') userId: string,
     @Param('workspaceId') workspaceId: string,
     @Query() query: QueryProjectsDto,
-    @Req() req: any,
+    @Req() req: AccessRequest,
   ) {
     const isPrivileged =
       req.isAccountOwner || req.workspaceRole === WorkspaceRole.ADMIN;
@@ -54,7 +55,7 @@ export class ProjectsController {
     @CurrentUser('id') userId: string,
     @Param('workspaceId') workspaceId: string,
     @Body() dto: CreateProjectDto,
-    @Req() req: any,
+    @Req() req: AccessRequest,
   ) {
     const isPrivileged =
       req.isAccountOwner || req.workspaceRole === WorkspaceRole.ADMIN;
@@ -73,13 +74,13 @@ export class ProjectsController {
   async getProjectDetails(
     @CurrentUser('id') userId: string,
     @Param('id') projectId: string,
-    @Req() req: any,
+    @Req() req: AccessRequest,
   ) {
     return this.projectsService.getProjectDetails(projectId, {
       userId,
       isAdmin: Boolean(req.isProjectAdmin),
       isOverride: Boolean(req.isWorkspaceOverride),
-      projectRole: req.projectRole,
+      projectRole: req.projectRole ?? ProjectRole.MEMBER, // the guard always sets it; least privilege if it ever does not
     });
   }
 
@@ -89,7 +90,7 @@ export class ProjectsController {
     @CurrentUser('id') userId: string,
     @Param('id') projectId: string,
     @Body() dto: UpdateProjectDto,
-    @Req() req: any,
+    @Req() req: AccessRequest,
   ) {
     return this.projectsService.updateProject(userId, projectId, dto, Boolean(req.isWorkspaceOverride));
   }
@@ -100,7 +101,7 @@ export class ProjectsController {
   async deleteProject(
     @CurrentUser('id') userId: string,
     @Param('id') projectId: string,
-    @Req() req: any,
+    @Req() req: AccessRequest,
   ) {
     return this.projectsService.softDeleteProject(userId, projectId, Boolean(req.isWorkspaceOverride));
   }
@@ -133,7 +134,7 @@ export class ProjectsController {
     @CurrentUser('id') userId: string,
     @Param('id') projectId: string,
     @Param('userId') targetUserId: string,
-    @Req() req: any,
+    @Req() req: AccessRequest,
   ) {
     return this.projectsService.removeMember(userId, projectId, targetUserId, Boolean(req.isWorkspaceOverride));
   }
@@ -145,7 +146,7 @@ export class ProjectsController {
     @Param('id') projectId: string,
     @Param('userId') targetUserId: string,
     @Body() dto: UpdateProjectMemberRoleDto,
-    @Req() req: any,
+    @Req() req: AccessRequest,
   ) {
     return this.projectsService.updateMemberRole(userId, projectId, targetUserId, dto.role, Boolean(req.isWorkspaceOverride));
   }

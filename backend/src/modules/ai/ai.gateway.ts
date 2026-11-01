@@ -38,6 +38,17 @@ export type AiTurn =
   | { role: 'tool-request'; modelTurn: unknown }
   | { role: 'tool-result'; results: { id?: string; name: string; result: object }[] };
 
+/** The parts of Gemini's JSON this file reads. Everything is optional: provider output is untrusted and checked before use. */
+interface GeminiPart {
+  text?: unknown;
+  functionCall?: { id?: string; name?: unknown; args?: unknown };
+}
+interface GeminiResponse {
+  embeddings?: { values?: unknown }[];
+  candidates?: { content?: { parts?: GeminiPart[] }; finishReason?: string }[];
+  promptFeedback?: { blockReason?: string };
+}
+
 export const EMBEDDING_DIMS = 768;
 const TIMEOUT_MS = 20_000;
 const DEFAULT_MODEL = 'gemini-3.5-flash-lite';
@@ -103,7 +114,7 @@ export class AiGateway {
           outputDimensionality: EMBEDDING_DIMS,
         })),
       });
-      const vectors: unknown = json?.embeddings?.map((e: any) => e?.values);
+      const vectors: unknown = json?.embeddings?.map((e) => e?.values);
       // Provider output is untrusted: a wrong count or size would corrupt the table or break the search query.
       if (!Array.isArray(vectors) || vectors.length !== batch.length || !vectors.every((v) => Array.isArray(v) && v.length === EMBEDDING_DIMS && v.every((n) => typeof n === 'number'))) {
         throw new Error('the embedding answer has the wrong shape');
@@ -113,7 +124,7 @@ export class AiGateway {
     return out;
   }
 
-  private async post(model: string, method: string, body: object): Promise<any> {
+  private async post(model: string, method: string, body: object): Promise<GeminiResponse | null> {
     const payload = JSON.stringify(body);
     // One retry for the failures that usually pass on the second try: rate limit, provider 5xx, network or timeout.
     for (let attempt = 1; ; attempt++) {
@@ -139,17 +150,17 @@ export class AiGateway {
     }
   }
 
-  private parse(json: any): AiGenerateResult | AiToolRequest {
+  private parse(json: GeminiResponse | null): AiGenerateResult | AiToolRequest {
     const content = json?.candidates?.[0]?.content;
-    const calls = (content?.parts ?? []).filter((p: any) => p?.functionCall?.name);
+    const calls = (content?.parts ?? []).flatMap((p) => (p?.functionCall?.name ? [p.functionCall] : []));
     if (calls.length) {
-      return { toolCalls: calls.map((p: any) => ({ id: p.functionCall.id, name: String(p.functionCall.name), args: p.functionCall.args && typeof p.functionCall.args === 'object' ? p.functionCall.args : {} })), modelTurn: content };
+      return { toolCalls: calls.map((c) => ({ id: c.id, name: String(c.name), args: c.args && typeof c.args === 'object' ? (c.args as Record<string, unknown>) : {} })), modelTurn: content };
     }
     const text = content?.parts?.[0]?.text;
     if (typeof text !== 'string') {
       throw new Error(`no answer (${json?.promptFeedback?.blockReason ?? json?.candidates?.[0]?.finishReason ?? 'empty'})`);
     }
-    let out: any;
+    let out: { inScope?: unknown; answer?: unknown; sourcesUsed?: unknown } | null;
     try {
       out = JSON.parse(text);
     } catch {
@@ -159,7 +170,7 @@ export class AiGateway {
     if (typeof out?.inScope !== 'boolean' || typeof out?.answer !== 'string') {
       throw new Error('the model answer has the wrong shape');
     }
-    const sourcesUsed = Array.isArray(out.sourcesUsed) ? out.sourcesUsed.filter((n: unknown) => Number.isInteger(n)) : [];
+    const sourcesUsed = Array.isArray(out.sourcesUsed) ? out.sourcesUsed.filter((n: unknown): n is number => Number.isInteger(n)) : [];
     return { inScope: out.inScope, answer: out.answer.trim(), sourcesUsed };
   }
 }

@@ -37,7 +37,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let errorCode = 'INTERNAL_SERVER_ERROR';
     let message = 'An unexpected server error occurred.';
-    let details: any = undefined;
+    let details: unknown = undefined;
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();
@@ -47,11 +47,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
         message = res;
         errorCode = this.getDefaultErrorCode(status); // e.g. the throttler answers with a plain string: still a catalog code, not INTERNAL_SERVER_ERROR
       } else if (typeof res === 'object' && res !== null) {
-        const resObj = res as Record<string, any>;
-        message = resObj.message || exception.message;
+        const resObj = res as Record<string, unknown>;
+        message = typeof resObj.message === 'string' && resObj.message ? resObj.message : exception.message;
         // Domain exceptions carry a machine-readable `code` (docs/06 §1.4). The Nest `error` string
         // (e.g. "Not Found") is not part of the contract, so fall back to the catalog default instead.
-        errorCode = resObj.code || this.getDefaultErrorCode(status);
+        errorCode = typeof resObj.code === 'string' && resObj.code ? resObj.code : this.getDefaultErrorCode(status);
 
         if (Array.isArray(resObj.message)) {
           details = resObj.message;

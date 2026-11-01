@@ -7,7 +7,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { NotificationType } from '@prisma/client';
+import { NotificationType, Prisma } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
@@ -108,9 +108,9 @@ export class ProjectsService {
             createdById: userId,
           },
         });
-      } catch (err: any) {
+      } catch (err: unknown) {
         // The unique index (workspaceId, key) is the final arbiter under concurrent creation.
-        if (err?.code === 'P2002') throw this.keyTaken(key);
+        if ((err as { code?: string } | null)?.code === 'P2002') throw this.keyTaken(key);
         throw err;
       }
 
@@ -154,7 +154,7 @@ export class ProjectsService {
       });
     }
     const showDeleted = Boolean(query.deleted);
-    const whereClause: any = {
+    const whereClause: Prisma.ProjectWhereInput = {
       workspaceId,
       deletedAt: showDeleted ? { not: null } : null,
     };

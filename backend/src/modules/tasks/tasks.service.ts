@@ -161,7 +161,7 @@ export class TasksService {
     if (query.deleted && !viewer.isAdmin) {
       return { tasks: [], meta: { total: 0, page, limit, totalPages: 0 } };
     }
-    const whereClause: any = query.deleted ? { projectId, deletedAt: { not: null } } : { projectId, deletedAt: null };
+    const whereClause: Prisma.TaskWhereInput = query.deleted ? { projectId, deletedAt: { not: null } } : { projectId, deletedAt: null };
     if (query.category) {
       whereClause.category = query.category;
     }
@@ -798,7 +798,7 @@ export class TasksService {
     const startOfDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
     const endOfDay = new Date(startOfDay.getTime() + 86_400_000);
 
-    const visible: any = {
+    const visible: Prisma.TaskWhereInput = {
       assigneeId: userId,
       deletedAt: null,
       project: {
@@ -807,7 +807,7 @@ export class TasksService {
         ...(isPrivileged ? {} : { members: { some: { userId } } }),
       },
     };
-    const base: any = { ...visible, ...(query.projectId ? { projectId: query.projectId } : {}) };
+    const base: Prisma.TaskWhereInput = { ...visible, ...(query.projectId ? { projectId: query.projectId } : {}) };
     const open = { status: { in: [TaskStatus.TODO, TaskStatus.IN_PROGRESS, TaskStatus.IN_REVIEW] } };
 
     const bucketWhere = (b?: MyTasksBucket) =>

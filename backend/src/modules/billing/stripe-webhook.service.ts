@@ -32,7 +32,8 @@ export class StripeWebhookService {
 
   /** Which subscription an event is about, for the few event types we care about. */
   subscriptionIdOf(event: Stripe.Event): string | null {
-    const o = event.data.object as unknown as Record<string, any>;
+    // only these fields are read, and their shape differs per event type, so id() narrows each one
+    const o = event.data.object as unknown as { mode?: string; id?: unknown; subscription?: unknown; parent?: { subscription_details?: { subscription?: unknown } } };
     const id = (v: unknown) => (typeof v === 'string' ? v : (v as { id?: string } | null)?.id ?? null);
     switch (event.type) {
       case 'checkout.session.completed':
