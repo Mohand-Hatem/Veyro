@@ -58,6 +58,7 @@ test('dialogs are reachable bottom sheets on a short phone screen', async ({ pag
       return {
         left: r.left, right: document.documentElement.clientWidth - r.right, bottom: innerHeight - r.bottom,
         lastFieldHidden: clipped || !!(last && foot && last.bottom > foot.top + 1), footHidden: !!(foot && foot.bottom > innerHeight + 1), spin, footerMoved,
+        sceneShown: [...dlg.querySelectorAll('.il-scene')].some((s) => s.getBoundingClientRect().height > 0),
       };
     });
     expect.soft(Math.abs(m.left), `${d.name}: starts at the left edge`).toBeLessThanOrEqual(1);
@@ -67,6 +68,7 @@ test('dialogs are reachable bottom sheets on a short phone screen', async ({ pag
     expect.soft(m.footHidden, `${d.name}: footer stays on screen`).toBe(false);
     if (m.spin) expect.soft(Math.abs(m.spin.w - m.spin.h), `${d.name}: spinner stays round`).toBeLessThanOrEqual(0.5);
     expect.soft(m.footerMoved, `${d.name}: footer does not move when the button turns busy`).toBe(false);
+    expect.soft(m.sceneShown, `${d.name}: no illustrated panel on a phone (it squeezes the form)`).toBe(false);
     await page.keyboard.press('Escape');
     await expect(dialog).toBeHidden();
   }

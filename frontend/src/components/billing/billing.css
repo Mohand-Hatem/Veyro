@@ -94,7 +94,7 @@
   .gv-plan { grid-template-columns: minmax(0, 1fr); }
 }
 
-@media (max-width: 880px) { .gv-side { display: none; } .gv-dlg .pm-form { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 880px) { .pm .gv-side { display: none; } .gv-dlg .pm-form { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 640px) {
   .gv-banner { grid-template-columns: auto minmax(0, 1fr); }
   .gv-banner .pm-btn { grid-column: 1 / -1; }

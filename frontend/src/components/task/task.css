@@ -82,7 +82,7 @@
 }
 
 @media (max-width: 767px) {
-  .tp-side { display: none; }
+  .tp-grid .tp-side { display: none; } /* parent class so it beats `.il-scene { display: flex }` in any bundle order */
 }
 
 @media (prefers-reduced-motion: reduce) {

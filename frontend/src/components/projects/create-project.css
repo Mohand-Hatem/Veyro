@@ -47,7 +47,8 @@
 
 @media (max-width: 859px) {
   .pm-form { grid-template-columns: 1fr; }
-  .pm-side { display: none; }
+  /* two classes, so it beats `.il-scene { display: flex }` whichever CSS bundle loads last */
+  .pm .pm-side { display: none; }
   .pm-note { display: block; }
 }
 

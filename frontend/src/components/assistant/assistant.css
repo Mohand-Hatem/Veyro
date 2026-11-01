@@ -110,7 +110,7 @@
 
 @media (max-width: 1100px) {
   .as-grid { grid-template-columns: minmax(0, 1fr); }
-  .as-side { display: none; }
+  .as-grid .as-side { display: none; } /* parent class so it beats `.il-scene { display: flex }` in any bundle order */
 }
 @media (max-width: 640px) {
   .as-head, .as-scroll, .as-foot { padding-inline: 14px; }
