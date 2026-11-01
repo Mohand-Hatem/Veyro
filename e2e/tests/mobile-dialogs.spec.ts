@@ -12,11 +12,12 @@ const DIALOGS: { name: string; path: string; open: (page: Page) => Promise<void>
   { name: 'add task', path: `/w/${WORKSPACE}/projects/WEB`, open: (p) => p.getByRole('button', { name: 'Add task' }).first().click() },
   { name: 'project members', path: `/w/${WORKSPACE}/projects/WEB`, open: (p) => p.getByRole('button', { name: /Project members/ }).first().click() },
   {
-    name: 'create project',
+    // not "create project": earlier journeys can fill the Free plan's 3 projects, which disables that button
+    name: 'project settings',
     path: `/w/${WORKSPACE}/projects`,
     open: async (p) => {
-      await p.getByRole('button', { name: 'Open navigation' }).click();
-      await p.getByRole('button', { name: 'Create new project' }).first().click();
+      await p.getByRole('button', { name: /^More actions: / }).first().click();
+      await p.locator('[role=menuitem], button').filter({ hasText: /^Project settings$/ }).first().click();
     },
   },
   { name: 'delete account', path: '/account/billing', open: (p) => p.getByRole('button', { name: 'Delete account…' }).click() },
