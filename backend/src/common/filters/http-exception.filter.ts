@@ -8,18 +8,21 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 
-// Prisma connection/pool codes, plus the raw network codes the pg driver reports through the adapter.
+// Prisma connection/pool codes (P2028: an interactive transaction timed out, which on Neon means a slow or waking database),
+// plus the raw network codes the pg driver reports through the adapter.
 const DATABASE_UNAVAILABLE_CODES = new Set([
-  'P1001', 'P1002', 'P1008', 'P1011', 'P1017', 'P2024',
+  'P1001', 'P1002', 'P1008', 'P1011', 'P1017', 'P2024', 'P2028',
   'ETIMEDOUT', 'ECONNREFUSED', 'ECONNRESET', 'ENOTFOUND', 'EAI_AGAIN', 'ENETUNREACH', 'EHOSTUNREACH', 'EPIPE',
 ]);
 // The pg pool reports its own timeouts as plain errors without a code.
 const DATABASE_UNAVAILABLE_MESSAGE = /timeout exceeded when trying to connect|timeout expired|connection terminated|unable to verify the first certificate/i;
 
-export function isDatabaseUnavailable(exception: unknown): boolean {
-  const { code, message } = (exception ?? {}) as { code?: unknown; message?: unknown };
+export function isDatabaseUnavailable(exception: unknown, depth = 0): boolean {
+  const { code, message, cause } = (exception ?? {}) as { code?: unknown; message?: unknown; cause?: unknown };
   if (typeof code === 'string' && DATABASE_UNAVAILABLE_CODES.has(code)) return true;
-  return typeof message === 'string' && DATABASE_UNAVAILABLE_MESSAGE.test(message);
+  if (typeof message === 'string' && DATABASE_UNAVAILABLE_MESSAGE.test(message)) return true;
+  // The driver adapter can wrap the pg error, so its code sits on `cause`; three levels is plenty and stops a cycle.
+  return depth < 3 && cause != null && isDatabaseUnavailable(cause, depth + 1);
 }
 
 @Catch()

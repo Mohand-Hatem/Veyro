@@ -20,7 +20,12 @@ function run(exception: unknown) {
 
 describe('5.3: database outage handling', () => {
   it('recognises connection and pool failures, and nothing else', () => {
-    for (const code of ['ETIMEDOUT', 'ECONNREFUSED', 'P1001', 'P1011', 'P2024', 'ENETUNREACH']) assert.ok(isDatabaseUnavailable({ code }), code);
+    for (const code of ['ETIMEDOUT', 'ECONNREFUSED', 'P1001', 'P1011', 'P2024', 'P2028', 'ENETUNREACH']) assert.ok(isDatabaseUnavailable({ code }), code);
+    // A driver adapter error that carries the network code one level down, and a cause that points back at itself.
+    assert.ok(isDatabaseUnavailable(new Error('Driver adapter error', { cause: { code: 'ECONNRESET' } })), 'wrapped network error');
+    const loop: { message: string; cause?: unknown } = { message: 'boom' };
+    loop.cause = loop;
+    assert.equal(isDatabaseUnavailable(loop), false, 'a self-referencing cause neither loops nor counts');
     for (const message of ['timeout exceeded when trying to connect', 'timeout expired', 'Connection terminated unexpectedly', 'unable to verify the first certificate']) {
       assert.ok(isDatabaseUnavailable(new Error(message)), message);
     }

@@ -929,6 +929,7 @@
     "TASK_REINSTATED": "<A>{a}</A> reinstated a cancelled task in <P>{p}</P>",
     "TASK_DELETED": "<A>{a}</A> deleted task “{title}” in <P>{p}</P>",
     "TASK_RESTORED": "<A>{a}</A> restored task “{title}” in <P>{p}</P>",
+    "TASK_PURGED": "Task “{title}” in <P>{p}</P> was permanently deleted 30 days after it was deleted",
     "TASK_UNASSIGNED": "<A>{a}</A> unassigned <S>{s}</S> from a task in <P>{p}</P> (member removed)",
     "COMMENT_CREATED": "<A>{a}</A> commented on a task in <P>{p}</P>",
     "WORKSPACE_CREATED": "<A>{a}</A> created the workspace <N>{n}</N>",

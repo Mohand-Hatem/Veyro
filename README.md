@@ -92,10 +92,10 @@ The longer reasoning, with the alternatives and when to revisit each choice, is 
 
 | Where | Command | What it covers |
 | :--- | :--- | :--- |
-| `backend/` | `npm test` | 35 test files, 402 tests against a real database: business and role rules, the tenant-isolation route matrix, plan limits, security, OAuth, Stripe webhooks, the AI gateway and tools, files, notifications and mentions, and journeys across the product. |
+| `backend/` | `npm test` | 35 test files, 404 tests against a real database: business and role rules, the tenant-isolation route matrix, plan limits, security, OAuth, Stripe webhooks, the AI gateway and tools, files, notifications and mentions, and journeys across the product. |
 | `backend/` | `npm run ai:eval` | 22 cases for the assistant against the real model (help answers, refusals, workspace data, prompt injection, task drafts). Refuses to run on production. |
-| `frontend/` | `npm test` | 146 unit tests (vitest), including that every message exists in both languages. |
-| `e2e/` | `npx playwright test` | Browser journeys (sign-up, board moves, roles, the task page, status notes, files, mentions) and every screen in English and Arabic at desktop and phone width. |
+| `frontend/` | `npm test` | 145 unit tests (vitest), including that every message exists in both languages. |
+| `e2e/` | `npx playwright test` | Browser journeys (sign-up, board moves, roles, the task page, status notes, files, mentions), every screen in English and Arabic at desktop and phone width, and the dialogs as full-width, scrollable sheets on a short phone screen. |
 
 **CI** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs on every push and pull request: frontend lint, types, tests and build; backend lint, types and build; the backend suite against a throwaway Postgres with pgvector; the browser suite against the Docker stack; a Docker job that starts every service and checks `/health`; and `npm audit` for high and critical issues. The **Health** workflow calls the live API every hour and fails, which emails the owner, when the API or its database does not answer.
 
@@ -127,7 +127,7 @@ The demo runs as two Vercel projects from this repository (`frontend/` and `back
 - **Serverless, honestly:** nothing important lives in memory. Sessions are cookies, AI limits are in the database, and the database connection is pooled. The exception is the request rate limiter (sign-in, sign-up, reset, contact), which counts per function instance, so it is best-effort here; a shared store such as Redis is the upgrade for real traffic.
 - **Work after the response** (emails, alerts) runs inside Vercel's `waitUntil`, because a serverless function can be frozen as soon as it answers.
 - **Logs:** each request is one JSON line with a request id that is also returned in the `x-request-id` header, so a reported error can be found in the logs.
-- **Daily jobs:** Vercel Cron calls a protected endpoint once a day to delete removed photos after 30 days, old notifications after 90 days and accounts deleted from billing. Every job is safe to run twice.
+- **Daily jobs:** Vercel Cron calls a protected endpoint once a day to delete removed photos after 30 days, old notifications after 90 days, accounts deleted from billing, tasks 30 days after they were deleted (with their comments and files), and invitations, sessions, sign-up codes and reset links 30 days after they expired. Every job is safe to run twice; the task purge takes a Postgres advisory lock so two runs never purge the same batch.
 - **Email demo mode:** without a domain, Resend's test sender only reaches the project owner. Production refuses that sender unless demo mode is switched on explicitly.
 - **Schema changes go first:** an additive migration is applied to production before the code that uses it is pushed, so the running version never meets a column it does not know.
 
@@ -135,12 +135,11 @@ The demo runs as two Vercel projects from this repository (`frontend/` and `back
 
 - The rate limiter is per instance on serverless (see above), and cold starts can make the first request slow.
 - No email or push notifications; notifications are in-app only.
-- Soft-deleted tasks, expired sessions and stale invitations are not purged by a scheduled job yet.
 - Stripe runs in test mode only.
 
 ## How it was built
 
-Veyro was built in six gated phases: product rules, system design (data model, API contracts, decision records), the backend, the frontend against an approved design system, integration and security, then deployment. Each step was explained, approved, implemented, tested and reviewed before the next one started.
+Veyro was built in eight gated phases: product rules, system design (data model, API contracts, decision records), the backend, the frontend against an approved design system, integration and security, deployment, then hardening (phone layouts, strict types) and data retention. Each step was explained, approved, implemented, tested and reviewed before the next one started.
 
 ## License
 

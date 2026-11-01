@@ -929,6 +929,7 @@
     "TASK_REINSTATED": "<A>{a}</A> أعاد مهمة ملغاة في <P>{p}</P>",
     "TASK_DELETED": "<A>{a}</A> حذف المهمة «{title}» في <P>{p}</P>",
     "TASK_RESTORED": "<A>{a}</A> استعاد المهمة «{title}» في <P>{p}</P>",
+    "TASK_PURGED": "حُذفت المهمة «{title}» في <P>{p}</P> نهائياً بعد 30 يوماً من حذفها",
     "TASK_UNASSIGNED": "<A>{a}</A> ألغى إسناد مهمة من <S>{s}</S> في <P>{p}</P> (إزالة عضو)",
     "COMMENT_CREATED": "<A>{a}</A> علّق على مهمة في <P>{p}</P>",
     "WORKSPACE_CREATED": "<A>{a}</A> أنشأ مساحة العمل <N>{n}</N>",

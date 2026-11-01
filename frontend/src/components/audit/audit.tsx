@@ -233,7 +233,7 @@ function Sentence({ log: l }: { log: AuditLog }) {
     case "MEMBER_ROLE_CHANGED": return t.rich("MEMBER_ROLE_CHANGED", { ...a, ...sub, from: wsRole(str("from")), to: wsRole(str("to")) });
     case "PROJECT_MEMBER_ROLE_CHANGED": return t.rich("PROJECT_MEMBER_ROLE_CHANGED", { ...a, ...sub, ...proj, from: projRole(str("from")), to: projRole(str("to")) });
     case "TASK_STATUS_CHANGED": return t.rich("TASK_STATUS_CHANGED", { ...a, ...proj, from: status(str("previousStatus")), to: status(str("newStatus")) });
-    case "TASK_CREATED": case "TASK_DELETED": case "TASK_RESTORED": return t.rich(l.action, { ...a, ...proj, title: str("title") });
+    case "TASK_CREATED": case "TASK_DELETED": case "TASK_RESTORED": case "TASK_PURGED": return t.rich(l.action, { ...a, ...proj, title: str("title") });
     case "ATTACHMENT_ADDED": case "ATTACHMENT_REMOVED": return t.rich(l.action, { ...a, ...proj, F: bold, f: str("fileName") });
     case "WORKSPACE_CREATED": return t.rich("WORKSPACE_CREATED", { ...a, N: bold, n: str("name") });
     case "WORKSPACE_UPDATED": {
