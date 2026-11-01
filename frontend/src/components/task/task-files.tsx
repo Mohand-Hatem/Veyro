@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useFormat } from "@/components/dashboard/use-format";
 import { ApiError } from "@/lib/api";
 import { usePersonName } from "@/lib/person";
+import { notify } from "@/lib/toast";
 import { FILE_ACCEPT, FILES_PER_TASK, fileProblem, formatBytes, useTaskFiles, type Attachment, type TaskDetail } from "@/lib/task";
 import "./task-files.css";
 
@@ -57,6 +58,7 @@ export function TaskFiles({ task }: { task: TaskDetail }) {
       try {
         await files.upload(file, (share) => patch(key, { share }));
         setUploads((u) => u.filter((x) => x.key !== key)); // the card from the server replaces the progress row
+        notify(t("fileAdded", { name: file.name }));
       } catch (err) {
         patch(key, { error: t(err instanceof ApiError && ERROR_KEY[err.code] ? ERROR_KEY[err.code] : "fileFail") });
       }
@@ -132,6 +134,7 @@ function FileCard({ file, canRemove, files }: { file: Attachment; canRemove: boo
     setBusy(true);
     try {
       await files.remove(file.id);
+      notify(t("fileRemoved", { name: file.fileName }));
     } catch {
       setFailed(t("fileFail"));
       setBusy(false);

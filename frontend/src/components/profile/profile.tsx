@@ -10,6 +10,7 @@ import { useShell } from "@/components/shell/shell-context";
 import { ApiError } from "@/lib/api";
 import { initials } from "@/lib/dashboard";
 import { highestRole, nameOk, ownedPlan, passwordOk, passwordScore, themeToNext, useChangePassword, useProfile, useRemoveAvatar, useUpdateProfile, type Locale, type Profile as ProfileData, type ThemePref } from "@/lib/profile";
+import type { ToastKind } from "@/lib/toast";
 import "@/components/dashboard/illustration.css";
 import "@/components/dashboard/dashboard.css";
 import "@/components/projects/projects.css";
@@ -57,7 +58,7 @@ export function Profile() {
   return <ProfileView p={q.data} head={head} notify={notify} />;
 }
 
-function ProfileView({ p, head, notify }: { p: ProfileData; head: ReactNode; notify: (m: string) => void }) {
+function ProfileView({ p, head, notify }: { p: ProfileData; head: ReactNode; notify: (m: string, kind?: ToastKind) => void }) {
   const t = useTranslations("Profile");
   const ts = useTranslations("Shell");
   const locale = useLocale();
@@ -103,7 +104,7 @@ function ProfileView({ p, head, notify }: { p: ProfileData; head: ReactNode; not
       await removePhoto.mutateAsync();
       notify(t(p.avatarType === "PRESET" ? "avatarSaved" : "photoRemoved"));
     } catch {
-      notify(t("ePhoto"));
+      notify(t("ePhoto"), "error");
     }
   }
 
@@ -121,7 +122,7 @@ function ProfileView({ p, head, notify }: { p: ProfileData; head: ReactNode; not
     try {
       await update.mutateAsync(patch);
     } catch {
-      notify(t("eGeneric"));
+      notify(t("eGeneric"), "error");
       return;
     }
     notify(t("saved"));

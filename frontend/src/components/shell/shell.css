@@ -237,8 +237,6 @@
 .ap-user-t b { font-size: 0.8125rem; }
 .ap-user-t small { font-size: 0.6875rem; color: var(--muted); }
 .dark .app .gs-rev dd { color: #F2B01E; }
-.ap-toast { position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 20px); background: var(--ink); color: var(--canvas); padding: 12px 20px; border-radius: 9999px; font-weight: 600; font-size: 0.875rem; opacity: 0; pointer-events: none; transition: opacity 200ms ease, transform 200ms ease; z-index: 90; max-width: calc(100vw - 32px); text-align: center; }
-.ap-toast.show { opacity: 1; transform: translate(-50%, 0); }
 @keyframes apRise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 @keyframes apPop { from { opacity: 0; transform: scale(0.4); } to { opacity: 1; transform: none; } }
 @media (max-width: 1279px) {
@@ -280,8 +278,7 @@
   .ap-pill-btn { width: 44px; height: 44px; flex: none; }
   .ap-ai { display: none; }
   .ap-user { display: none; }
-  .ap-toast { bottom: 92px; }
-}
+  }
 /* The phone bell (design.md 5.44) takes 54px of the title row; Arabic titles such as "الملف الشخصي" wrapped to three lines at 390px. */
 @media (max-width: 430px) {
   :lang(ar) .ap-top { gap: 8px; }

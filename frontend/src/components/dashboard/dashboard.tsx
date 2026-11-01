@@ -38,7 +38,7 @@ export function Dashboard() {
 
   return (
     <>
-      <Notices d={d} owner={role === "owner"} onLater={() => notify(ts("later"))} />
+      <Notices d={d} owner={role === "owner"} onLater={() => notify(ts("later"), "info")} />
       <div className="ap-ovh"><h2>{t("overview")}</h2></div>
       <Kpis d={d} empty={empty} quota={quota.data} />
       {empty ? (

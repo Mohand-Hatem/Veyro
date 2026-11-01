@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,6 +14,7 @@ import { Link, useRouter } from "@/i18n/navigation";
 import { api } from "@/lib/api";
 import { loginSchema } from "@/lib/auth-schemas";
 import { safeNext } from "@/lib/safe-next";
+import { expectWelcome, notify, takeWelcome } from "@/lib/toast";
 import { useRedirectIfSignedIn } from "@/lib/use-signed-in-redirect";
 
 type Values = { email: string; password: string };
@@ -23,16 +25,22 @@ export function LoginForm() {
   const next = safeNext(params.get("next"));
   const carry = params.get("next") ? { next } : undefined;
   const { te, banner, setBanner, fail } = useAuthErrors(
-    params.get("signedout") === "1" ? { kind: "ok", text: t("signedOut") } : params.get("deleted") === "1" ? { kind: "ok", text: t("accountDeleted") } : params.get("oauth") === "failed" ? { kind: "error", text: t("oauthFailed") } : null,
+    params.get("deleted") === "1" ? { kind: "ok", text: t("accountDeleted") } : params.get("oauth") === "failed" ? { kind: "error", text: t("oauthFailed") } : null,
   );
   const router = useRouter();
   useRedirectIfSignedIn(next);
+  const signedOut = params.get("signedout") === "1";
+  useEffect(() => {
+    if (signedOut) notify(t("signedOut"), "success", "signed-out");
+    if (params.get("oauth") === "failed") takeWelcome(); // a Google or GitHub attempt that failed leaves no greeting behind
+  }, [signedOut, params, t]);
   const { register, handleSubmit, setError, setValue, formState: { errors, isSubmitting } } = useForm<Values>({ resolver: zodResolver(loginSchema(te)) });
 
   const onSubmit = handleSubmit(async (values) => {
     setBanner(null);
     try {
       await api("/auth/login", { method: "POST", body: JSON.stringify(values) });
+      expectWelcome();
       router.replace(next);
     } catch (err) {
       fail(err, setError);

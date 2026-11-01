@@ -24,7 +24,7 @@ export function DeletedTasks({ projectId, blocked, onOpen }: { projectId: string
       await restore.mutateAsync(id);
       notify(t("restored"));
     } catch (err) {
-      notify(t(boardErrorKey(err)));
+      notify(t(boardErrorKey(err)), "error");
     }
   }
 

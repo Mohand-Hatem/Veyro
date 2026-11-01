@@ -97,7 +97,7 @@ function InviteBody({ onClose, onBusy }: { onClose: () => void; onBusy: (b: bool
       notify(t("copied"));
     } catch {
       urlRef.current?.select();
-      notify(t("copyFail"));
+      notify(t("copyFail"), "error");
     }
   }
 

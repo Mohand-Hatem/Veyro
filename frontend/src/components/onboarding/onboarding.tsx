@@ -16,6 +16,7 @@ import { api, ApiError } from "@/lib/api";
 import { inviteSchema, onboardingSchema } from "@/lib/auth-schemas";
 import { useMe, useWorkspaces } from "@/lib/queries";
 import { inviteToken, slugify, workspaceSlugFrom } from "@/lib/slug";
+import { takeWelcome } from "@/lib/toast";
 import { VisualA, VisualB, VisualC } from "./visuals";
 import "@/components/auth/auth.css";
 import "./onboarding.css";
@@ -45,6 +46,10 @@ export function Onboarding() {
   useEffect(() => {
     if (workspaces.data?.length && !created) router.replace("/dashboard");
   }, [workspaces.data, created, router]);
+  // Someone without a workspace was not "back": the success screen here greets them, so the shell's greeting is dropped.
+  useEffect(() => {
+    if (workspaces.data && !workspaces.data.length) takeWelcome();
+  }, [workspaces.data]);
 
   async function signOut() {
     try {

@@ -1,46 +1,31 @@
 "use client"
 
+import { useLocale, useTranslations } from "next-intl"
 import { useTheme } from "next-themes"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
-import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from "lucide-react"
+import { ErrorFace, InfoFace, OkFace } from "./toast-faces"
+import "./toast.css"
 
-const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
+/** App-wide toasts: Veyro's bottom-centre pill, a Veyro face for the kind (toast-faces.tsx), right to left in Arabic. Styles in toast.css. */
+const Toaster = (props: ToasterProps) => {
+  const { resolvedTheme } = useTheme()
+  const locale = useLocale()
+  const t = useTranslations("Common")
 
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
-      className="toaster group"
-      icons={{
-        success: (
-          <CircleCheckIcon className="size-4" />
-        ),
-        info: (
-          <InfoIcon className="size-4" />
-        ),
-        warning: (
-          <TriangleAlertIcon className="size-4" />
-        ),
-        error: (
-          <OctagonXIcon className="size-4" />
-        ),
-        loading: (
-          <Loader2Icon className="size-4 animate-spin" />
-        ),
-      }}
-      style={
-        {
-          "--normal-bg": "var(--popover)",
-          "--normal-text": "var(--popover-foreground)",
-          "--normal-border": "var(--border)",
-          "--border-radius": "var(--radius)",
-        } as React.CSSProperties
-      }
-      toastOptions={{
-        classNames: {
-          toast: "cn-toast",
-        },
-      }}
+      theme={resolvedTheme === "dark" ? "dark" : "light"}
+      dir={locale === "ar" ? "rtl" : "ltr"}
+      position="bottom-center"
+      containerAriaLabel={t("toasts")}
+      expand
+      visibleToasts={3}
+      duration={3500}
+      gap={8}
+      offset={{ bottom: 28 }}
+      mobileOffset={{ bottom: 24, left: 16, right: 16 }}
+      icons={{ success: <OkFace />, error: <ErrorFace />, info: <InfoFace /> }}
+      toastOptions={{ unstyled: true, classNames: { toast: "vt" } }}
       {...props}
     />
   )

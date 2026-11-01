@@ -92,7 +92,7 @@ function BoardView({ project }: { project: BoardProject }) {
   const router = useRouter();
   const openTask = (id: string) => router.push(`/w/${workspace?.slug ?? ""}/projects/${project.key}/tasks/${id}`);
   const openCreate = () => {
-    if (blocked) { notify(t(archived ? "eArchived" : "eReadonly")); return; }
+    if (blocked) { notify(t(archived ? "eArchived" : "eReadonly"), "info"); return; }
     setCreating(true);
   };
 
@@ -132,16 +132,16 @@ function BoardView({ project }: { project: BoardProject }) {
 
   async function doMove(task: BoardTask, to: Status) {
     if (to === task.status) return;
-    if (blocked) { notify(t(archived ? "eArchived" : "eReadonly")); return; }
+    if (blocked) { notify(t(archived ? "eArchived" : "eReadonly"), "info"); return; }
     if (isTerminal(task.status)) {
-      if (!viewer.isAdmin) { notify(t("onlyAdminReopen")); return; }
-      if (to !== REOPEN_TARGET[task.status]) { notify(t("reopenRule")); return; }
+      if (!viewer.isAdmin) { notify(t("onlyAdminReopen"), "info"); return; }
+      if (to !== REOPEN_TARGET[task.status]) { notify(t("reopenRule"), "info"); return; }
       setReopening(task); // reopening needs a reason, so it goes through the dialog and not the optimistic move
       return;
     }
-    if (!viewer.isAdmin && task.assigneeId !== viewer.userId) { notify(t("notAssigned")); return; }
-    if (!viewer.isAdmin && to === "CANCELLED") { notify(t("adminCancel")); return; }
-    if (!ALLOWED[task.status].includes(to)) { notify(t("invalidMove")); return; }
+    if (!viewer.isAdmin && task.assigneeId !== viewer.userId) { notify(t("notAssigned"), "info"); return; }
+    if (!viewer.isAdmin && to === "CANCELLED") { notify(t("adminCancel"), "info"); return; }
+    if (!ALLOWED[task.status].includes(to)) { notify(t("invalidMove"), "info"); return; }
     if (!viewer.isAdmin) { setNoting({ task, to }); return; } // a member says what was done first (the server requires it)
     await commitMove(task, to);
   }
@@ -154,7 +154,7 @@ function BoardView({ project }: { project: BoardProject }) {
       notify(`${t("movedToast")} ${tw(`s${to}`)}`);
       return true;
     } catch (err) {
-      notify(t(boardErrorKey(err)));
+      notify(t(boardErrorKey(err)), "error");
       return false;
     } finally {
       inflight.current.delete(task.id);

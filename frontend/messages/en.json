@@ -1,6 +1,7 @@
 {
   "Common": {
-    "close": "Close"
+    "close": "Close",
+    "toasts": "Notices"
   },
   "Session": {
     "signingIn": "Signing you in..."
@@ -153,7 +154,8 @@
     "loadErrorTitle": "Could not load your workspace",
     "loadErrorText": "Something went wrong while loading. Your data is safe. Try again.",
     "retry": "Try again",
-    "navAccountAudit": "Account audit trail"
+    "navAccountAudit": "Account audit trail",
+    "welcomeBack": "Welcome back, {name}"
   },
   "Onboarding": {
     "ob_signed": "Signed in as",
@@ -724,7 +726,10 @@
     "fileBig": "Files can be up to 10 MB.",
     "fileLimit": "This task already has the most files it can hold.",
     "fileOff": "File upload is not set up.",
-    "fileFail": "That did not work. Please try again."
+    "fileFail": "That did not work. Please try again.",
+    "commentPosted": "Comment posted",
+    "fileAdded": "{name} added",
+    "fileRemoved": "{name} removed"
   },
   "Settings": {
     "sub": "Manage your workspace",

@@ -113,7 +113,7 @@ function DetailsCard() {
       if (codeOf(err) === "WORKSPACE_SLUG_TAKEN") {
         setErrSlug(`${t("eTaken")} ${s}-2`);
         document.getElementById("st-slug")?.focus();
-      } else notify(t(settingsErrorKey(codeOf(err))));
+      } else notify(t(settingsErrorKey(codeOf(err))), "error");
     }
   }
   const discard = () => { setName(w.name); setSlug(w.slug); setErrName(""); setErrSlug(""); };
@@ -226,7 +226,7 @@ function MembersCard() {
       await change.mutateAsync({ memberId: m.id, role });
       notify(`${t("roleOk")}: ${m.name} → ${roleLabel(role)}`);
     } catch (err) {
-      notify(t(settingsErrorKey(codeOf(err))));
+      notify(t(settingsErrorKey(codeOf(err))), "error");
     } finally {
       setBusyId(null);
     }
@@ -240,7 +240,7 @@ function MembersCard() {
         const r = await remove.mutateAsync(m.id);
         notify(`${t("removed")}${r.unassignedTasks ? ` · ${r.unassignedTasks} ${t("unassigned")}` : ""}`);
       } catch (err) {
-        notify(t(settingsErrorKey(codeOf(err))));
+        notify(t(settingsErrorKey(codeOf(err))), "error");
       }
     },
   });
@@ -311,7 +311,7 @@ function InvitationsCard() {
       const r = await resend.mutateAsync(id);
       setLink({ email: r.email, url: r.inviteLink });
     } catch (err) {
-      notify(t(settingsErrorKey(codeOf(err))));
+      notify(t(settingsErrorKey(codeOf(err))), "error");
     } finally {
       setBusyId(null);
     }
@@ -325,7 +325,7 @@ function InvitationsCard() {
         await revoke.mutateAsync(id);
         notify(t("revoked"));
       } catch (err) {
-        notify(t(settingsErrorKey(codeOf(err))));
+        notify(t(settingsErrorKey(codeOf(err))), "error");
       }
     },
   });

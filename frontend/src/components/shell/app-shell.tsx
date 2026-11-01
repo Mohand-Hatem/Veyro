@@ -24,6 +24,7 @@ import { useProjectList } from "@/lib/projects";
 import { Icons, NavIcon } from "./icons";
 import { ShellContext } from "./shell-context";
 import { useStoredFlag } from "./use-stored-flag";
+import { notify, takeWelcome } from "@/lib/toast";
 import "./shell.css";
 
 const NAV_LABEL: Record<NavKey, string> = { dashboard: "navDash", projects: "navProj", tasks: "navTasks", ai: "navAi", audit: "navAudit", members: "navMembers", billing: "navBilling" };
@@ -45,13 +46,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useStoredFlag("veyro-sb");
   const [drawer, setDrawer] = useState(false);
   const [open, setOpen] = useState<"ws" | "bell" | "user" | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [titleOverride, setTitleOverride] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [wsCreateOpen, setWsCreateOpen] = useState(false);
   const ask = useAskPanel();
-  const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const searchRef = useRef<HTMLInputElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -65,11 +64,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   const role: Role = current ? roleOf(current) : "member";
   const user = me.data;
   const roleLabel = current ? t(ROLE_LABEL[role]) : ""; // no role to show until the workspace has loaded
-  const notify = (message: string) => {
-    setToast(message);
-    clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(null), 2800);
-  };
 
   // Creating a project is blocked while the plan is full or downgraded (the dashboard read model says so); the button explains why.
   const planInfo = useDashboard(role !== "member" ? current?.id : undefined).data;
@@ -77,7 +71,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const openCreateProject = () => {
     setDrawer(false);
     setOpen(null);
-    if (createBlocked) notify(tc("blocked"));
+    if (createBlocked) notify(tc("blocked"), "info");
     else setCreateOpen(true);
   };
 
@@ -92,6 +86,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (noWorkspace) router.replace("/onboarding");
   }, [noWorkspace, router]);
+
+  // Right after a sign-in (sign-in form, Google or GitHub), once the name and a workspace are known.
+  const hasWorkspace = list.length > 0;
+  useEffect(() => {
+    if (user && hasWorkspace && takeWelcome()) notify(t("welcomeBack", { name: user.name.trim().split(/\s+/)[0] }), "success", "welcome");
+  }, [user, hasWorkspace, t]);
 
   // Remember the last workspace so /dashboard can return to it.
   useEffect(() => {
@@ -135,6 +135,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       await api("/auth/logout", { method: "POST" });
     } finally {
       queryClient.clear();
+      setDrawer(false); // Next.js can bring this shell back as it was, so the phone menu must not still be open after the next sign-in
+      setOpen(null);
       router.replace({ pathname: "/login", query: { signedout: "1" } });
     }
   }
@@ -155,7 +157,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     e.preventDefault();
     setDrawer(false);
     setOpen(null);
-    notify(t("later"));
+    notify(t("later"), "info");
   };
 
   const items = visibleNav(role);
@@ -288,7 +290,6 @@ export function AppShell({ children }: { children: ReactNode }) {
         <CreateProjectDialog open={createOpen} onClose={() => setCreateOpen(false)} />
         <CreateWorkspaceDialog open={wsCreateOpen} onClose={() => setWsCreateOpen(false)} />
         {current && <AskPanel open={ask.open} onClose={ask.hide} />}
-        <div className={`ap-toast${toast ? " show" : ""}`} role="status" aria-live="polite">{toast}</div>
       </div>
     </ShellContext.Provider>
   );

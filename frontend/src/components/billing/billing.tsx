@@ -78,8 +78,8 @@ function BillingView({ data, events, head, returned, onSwitched }: { data: Subsc
   const { subscription: sub, limits, grace, account, readOnlyProjects, billing } = data;
   const { checkout, portal } = useStripeRedirect(account.id);
   const redirecting = checkout.isPending || checkout.isSuccess || portal.isPending || portal.isSuccess;
-  const openPortal = () => portal.mutate(undefined, { onError: () => notify(t("errPay")) });
-  const buy = (k: PaidTier) => checkout.mutate(k, { onError: () => notify(t("errPay")) });
+  const openPortal = () => portal.mutate(undefined, { onError: () => notify(t("errPay"), "error") });
+  const buy = (k: PaidTier) => checkout.mutate(k, { onError: () => notify(t("errPay"), "error") });
   const paid = sub.tier !== "FREE";
   const priceOf = (k: Tier) => <><b>{formatPrice(k === "FREE" ? 0 : billing.priceCents[k])}</b> <span>{t("perMonth")}</span></>;
   const locked = account.offboardingState === "PENDING";
@@ -105,7 +105,7 @@ function BillingView({ data, events, head, returned, onSwitched }: { data: Subsc
       setPicks(await fetchAccountProjects(qc, account.id));
       setDlg("sel");
     } catch {
-      notify(t("errGeneric"));
+      notify(t("errGeneric"), "error");
     }
   }
   const closeDialog = () => { setDlg(null); setPicks(null); };

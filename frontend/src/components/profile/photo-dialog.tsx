@@ -7,6 +7,7 @@ import { ApiError } from "@/lib/api";
 import { avatarClass, initials } from "@/lib/dashboard";
 import { MAX_ZOOM, PRESETS, clampCrop, cropStyle, cropToBlob, isPreset, isStoredPhoto, loadForCrop, presetSrc, type Crop, type Preset, type Source } from "@/lib/avatar";
 import { useRemoveAvatar, useSetPreset, useUploadAvatar, type Profile } from "@/lib/profile";
+import type { ToastKind } from "@/lib/toast";
 import "@/components/dashboard/dashboard.css";
 import "./photo-dialog.css";
 
@@ -22,7 +23,7 @@ type Choice = Preset | "initials";
 type Who = Pick<Profile, "id" | "name" | "email" | "avatarUrl" | "avatarType" | "avatarPresetKey">;
 
 // Native <dialog> kept in sync with an `open` flag; the body is mounted only while open so every opening starts clean.
-export function PhotoDialog({ open, profile, onClose, notify }: { open: boolean; profile: Who; onClose: () => void; notify: (m: string) => void }) {
+export function PhotoDialog({ open, profile, onClose, notify }: { open: boolean; profile: Who; onClose: () => void; notify: (m: string, kind?: ToastKind) => void }) {
   const ref = useRef<HTMLDialogElement>(null);
   const [busy, setBusy] = useState(false);
   useEffect(() => {
@@ -38,7 +39,7 @@ export function PhotoDialog({ open, profile, onClose, notify }: { open: boolean;
   );
 }
 
-function PhotoBody({ profile, onClose, onBusy, notify }: { profile: Who; onClose: () => void; onBusy: (b: boolean) => void; notify: (m: string) => void }) {
+function PhotoBody({ profile, onClose, onBusy, notify }: { profile: Who; onClose: () => void; onBusy: (b: boolean) => void; notify: (m: string, kind?: ToastKind) => void }) {
   const t = useTranslations("Profile");
   const upload = useUploadAvatar();
   const setPreset = useSetPreset();

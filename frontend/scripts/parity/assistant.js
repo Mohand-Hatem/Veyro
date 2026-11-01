@@ -69,7 +69,7 @@ async (page) => {
     const ta = root.querySelector(".ai-comp textarea"), sc = root.querySelector(".as-scroll");
     out.__ta = [ta?.value ?? null, ta?.disabled ?? null];
     out.__send = root.querySelector(".ai-send")?.disabled ?? null;
-    out.__toast = document.querySelector(".ap-toast.show")?.textContent ?? null;
+    out.__toast = document.querySelector("[data-sonner-toast] [data-title]")?.textContent ?? null;
     out.__scroll = sc ? [sc.scrollHeight - sc.clientHeight - sc.scrollTop <= 2, sc.scrollHeight > sc.clientHeight] : null;
     out.__scrollW = document.documentElement.scrollWidth - document.documentElement.clientWidth;
     return out;

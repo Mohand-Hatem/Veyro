@@ -203,7 +203,7 @@ export function ConfirmDialog({ confirm, onClose, onDone }: { confirm: Confirm |
       notify(t(c.kind === "delete" ? "okDeleted" : c.kind === "archive" ? "okArchived" : "okUnarchived"));
     } catch (err) {
       onClose();
-      notify(errMsg(err)); // the lists were refetched by the mutation, so the screen shows what is true now
+      notify(errMsg(err), "error"); // the lists were refetched by the mutation, so the screen shows what is true now
     }
   }
 

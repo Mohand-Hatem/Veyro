@@ -162,7 +162,7 @@ function Row({ p, onSettings, onConfirm }: { p: ProjectRow; onSettings: () => vo
       await restore.mutateAsync(p.id);
       notify(pd("okRestored"));
     } catch (err) {
-      notify(errMsg(err));
+      notify(errMsg(err), "error");
     }
   };
 

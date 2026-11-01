@@ -70,7 +70,7 @@ export function LinkDialog({ link, onClose }: { link: { email: string; url: stri
       notify(t("copied"));
     } catch {
       input.current?.select();
-      notify(t("copyFail"));
+      notify(t("copyFail"), "error");
     }
   }
   return (

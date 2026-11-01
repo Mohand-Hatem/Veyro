@@ -3,8 +3,9 @@
 import { createContext, useContext, useEffect } from "react";
 import type { Me } from "@/lib/queries";
 import type { Role, Workspace } from "@/lib/nav";
+import type { ToastKind } from "@/lib/toast";
 
-export type ShellValue = { workspace?: Workspace; role: Role; user?: Me; notify: (message: string) => void; search: string; openCreateProject: () => void; setTitle: (title: string | null) => void };
+export type ShellValue = { workspace?: Workspace; role: Role; user?: Me; notify: (message: string, kind?: ToastKind) => void; search: string; openCreateProject: () => void; setTitle: (title: string | null) => void };
 
 export const ShellContext = createContext<ShellValue | null>(null);
 

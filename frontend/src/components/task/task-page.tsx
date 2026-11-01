@@ -149,12 +149,13 @@ function TaskView({ task, projectKey }: { task: TaskDetail; projectKey: string }
     setDraft((d) => ({ ...d, ...shownChange }));
     try {
       await patch.mutateAsync(body);
+      if (body.status) notify(`${tb("movedToast")} ${tw(`s${body.status}`)}`);
       setSavedNote(true);
       clearTimeout(noteTimer.current);
       noteTimer.current = setTimeout(() => setSavedNote(false), 1800);
       return true;
     } catch (err) {
-      notify(tb(boardErrorKey(err)));
+      notify(tb(boardErrorKey(err)), "error");
       return false;
     } finally {
       forget(Object.keys(shownChange));
@@ -173,8 +174,9 @@ function TaskView({ task, projectKey }: { task: TaskDetail; projectKey: string }
     try {
       await addComment.mutateAsync(text);
       setComment("");
+      notify(t("commentPosted"));
     } catch (err) {
-      notify(tb(boardErrorKey(err)));
+      notify(tb(boardErrorKey(err)), "error");
     }
   }
   async function onRestore() {
@@ -182,7 +184,7 @@ function TaskView({ task, projectKey }: { task: TaskDetail; projectKey: string }
       await restore.mutateAsync(task.id);
       notify(tb("restored"));
     } catch (err) {
-      notify(tb(boardErrorKey(err)));
+      notify(tb(boardErrorKey(err)), "error");
     }
   }
 
@@ -372,7 +374,7 @@ function DeleteDialog({ open, task, onClose, onDeleted }: { open: boolean; task:
       onDeleted();
     } catch (err) {
       onClose();
-      notify(tb(boardErrorKey(err)));
+      notify(tb(boardErrorKey(err)), "error");
     }
   }
   return (

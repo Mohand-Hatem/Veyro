@@ -56,7 +56,7 @@ function MembersBody({ project, blocked, onClose }: { project: BoardProject; blo
       await job();
       notify(ok);
     } catch (err) {
-      notify(t(boardErrorKey(err)));
+      notify(t(boardErrorKey(err)), "error");
     } finally {
       setBusyId(null);
     }

@@ -15,7 +15,7 @@ export function LaterLink({ children, onClick, ...props }: AnchorHTMLAttributes<
       onClick={(e) => {
         e.preventDefault();
         onClick?.(e);
-        notify(t("later"));
+        notify(t("later"), "info");
       }}
     >
       {children}

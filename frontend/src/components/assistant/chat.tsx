@@ -79,7 +79,7 @@ export function useChat(target: ChatTarget, refs: ChatRefs) {
       const failure = sendFailure(err);
       if (!failure.keepKey) keyRef.current = null;
       setDraft(text);
-      notify(t(failure.key));
+      notify(t(failure.key), "error");
     } finally {
       setPending(null);
     }
@@ -164,7 +164,7 @@ export function ChatThread({ chat, suggestions }: { chat: Chat; suggestions: str
     setCardError((e) => ({ ...e, [p.id]: "" }));
     try {
       await resolve.mutateAsync({ id: p.id, action });
-      notify(t(action === "confirm" ? "pcDone" : "pcRejected"));
+      notify(t(action === "confirm" ? "pcDone" : "pcRejected"), action === "confirm" ? "success" : "info");
     } catch (err) {
       setCardError((e) => ({ ...e, [p.id]: t(proposalFailure(err)) }));
     } finally {

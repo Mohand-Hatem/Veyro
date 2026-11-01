@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
+import { expectWelcome } from "@/lib/toast";
 import { GithubIcon, GoogleIcon } from "./oauth-icons";
 
 const ENABLED = process.env.NEXT_PUBLIC_OAUTH_ENABLED === "true";
@@ -10,10 +11,11 @@ const ENABLED = process.env.NEXT_PUBLIC_OAUTH_ENABLED === "true";
 export function OAuthButtons() {
   const t = useTranslations("Auth");
   const go = (provider: "google" | "github", name: string) => {
+    if (!ENABLED) return toast.info(t("oauthOff", { provider: name }));
+    expectWelcome();
     // The backend route (proxied by next.config.ts) starts the provider redirect; it is not a Next page.
     // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-    if (ENABLED) window.location.href = `/api/v1/auth/${provider}`;
-    else toast.info(t("oauthOff", { provider: name }));
+    window.location.href = `/api/v1/auth/${provider}`;
   };
   return (
     <>
