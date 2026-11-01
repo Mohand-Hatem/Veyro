@@ -1,0 +1,23 @@
+/* The @ picker (opens above its text box) and mentions inside comments. Tokens from design.md. */
+.mn-wrap { position: relative; }
+.mn-list {
+  position: absolute; inset-inline-start: 0; bottom: calc(100% + 6px); z-index: 30;
+  list-style: none; margin: 0; padding: 6px; width: min(300px, 100%);
+  background: var(--pill); border: 1px solid var(--line); border-radius: 16px;
+  box-shadow: 0 14px 30px -16px rgba(24, 24, 27, 0.45);
+  animation: mnIn 140ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.mn-list li { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 44px; padding: 6px 10px; border-radius: 12px; cursor: pointer; }
+.mn-list li.is-on { background: var(--brand-soft); }
+.mn-list .bd-av { width: 28px; height: 28px; font-size: 0.625rem; }
+.mn-name { font-size: 0.875rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mn-role { color: var(--muted); font-size: 0.75rem; font-weight: 600; }
+@keyframes mnIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* A mention in a comment: the person's current name, marked so it reads as a person and not as typed text. */
+.mn-at { color: var(--brand); background: var(--brand-soft); font-weight: 700; padding: 0 5px; border-radius: 6px; }
+.mn-at.is-gone { color: var(--muted); background: transparent; padding: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mn-list { animation: none; }
+}

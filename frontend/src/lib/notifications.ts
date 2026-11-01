@@ -3,7 +3,7 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import { api } from "./api";
 
-export type NoticeType = "TASK_ASSIGNED" | "TASK_COMMENTED" | "ADDED_TO_PROJECT" | "ROLE_CHANGED" | "INVITATION_ACCEPTED";
+export type NoticeType = "TASK_ASSIGNED" | "TASK_COMMENTED" | "TASK_MENTIONED" | "ADDED_TO_PROJECT" | "ROLE_CHANGED" | "INVITATION_ACCEPTED";
 /** One notification. The sentence is built on screen from `type` and `data` (copied when the event happened), never stored as text. */
 export type Notice = {
   id: string;
@@ -68,7 +68,7 @@ export function useMarkAllRead() {
 export function noticeHref(n: Pick<Notice, "type" | "taskId" | "data">): string | null {
   const { workspaceSlug: slug, projectKey: key } = n.data;
   if (!slug) return null;
-  if ((n.type === "TASK_ASSIGNED" || n.type === "TASK_COMMENTED") && key && n.taskId) return `/w/${slug}/projects/${key}/tasks/${n.taskId}`;
+  if ((n.type === "TASK_ASSIGNED" || n.type === "TASK_COMMENTED" || n.type === "TASK_MENTIONED") && key && n.taskId) return `/w/${slug}/projects/${key}/tasks/${n.taskId}`;
   if (n.type === "ADDED_TO_PROJECT" && key) return `/w/${slug}/projects/${key}`;
   if (n.type === "ROLE_CHANGED" || n.type === "INVITATION_ACCEPTED") return `/w/${slug}/settings`;
   return null;

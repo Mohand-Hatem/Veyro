@@ -729,7 +729,9 @@
     "fileFail": "لم ينجح ذلك. حاول مرة أخرى.",
     "commentPosted": "نُشر التعليق",
     "fileAdded": "أُضيف {name}",
-    "fileRemoved": "أُزيل {name}"
+    "fileRemoved": "أُزيل {name}",
+    "mentionList": "أشخاص للإشارة إليهم",
+    "someone": "شخص ما"
   },
   "Settings": {
     "sub": "إدارة مساحة العمل",
@@ -1794,7 +1796,8 @@
     "added": "<b>{actor}</b> أضافك إلى <b>{project}</b>",
     "roleAdmin": "<b>{actor}</b> جعلك مسؤولًا في <b>{workspace}</b>",
     "roleMember": "<b>{actor}</b> جعلك عضوًا في <b>{workspace}</b>",
-    "accepted": "<b>{actor}</b> قبل دعوتك إلى <b>{workspace}</b>"
+    "accepted": "<b>{actor}</b> قبل دعوتك إلى <b>{workspace}</b>",
+    "mentioned": "<b>{actor}</b> أشار إليك في <b>{task}</b>"
   },
   "People": {
     "deleted": "مستخدم محذوف"

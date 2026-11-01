@@ -729,7 +729,9 @@
     "fileFail": "That did not work. Please try again.",
     "commentPosted": "Comment posted",
     "fileAdded": "{name} added",
-    "fileRemoved": "{name} removed"
+    "fileRemoved": "{name} removed",
+    "mentionList": "People to mention",
+    "someone": "someone"
   },
   "Settings": {
     "sub": "Manage your workspace",
@@ -1794,7 +1796,8 @@
     "added": "<b>{actor}</b> added you to <b>{project}</b>",
     "roleAdmin": "<b>{actor}</b> made you an admin of <b>{workspace}</b>",
     "roleMember": "<b>{actor}</b> made you a member of <b>{workspace}</b>",
-    "accepted": "<b>{actor}</b> accepted your invitation to <b>{workspace}</b>"
+    "accepted": "<b>{actor}</b> accepted your invitation to <b>{workspace}</b>",
+    "mentioned": "<b>{actor}</b> mentioned you on <b>{task}</b>"
   },
   "People": {
     "deleted": "Deleted user"

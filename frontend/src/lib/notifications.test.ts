@@ -15,6 +15,7 @@ describe("noticeHref", () => {
   it("opens the task for assignments and comments", () => {
     expect(noticeHref({ type: "TASK_ASSIGNED", taskId: "t1", data })).toBe("/w/acme/projects/AUT/tasks/t1");
     expect(noticeHref({ type: "TASK_COMMENTED", taskId: "t1", data })).toBe("/w/acme/projects/AUT/tasks/t1");
+    expect(noticeHref({ type: "TASK_MENTIONED", taskId: "t1", data })).toBe("/w/acme/projects/AUT/tasks/t1");
   });
   it("opens the board for a project, and the members page for a role change or an accepted invitation", () => {
     expect(noticeHref({ type: "ADDED_TO_PROJECT", taskId: null, data })).toBe("/w/acme/projects/AUT");

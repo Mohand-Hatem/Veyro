@@ -13,6 +13,8 @@ import { Avatar } from "@/components/ui/avatar";
 import { CATEGORIES, agoParts, boardErrorKey, daysLeft, daysUntil, isTerminal, useBoardProject, useRestoreTask, type Priority, type Status } from "@/lib/board";
 import { useAddComment, useDeleteTask, usePatchTask, useTask, type TaskDetail, type TaskPatch } from "@/lib/task";
 import { StatusNoteForm, StatusStepper } from "./status-move";
+import { useMentionPicker, type MentionPerson } from "./mention-picker";
+import { splitMentions } from "@/lib/mentions";
 import { TaskFiles } from "./task-files";
 import "@/components/dashboard/illustration.css";
 import "@/components/dashboard/dashboard.css";
@@ -172,8 +174,9 @@ function TaskView({ task, projectKey }: { task: TaskDetail; projectKey: string }
     const text = comment.trim();
     if (!text || addComment.isPending) return;
     try {
-      await addComment.mutateAsync(text);
+      await addComment.mutateAsync(mentions.encode(text));
       setComment("");
+      mentions.reset();
       notify(t("commentPosted"));
     } catch (err) {
       notify(tb(boardErrorKey(err)), "error");
@@ -189,6 +192,11 @@ function TaskView({ task, projectKey }: { task: TaskDetail; projectKey: string }
   }
 
   const members = project?.members.map((m) => m.user) ?? [];
+  // People who can be @mentioned: the project's members, except whoever is writing.
+  const people: MentionPerson[] = (project?.members ?? []).filter((m) => m.user.id !== v.userId).map((m) => ({ id: m.user.id, name: m.user.name, avatarUrl: m.user.avatarUrl, role: m.role }));
+  const commentBox = useRef<HTMLTextAreaElement>(null);
+  const mentions = useMentionPicker(commentBox, people, comment, setComment);
+  const mentioned = new Map(task.mentioned.map((u) => [u.id, u.name]));
   const assignees = task.assignee && !members.some((m) => m.id === task.assignee!.id) ? [task.assignee, ...members] : members;
   const left = deleted && task.purgeAt ? daysLeft(task.purgeAt) : 0;
   const idx = ORDER.indexOf(task.status);
@@ -256,7 +264,7 @@ function TaskView({ task, projectKey }: { task: TaskDetail; projectKey: string }
               <div className="tp-status-top"><h3 id="tp-status-h">{tb("status")}</h3>{cx && <span className="ap-st st-archived">{tw("sCANCELLED")}</span>}</div>
               <StatusStepper status={shown.status} allowed={lock ? [] : v.allowedStatuses} picked={picked} lockedHint={lockedHint} onPick={setPicked} />
               {picked && (
-                <StatusNoteForm key={picked} id="tp-move-note" to={picked} required={!v.isProjectAdmin} busy={patch.isPending}
+                <StatusNoteForm key={picked} id="tp-move-note" to={picked} required={!v.isProjectAdmin} busy={patch.isPending} people={people}
                   onSave={async (note) => { if (await save({ status: picked, ...(note ? { note } : {}) })) setPicked(null); }}
                   onCancel={() => setPicked(null)} />
               )}
@@ -293,14 +301,17 @@ function TaskView({ task, projectKey }: { task: TaskDetail; projectKey: string }
                   return (
                     <li className={`td-c${sys ? " is-sys" : ""}`} key={c.id}>
                       {sys ? <span className="td-sysic">{UNDO}</span> : <Avatar className={`bd-av ${avatarClass(c.author.id)}`} title={pn(c.author.name)} name={c.author.name} url={c.author.avatarUrl} />}
-                      <div><b>{pn(c.author.name)}</b><small>{tb(ago.key, { n: ago.n })}</small><p dir="auto">{c.content}</p></div>
+                      <div><b>{pn(c.author.name)}</b><small>{tb(ago.key, { n: ago.n })}</small><p dir="auto">{splitMentions(c.content).map((part, i) => typeof part === "string" ? part : <span key={i} className={`mn-at${mentioned.has(part.id) ? "" : " is-gone"}`} dir="auto">@{mentioned.has(part.id) ? pn(mentioned.get(part.id)!) : t("someone")}</span>)}</p></div>
                     </li>
                   );
                 }) : <li className="td-c-none">{t("noComments")}</li>}
               </ul>
               <form className="td-cform" id="tp-cform" onSubmit={onComment} hidden={deleted || task.project.isBillingReadOnly}>
                 <label className="ap-sr" htmlFor="tp-cin">{t("write")}</label>
-                <textarea id="tp-cin" dir="auto" rows={2} maxLength={5000} placeholder={t("writePh")} value={comment} onChange={(e) => setComment(e.target.value)} />
+                <div className="mn-wrap">
+                  <textarea id="tp-cin" dir="auto" rows={2} maxLength={5000} placeholder={t("writePh")} value={comment} onChange={(e) => setComment(e.target.value)} ref={commentBox} {...mentions.bind} />
+                  {mentions.menu}
+                </div>
                 <button type="submit" className="pm-btn pm-go st-sm" id="tp-csend" aria-busy={addComment.isPending}><span className="pm-spin" aria-hidden="true" /><span>{t("send")}</span></button>
               </form>
             </section>

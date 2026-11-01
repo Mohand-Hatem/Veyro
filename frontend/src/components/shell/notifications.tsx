@@ -74,6 +74,7 @@ function Row({ n, onClose }: { n: Notice; onClose: () => void }) {
   const text =
     n.type === "TASK_ASSIGNED" ? t.rich("assigned", { actor, task: d.taskTitle, ...bold })
     : n.type === "TASK_COMMENTED" ? t.rich("commented", { actor, task: d.taskTitle, ...bold })
+    : n.type === "TASK_MENTIONED" ? t.rich("mentioned", { actor, task: d.taskTitle, ...bold })
     : n.type === "ADDED_TO_PROJECT" ? t.rich("added", { actor, project: d.projectName, ...bold })
     : n.type === "ROLE_CHANGED" ? t.rich(d.role === "ADMIN" ? "roleAdmin" : "roleMember", { actor, workspace: d.workspaceName, ...bold })
     : t.rich("accepted", { actor, workspace: d.workspaceName, ...bold });

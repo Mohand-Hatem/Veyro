@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import type { Status } from "@/lib/board";
 import { NOTE_MAX } from "@/lib/task";
+import { useMentionPicker, type MentionPerson } from "./mention-picker";
 import "./status-move.css";
 
 const ORDER: Status[] = ["TODO", "IN_PROGRESS", "IN_REVIEW", "DONE"];
@@ -49,18 +50,19 @@ export function StatusStepper({ status, allowed, picked, lockedHint, onPick }: {
 }
 
 /** "What did you do, what is next?" for a status change. Members must write it; for admins it is optional. */
-export function StatusNoteForm({ id, to, required, busy, onSave, onCancel }: { id: string; to: Status; required: boolean; busy: boolean; onSave: (note: string) => void; onCancel: () => void }) {
+export function StatusNoteForm({ id, to, required, busy, people = [], onSave, onCancel }: { id: string; to: Status; required: boolean; busy: boolean; people?: MentionPerson[]; onSave: (note: string) => void; onCancel: () => void }) {
   const t = useTranslations("Task");
   const tw = useTranslations("Work");
   const tb = useTranslations("Board");
   const [note, setNote] = useState("");
   const ref = useRef<HTMLTextAreaElement>(null);
+  const mentions = useMentionPicker(ref, people, note, setNote);
   useEffect(() => ref.current?.focus(), [to]);
   const ok = !required || note.trim().length > 0;
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
-    if (ok && !busy) onSave(note.trim());
+    if (ok && !busy) onSave(mentions.encode(note.trim()));
   }
   return (
     <form className="tp-move" onSubmit={onSubmit} aria-labelledby={`${id}-h`}>
@@ -69,7 +71,10 @@ export function StatusNoteForm({ id, to, required, busy, onSave, onCancel }: { i
         <span>{required ? t("noteRequired") : t("noteOptional")}</span>
       </div>
       <label className="ap-sr" htmlFor={id}>{t("noteLabel")}</label>
-      <textarea ref={ref} id={id} dir="auto" rows={3} maxLength={NOTE_MAX} placeholder={t("notePh")} value={note} onChange={(e) => setNote(e.target.value)} aria-required={required} />
+      <div className="mn-wrap">
+        <textarea id={id} dir="auto" rows={3} maxLength={NOTE_MAX} placeholder={t("notePh")} value={note} onChange={(e) => setNote(e.target.value)} aria-required={required} ref={ref} {...mentions.bind} />
+        {mentions.menu}
+      </div>
       <div className="tp-move-foot">
         <span className="pm-count" aria-hidden="true">{note.length}/{NOTE_MAX}</span>
         <button type="button" className="pm-btn pm-ghost st-sm" onClick={onCancel} disabled={busy}>{tb("cancel")}</button>
@@ -80,7 +85,7 @@ export function StatusNoteForm({ id, to, required, busy, onSave, onCancel }: { i
 }
 
 /** The same note, asked from the board when a member moves one of their cards (menu or drag and drop). */
-export function StatusNoteDialog({ move, busy, onSave, onClose }: { move: { title: string; to: Status } | null; busy: boolean; onSave: (note: string) => void; onClose: () => void }) {
+export function StatusNoteDialog({ move, busy, people, onSave, onClose }: { move: { title: string; to: Status } | null; busy: boolean; people?: MentionPerson[]; onSave: (note: string) => void; onClose: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const el = ref.current;
@@ -93,7 +98,7 @@ export function StatusNoteDialog({ move, busy, onSave, onClose }: { move: { titl
       {move && (
         <div className="st-dlg-in">
           <p className="tp-move-task" id="bd-move-task">{move.title}</p>
-          <StatusNoteForm id="bd-move-note" to={move.to} required busy={busy} onSave={onSave} onCancel={onClose} />
+          <StatusNoteForm id="bd-move-note" to={move.to} required busy={busy} people={people} onSave={onSave} onCancel={onClose} />
         </div>
       )}
     </dialog>

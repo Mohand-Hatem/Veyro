@@ -374,6 +374,7 @@ function BoardView({ project }: { project: BoardProject }) {
       <StatusNoteDialog
         move={noting && { title: noting.task.title, to: noting.to }}
         busy={move.isPending}
+        people={project.members.filter((m) => m.user.id !== project.viewer.userId).map((m) => ({ id: m.user.id, name: m.user.name, avatarUrl: m.user.avatarUrl, role: m.role }))}
         onSave={async (note) => { if (noting && (await commitMove(noting.task, noting.to, note))) setNoting(null); }}
         onClose={() => setNoting(null)}
       />

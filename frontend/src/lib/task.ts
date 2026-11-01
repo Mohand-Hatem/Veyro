@@ -17,6 +17,8 @@ export type TaskDetail = Omit<BoardTask, "_count" | "assignee"> & {
   assignedBy: Pick<User, "id" | "name" | "avatarUrl"> | null;
   project: { id: string; name: string; lifecycleStatus: "ACTIVE" | "ARCHIVED"; isBillingReadOnly: boolean; workspaceId: string };
   comments: { id: string; content: string; createdAt: string; author: User }[];
+  /** People the comments @mention who can still see the task (CS-16); a comment's `<@id>` for anyone else shows as "@someone". */
+  mentioned: { id: string; name: string; avatarUrl: string | null }[];
   viewer: {
     userId: string;
     isProjectAdmin: boolean;
