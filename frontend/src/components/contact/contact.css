@@ -44,7 +44,7 @@
 .ct-btn-ghost:hover { background: var(--g-inset); }
 .ct-btn:disabled { opacity: 0.7; cursor: progress; }
 .ct-btn:focus-visible { outline: 2px solid var(--g-brand); outline-offset: 3px; }
-.ct-spin { display: none; width: 16px; height: 16px; border-radius: 50%; border: 2.5px solid rgba(255, 255, 255, 0.4); border-top-color: #fff; animation: ct-spin 700ms linear infinite; }
+.ct-spin { display: none; flex: none; width: 16px; height: 16px; border-radius: 50%; border: 2.5px solid rgba(255, 255, 255, 0.4); border-top-color: #fff; animation: ct-spin 700ms linear infinite; }
 .ct-btn[aria-busy="true"] .ct-spin { display: inline-block; }
 @keyframes ct-spin { to { transform: rotate(360deg); } }
 .ct-note { color: var(--g-muted); font-size: 0.8125rem; }

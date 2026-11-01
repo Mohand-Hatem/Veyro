@@ -52,13 +52,23 @@
 }
 
 @media (max-width: 767px) {
-  .pm { width: 100%; max-width: 100%; margin: auto 0 0; border-radius: 24px 24px 0 0; max-height: 92dvh; }
-  .pm-form { max-height: 92dvh; }
+  .pm { width: 100%; max-width: 100%; margin: auto auto 0; border-radius: 24px 24px 0 0; max-height: 92dvh; }
+  /* a flex column (not a grid) lets .pm-main shrink under the max-height and scroll, so the last field is always reachable */
+  .pm-form { max-height: 92dvh; display: flex; flex-direction: column; }
+  .pm-main { min-height: 0; }
   .pm-main { padding: 22px 18px 18px; }
   .pm-form { padding: 0; }
   .pm[open] { animation-name: pm-up; }
-  .pm-foot { position: sticky; bottom: 0; background: var(--card); padding-block: 12px 2px; }
+  .pm-foot { position: sticky; bottom: 0; background: var(--card); padding-block: 12px 2px; flex-wrap: wrap-reverse; }
+  /* labels stay on one line; when two buttons do not fit side by side they stack, the main action on top */
+  .pm-foot .pm-btn { flex: 1 1 0; min-width: max-content; white-space: nowrap; }
   .pm-f input, .pm-f textarea { font-size: 1rem; }
+}
+
+/* phones: dialog footers always stack, so a busy spinner can never push the buttons onto two rows mid-tap */
+@media (max-width: 480px) {
+  .pm .pm-foot { flex-direction: column-reverse; }
+  .pm .pm-foot .pm-btn { flex: none; width: 100%; min-width: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -26,7 +26,7 @@
 }
 
 /* Project members dialog (CS-05, ADR-012) */
-.pmb { width: min(580px, calc(100vw - 32px)); }
+@media (min-width: 768px) { .pmb { width: min(580px, calc(100vw - 32px)); } }
 .pmb-list { display: grid; list-style: none; margin: 0; padding: 0; max-height: 44vh; overflow-y: auto; }
 .pmb-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
 .pmb-row:first-child { border-top: 0; }

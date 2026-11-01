@@ -23,7 +23,7 @@
 .tp-move textarea:focus-visible { outline: none; border-color: var(--brand); }
 .tp-move-foot { display: flex; align-items: center; gap: 8px; }
 .tp-move-foot .pm-count { margin-inline-end: auto; }
-.tp-move-dlg { width: min(520px, calc(100vw - 32px)); }
+@media (min-width: 768px) { .tp-move-dlg { width: min(520px, calc(100vw - 32px)); } }
 .tp-move-dlg .st-dlg-in { display: grid; gap: 12px; }
 .tp-move-task { margin: 0; font-weight: 700; font-size: 1.0625rem; letter-spacing: -0.02em; }
 

@@ -41,7 +41,7 @@
 .gv-price b { color: var(--ink); font-size: 1.75rem; font-weight: 800; letter-spacing: -0.04em; line-height: 1.1; }
 .gv-test { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; margin: 8px 0 0; color: var(--muted); font-size: 0.8125rem; line-height: 1.5; }
 .gv-note { background: var(--warn-soft); color: var(--warn); border-radius: 12px; padding: 10px 14px; font-size: 0.875rem; font-weight: 600; line-height: 1.5; }
-.pm.gv-dlg.gv-dlg-sm { width: min(520px, calc(100vw - 32px)); }
+@media (min-width: 768px) { .pm.gv-dlg.gv-dlg-sm { width: min(520px, calc(100vw - 32px)); } }
 .gv-dlg-sm .pm-form { grid-template-columns: minmax(0, 1fr); }
 .gv-pc ul { list-style: none; margin: 4px 0 8px; padding: 0; display: grid; gap: 4px; font-size: 0.875rem; }
 .gv-pc li b { font-size: 1.125rem; letter-spacing: -0.02em; margin-inline-end: 3px; }
@@ -59,7 +59,7 @@
 .gv-danger h2 { font-size: 1.0625rem; letter-spacing: -0.02em; color: var(--rose); }
 .gv-danger p { color: var(--muted); margin-top: 4px; max-width: 70ch; font-size: 0.875rem; }
 /* dialogs (SCR-SET-03, SCR-SET-04) */
-.pm.gv-dlg { width: min(940px, calc(100vw - 32px)); }
+@media (min-width: 768px) { .pm.gv-dlg { width: min(940px, calc(100vw - 32px)); } }
 .gv-dlg .pm-main { overflow-x: hidden; }
 .gv-side { border-radius: 20px; padding: 22px 18px 20px; --il-sweater: #8E9BE0; }
 .dark .app .gv-side { --il-sweater: #5C69B8; }
