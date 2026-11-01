@@ -87,6 +87,12 @@ async function main() {
     const uid = users.map((u: { id: string }) => u.id);
     await prisma.auditLog.deleteMany({ where: { actorUserId: { in: uid } } });
     await prisma.userSession.deleteMany({ where: { userId: { in: uid } } });
+    // Visitors who used the assistant left AI rows behind; they block the users' deletion (onDelete: Restrict).
+    const mine = { userId: { in: uid } };
+    await prisma.aiConversation.deleteMany({ where: mine });
+    await prisma.aiUsageReservation.deleteMany({ where: mine });
+    await prisma.aiDailyUsage.deleteMany({ where: mine });
+    await prisma.userAiSubscription.deleteMany({ where: mine });
     await prisma.user.deleteMany({ where: { id: { in: uid } } });
     console.log('Demo removed.');
   }
