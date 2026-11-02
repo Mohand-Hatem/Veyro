@@ -43,6 +43,10 @@ export const TIER_PROJECT_LIMITS: Record<SubscriptionPlanTier, number> = {
 
 // Short-term memory: the model sees the last few messages of THIS conversation, capped by size. Nothing crosses conversations.
 const HISTORY_MESSAGES = 10;
+// A question and its answer are saved in one transaction, and Postgres now() is the transaction start, so they share a timestamp.
+// The role (enum order USER, ASSISTANT) breaks the tie, so the question always comes first; this also orders rows already stored.
+const OLDEST_FIRST: Prisma.AiMessageOrderByWithRelationInput[] = [{ createdAt: 'asc' }, { senderRole: 'asc' }];
+const NEWEST_FIRST: Prisma.AiMessageOrderByWithRelationInput[] = [{ createdAt: 'desc' }, { senderRole: 'desc' }];
 const HISTORY_MAX_CHARS = 6000;
 
 // Fixed replies, never written by the model, so an off-topic question cannot be talked into an answer.
@@ -98,7 +102,7 @@ export class AiService {
     conversation: { id: string; mode: AiMode; workspaceId: string | null },
     content: string,
   ): Promise<{ content: string; citations: object[] | null; draft: TaskDraft | null }> {
-    const recent = await this.prisma.aiMessage.findMany({ where: { conversationId: conversation.id }, orderBy: { createdAt: 'desc' }, take: HISTORY_MESSAGES });
+    const recent = await this.prisma.aiMessage.findMany({ where: { conversationId: conversation.id }, orderBy: NEWEST_FIRST, take: HISTORY_MESSAGES });
     const history: AiChatMessage[] = recent.reverse().map((m) => ({ role: m.senderRole === AiSenderRole.USER ? 'user' : 'assistant', content: m.content }));
     let size = content.length;
     const kept: AiChatMessage[] = [];
@@ -287,7 +291,7 @@ export class AiService {
 
     const messages = await this.prisma.aiMessage.findMany({
       where: { conversationId },
-      orderBy: { createdAt: 'asc' },
+      orderBy: OLDEST_FIRST,
       include: { proposal: true },
     });
     const proposals = await this.withProject(messages.map((m) => m.proposal).filter((p): p is NonNullable<typeof p> => p !== null));

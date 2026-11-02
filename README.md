@@ -92,7 +92,7 @@ The longer reasoning, with the alternatives and when to revisit each choice, is 
 
 | Where | Command | What it covers |
 | :--- | :--- | :--- |
-| `backend/` | `npm test` | 35 test files, 404 tests against a real database: business and role rules, the tenant-isolation route matrix, plan limits, security, OAuth, Stripe webhooks, the AI gateway and tools, files, notifications and mentions, and journeys across the product. |
+| `backend/` | `npm test` | 35 test files, 405 tests against a real database: business and role rules, the tenant-isolation route matrix, plan limits, security, OAuth, Stripe webhooks, the AI gateway and tools, files, notifications and mentions, and journeys across the product. |
 | `backend/` | `npm run ai:eval` | 22 cases for the assistant against the real model (help answers, refusals, workspace data, prompt injection, task drafts). Refuses to run on production. |
 | `frontend/` | `npm test` | 145 unit tests (vitest), including that every message exists in both languages. |
 | `e2e/` | `npx playwright test` | Browser journeys (sign-up, board moves, roles, the task page, status notes, files, mentions), every screen in English and Arabic at desktop and phone width, and the dialogs as full-width, scrollable sheets on a short phone screen. |

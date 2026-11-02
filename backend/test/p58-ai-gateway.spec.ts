@@ -149,6 +149,23 @@ describe('5.8a: AI assistant gateway (real app, model faked)', () => {
       });
     };
 
+    it('keeps a question before its answer when both share one timestamp (one transaction), in the history and in the chat', async () => {
+      const conv = await conversation('owner');
+      const sameTime = new Date(Date.now() - 60_000);
+      // Inserted answer-first on purpose: only the tie-breaker, not the insertion order, may decide.
+      await prisma.aiMessage.create({ data: { conversationId: conv, content: 'Tied answer.', senderRole: 'ASSISTANT', createdAt: sameTime } });
+      await prisma.aiMessage.create({ data: { conversationId: conv, content: 'Tied question', senderRole: 'USER', createdAt: sameTime } });
+      gw.calls = [];
+      gw.next = { inScope: true, answer: 'Next answer.', sourcesUsed: [] };
+      await send('owner', conv, 'Next question');
+      assert.deepEqual(gw.calls[0].messages.slice(0, 2), [
+        { role: 'user', content: 'Tied question' },
+        { role: 'assistant', content: 'Tied answer.' },
+      ]);
+      const shown = (await call('owner', 'GET', `/ai/conversations/${conv}/messages`)).json.data.map((m: any) => m.content);
+      assert.deepEqual(shown.slice(0, 2), ['Tied question', 'Tied answer.']);
+    });
+
     it('caps the history at the last 10 messages and always starts with a user message', async () => {
       const conv = await conversation('owner');
       await seed(conv, Array.from({ length: 15 }, (_, i) => `m${i}`)); // m0 user, m1 assistant, ... m14 user
